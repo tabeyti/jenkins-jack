@@ -1,0 +1,10 @@
+[
+  {
+    "keys": ["super+shift+j"], 
+    "command": "pypline"
+  },
+  {
+    "keys": ["super+shift+y"], 
+    "command": "pypline_show_api"
+  }
+]
