@@ -1,0 +1,12 @@
+[
+    {
+        "caption": "Pypline: Execute",
+        "command": "pypline",
+        "args": { "target_idx": 0 }
+    },
+    {
+        "caption": "Pypline: Show Pipeline API",
+        "command": "pypline",
+        "args": { "target_idx": 1 }
+    }
+]
