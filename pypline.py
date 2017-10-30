@@ -19,33 +19,7 @@ import sublime_plugin
 import requests
 import json
 
-
-class PyplineShowApi(sublime_plugin.TextCommand):
-  settings =              None
-  jenkins_uri =           ""
-  username =              ""
-  api_token =             ""
-
-  def run (self, edit):
-    self.settings =       sublime.load_settings("pypline.sublime-settings")
-    self.jenkins_uri =    self.settings.get("jenkins_uri", "http://127.0.0.1:8080")
-    self.username =       self.settings.get("username", None)
-    self.api_token =      self.settings.get("password", None)
-
-    self.open_browser_at("{}/pipeline-syntax".format(self.jenkins_uri))
-
-  def open_browser_at(self, url):
-    if sys.platform=='win32':
-      os.startfile(url)
-    elif sys.platform=='darwin':
-      subprocess.Popen(['open', url])
-    else:
-      try:
-        subprocess.Popen(['xdg-open', url])
-      except:
-        self.INFO('Please open a browser on: ' + url)
-
-class PyplineBuildCommand(sublime_plugin.TextCommand):
+class PyplineCommand(sublime_plugin.TextCommand):
 
   settings =              None
   jenkins_uri =           ""
@@ -61,10 +35,7 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
 
   edit = None
 
-  def run(self, edit):
-    sublime.set_timeout_async(lambda: self.start_pipeline(edit), 0)
-
-  def start_pipeline(self, edit):    
+  def run(self, edit, target_idx = -1):
     self.settings =       sublime.load_settings("pypline.sublime-settings")
     self.jenkins_uri =    self.settings.get("jenkins_uri", "http://127.0.0.1:8080")
     self.username =       self.settings.get("username", None)
@@ -75,8 +46,21 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
     self.display_build_output = self.settings.get("display_build_output", False)
     self.auth_tuple =   (self.username, self.api_token)
 
+    # Determine target.
+    if target_idx != -1:
+      self.option_select(target_idx, edit)
+    else:      
+      self.view.window().show_quick_panel([
+        "Execute Pipeline", 
+        "Show Pipeline Api"
+      ], lambda idx: self.option_select(idx, edit))
 
-    # Create/retrieve our output panel and clear the contents.
+  # Starts the flow for remotely building a Jenkins pipeline job,
+  # using the user's view contents as the pipeline script.
+  #
+  def start_pipeline_build(self, edit):
+
+    # Create/retrieve/show our output panel and clear the contents.
     self.output_panel = sublime.active_window().create_output_panel("pipeline_out")
     self.output_panel.run_command("select_all")
     self.output_panel.run_command("right_delete")
@@ -89,11 +73,26 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
     # self.view.show_popup(html)
 
     # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
+    # TODO: CSRF crumb support for console output is not supported yet.
     self.get_auth_crumb()
 
     filename = filename = os.path.splitext(ntpath.basename(self.view.file_name()))[0]
     content = self.view.substr(sublime.Region(0, self.view.size()))
-    self.build_pipeline(content, filename)    
+    self.build_pipeline(content, filename)
+
+  #############################################################################
+  # Selection
+  #############################################################################    
+
+  def option_select(self, index, edit):
+
+    if index == -1: return
+    if index == 0:
+      sublime.set_timeout_async(lambda: self.start_pipeline_build(edit), 0)
+    if index == 1:
+      self.open_browser_at("{}/pipeline-syntax".format(self.jenkins_uri))
+
+    return
 
   #############################################################################
   # Logging
@@ -117,7 +116,7 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
     self.MYPRINT("ERROR", message)
 
   #############################################################################
-  # HTTP Request Methods
+  # Request Methods
   #############################################################################
 
   def get_headers(self):
@@ -249,6 +248,11 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
     self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))    
     return False
 
+  # Remotely builds the passed Jenkins Pipeline source.
+  # Pipeline source is inserted into a template 'config.xml' and then
+  # remotely determines whether job exists and needs to be updated,
+  # or job doesn't exist and needs to be created.
+  # 
   def build_pipeline(self, source, job): 
     content = ""
     xmlpath = os.path.join(sublime.packages_path(), "pypline")
@@ -338,7 +342,7 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
         job_requests = requests.get(
           job_status_url,
           headers=self.get_headers())
-        
+
         job_bulding= job_requests.json().get("building")
         if not job_bulding:
           # We are done
@@ -350,8 +354,3 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
   
     self.complete = True
     self.INFO("-------------------------------------------------------------------------------")
-
-
-  def on_select(self, idx):
-    if idx > 0:
-      self.INFO("ON POTATO")
