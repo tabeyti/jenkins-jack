@@ -201,7 +201,7 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
       auth=self.auth_tuple)
 
     if r.status_code == requests.codes.ok:
-      return r.text
+      return r.text + "."
     self.ERROR("POST: {} - Could not create job {} - Status code {} - {}".format(
       url, jobname, r.status_code, r.text))
     return None
@@ -333,10 +333,12 @@ class PyplineBuildCommand(sublime_plugin.TextCommand):
 
       # No content for a while lets check if job is still running
       if check_job_status > 1:
+
         job_status_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/api/json"
         job_requests = requests.get(
           job_status_url,
-          headers={'Content-Type':'text/xml', self.auth_crumb[0]:self.auth_crumb[1]})
+          headers=self.get_headers())
+        
         job_bulding= job_requests.json().get("building")
         if not job_bulding:
           # We are done
