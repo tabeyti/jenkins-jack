@@ -56,8 +56,8 @@ class PyplineCommand(sublime_plugin.TextCommand):
       self.target_option_select(target_idx, edit)
     else:
       self.view.window().show_quick_panel([
-        "Pipeline Execute",
-        "Pipeline API"
+        "Pypline: Execute",
+        "Pypline: API"
       ], lambda idx: self.target_option_select(idx, edit))
 
   #############################################################################
