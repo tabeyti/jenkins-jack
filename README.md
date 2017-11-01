@@ -15,23 +15,23 @@ Pypline works by hooking into the user's running Jenkins instance. Before you ca
 
 ## Use
 
-To access available commands:
+To access available options:
 - (Windows/Linux): `ctrl+shift+j`
 - (OSX): `super+shift+j`
 
-There are currently two commands are provided
+There are currently two options:
 
-### Pypline: Execute
+#### Pypline: Execute
 Builds the Jenkins Pipeline script remotely.
 If the job doesn't exist, a pipeline job will be created for you. If the job _does_ exist, it will just update the job's pipeline script (nothing else).
 
 By default, the job's build output will stream to your Sublime's console window. If you would rather view the output via browser, set the configuration flag `open_browser_build` to `true` and a this command will open a page to your build's console output.
 
-### Pypline: Steps API
+#### Pypline: Steps API
 
-By default, a searchable list of the available Pipeline steps will be provided to the user. On selection of a step, skeleton/snippet of the step will be pooped at the user's cursor position.
+By default, a searchable list of the available Pipeline steps will be provided to the user. On selection of a step, a snippet of the step's call signature will be pooped out fer ya.
 
-If you would rather just view the Pipeline steps via browser, set the configuration flag `open_browser_api` to `true` and this command will open a page to your Jenkins' Pipeline Snippet Generator page.
+If you would rather just view the Pipeline steps via browser, set the configuration flag `open_browser_api` to `true` and this option will then open your browser to your Jenkins' Pipeline Snippet Generator page.
 
 ## Support
 Do you have a feature request or would like to report a bug? Super duper! Create an issue via github's [issue tracker](https://github.com/tabeyti/pypline/issues). 
