@@ -13,19 +13,23 @@
   // Token can be found here: [jenkins_url]/user/[username]/configure
   "password": "",
 
-  // Optional prefix to add to the created jobs (makes them easy to locate).
+  // Optional prefix to add to jobs that are created (meaning, they don't
+  // exist on the targeted  Jenkins server). Makes finding the created jobs 
+  // easier to locate :)
   "job_prefix": "",
 
   /**
    * Behavior config.
    */
 
-  // Flag indicating whether to open the build in a browser.
-  "open_browser": true,
+  // Flag indicating whether to show build output via browser instead of 
+  // streaming the output to console.
+  "open_browser_build": false,
+
+  // Flag indicating whether to show pipeline api via browser instead of 
+  // displaying the API-search/snippet-generator.
+  "open_browser_api": false,
 
   // Timeout for opening build in browser.
-  "open_browswer_timeout_secs": 20,
-
-  // Flag indicating whether to stream Jenkins build output to Sublime console.
-  "display_build_output": true
+  "open_browser_timeout_secs": 20
 }
