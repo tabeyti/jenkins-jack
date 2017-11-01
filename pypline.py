@@ -2,6 +2,9 @@
 # https://github.com/packagecontrol/requests
 # https://stackoverflow.com/questions/38137760/jenkins-rest-api-create-job
 
+import sublime
+import sublime_plugin
+
 import os
 import sys
 import pprint
@@ -9,15 +12,11 @@ import requests
 import tempfile
 import subprocess
 import ntpath
+import re
 
 from xml import etree
 from time import sleep
 from xml.sax.saxutils import escape
-
-import sublime
-import sublime_plugin
-import requests
-import json
 
 class PyplineCommand(sublime_plugin.TextCommand):
 
@@ -26,14 +25,16 @@ class PyplineCommand(sublime_plugin.TextCommand):
   username =              ""
   api_token =             ""
   job_prefix =            ""
-  open_browser =          True
+  open_browser_build =    False
+  open_browser_api =      False
   timeout_secs =          10
-  display_build_output =  False
   auth_tuple =            None
   auth_crumb =            None
   output_panel =          None
 
+  filename =              "empty"
   edit = None
+  pipeline_api =          None
 
   def run(self, edit, target_idx = -1):
     self.settings =       sublime.load_settings("pypline.sublime-settings")
@@ -41,19 +42,39 @@ class PyplineCommand(sublime_plugin.TextCommand):
     self.username =       self.settings.get("username", None)
     self.api_token =      self.settings.get("password", None)
     self.job_prefix =     self.settings.get("job_prefix", "temp")
-    self.open_browser =   self.settings.get("open_browser", True)
+    self.open_browser_build =   self.settings.get("open_browser_build", False)
+    self.open_browser_api =   self.settings.get("open_browser_api", False)
     self.timeout_secs =    self.settings.get("open_browser_timeout_secs", 10)
-    self.display_build_output = self.settings.get("display_build_output", False)
     self.auth_tuple =   (self.username, self.api_token)
+
+    self.filename = ntpath.basename(self.view.file_name())
+    if "." in self.filename:
+      self.filename = os.path.splitext(self.filename)[0]
 
     # Determine target.
     if target_idx != -1:
-      self.option_select(target_idx, edit)
-    else:      
+      self.target_option_select(target_idx, edit)
+    else:
       self.view.window().show_quick_panel([
-        "Execute Pipeline", 
-        "Show Pipeline Api"
-      ], lambda idx: self.option_select(idx, edit))
+        "Execute",
+        "Pipeline API"
+      ], lambda idx: self.target_option_select(idx, edit))
+
+  #############################################################################
+  # Top level methods
+  #############################################################################    
+
+  def target_option_select(self, index, edit):
+    if index == -1: return
+    if index == 0:
+      sublime.set_timeout_async(lambda: self.start_pipeline_build(edit), 0)
+    elif index == 1:
+      if self.open_browser_api:
+        self.open_browser_at("{}/pipeline-syntax".format(self.jenkins_uri))
+      else:
+        self.show_api_search()
+      
+    return
 
   # Starts the flow for remotely building a Jenkins pipeline job,
   # using the user's view contents as the pipeline script.
@@ -61,38 +82,21 @@ class PyplineCommand(sublime_plugin.TextCommand):
   def start_pipeline_build(self, edit):
 
     # Create/retrieve/show our output panel and clear the contents.
-    self.output_panel = sublime.active_window().create_output_panel("pipeline_out")
-    self.output_panel.run_command("select_all")
-    self.output_panel.run_command("right_delete")
-    self.output_panel.set_read_only(False)
-    self.output_panel.set_syntax_file("Packages/Text/Plain Text.tmLanguage")
-    sublime.active_window().run_command("show_panel", {"panel": "output.pipeline_out"})
-
-    # html = self.get_api_html()
-    # self.OUT(html)
-    # self.view.show_popup(html)
+    self.open_output_panel();
 
     # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
     # TODO: CSRF crumb support for console output is not supported yet.
     self.get_auth_crumb()
-
-    filename = filename = os.path.splitext(ntpath.basename(self.view.file_name()))[0]
     content = self.view.substr(sublime.Region(0, self.view.size()))
-    self.build_pipeline(content, filename)
+    self.build_pipeline(content, self.filename)
 
-  #############################################################################
-  # Selection
-  #############################################################################    
-
-  def option_select(self, index, edit):
-
-    if index == -1: return
-    if index == 0:
-      sublime.set_timeout_async(lambda: self.start_pipeline_build(edit), 0)
-    if index == 1:
-      self.open_browser_at("{}/pipeline-syntax".format(self.jenkins_uri))
-
-    return
+  def open_output_panel(self):
+    self.output_panel = sublime.active_window().create_output_panel(self.filename)
+    self.output_panel.run_command("select_all")
+    self.output_panel.run_command("right_delete")
+    self.output_panel.set_read_only(False)
+    self.output_panel.set_syntax_file("Packages/Text/Plain Text.tmLanguage")
+    sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(self.filename)})
 
   #############################################################################
   # Logging
@@ -106,6 +110,9 @@ class PyplineCommand(sublime_plugin.TextCommand):
     print("[{}] - {}".format(label, message))
     self.OUT("[{}] - {}".format(label, message))
     
+  def DEBUG(self, message):
+    print("[DEBUG] - {}".format(message))
+
   def INFO(self, message):
     self.MYPRINT("INFO", message)
 
@@ -140,10 +147,6 @@ class PyplineCommand(sublime_plugin.TextCommand):
     data = json.loads(r.text)
     self.auth_crumb = (data["crumbRequestField"], data["crumb"])
     self.INFO("Crumb retrieved - {}:{}".format(self.auth_crumb[0], self.auth_crumb[1]))
-
-  def get_api_html(self):
-    r = requests.get("http://127.0.0.1:8080/pipeline-syntax/", auth=self.auth_tuple)
-    return r.text
 
   def open_browser_at(self, url):
     if sys.platform=='win32':
@@ -261,7 +264,9 @@ class PyplineCommand(sublime_plugin.TextCommand):
     config = content.replace("++CONTENT++", source)
 
     # If job exists, update. If not, create.
-    jobname = "{}-{}".format(self.job_prefix, job) 
+    jobname = job
+    if len(self.job_prefix.strip()) != 0:
+      jobname = self.job_prefix + "-" +  job
 
     next_build_number = 1
     if not self.job_exists(jobname):
@@ -282,13 +287,12 @@ class PyplineCommand(sublime_plugin.TextCommand):
 
     # Wait for build to start then open browser to the URL (if specified)    
     if not self.build_ready(build_url): return
-    if self.open_browser:
-      self.INFO("Build ready! Opening browser to console output.")
+    if self.open_browser_build:
+      self.INFO("Opening browser to console output.")
       self.open_browser_at(build_url)
-
-    # Print build output to console if specified.
-    if self.display_build_output:
-      self.INFO("Display build output enabled.")
+    else:
+      # Print build output to console if specified.
+      self.INFO("Streaming build output.")
       self.console_output(jobname, next_build_number)
 
   def highlight_output(self):
@@ -354,3 +358,75 @@ class PyplineCommand(sublime_plugin.TextCommand):
   
     self.complete = True
     self.INFO("-------------------------------------------------------------------------------")
+
+  # Retrieves a map of available pipeline steps in the format of 
+  # 'step name': 'documentation'
+  # 
+  def get_pipeline_api(self):
+    url = "{}/pipeline-syntax/gdsl".format(self.jenkins_uri)
+    r = requests.get(url, verify=False)
+    
+    data = []
+
+    # Grab method lines from GDSL text.
+    for line in r.text.split("\n"):
+      if "method(name:" in line:
+        m = re.match("method\((.*?)\)", line)
+        if m: data.append(m.group(1))
+
+    # Parse the name, params, and documentation for each step in the GDSL method line.
+    self.pipeline_api = []
+    for d in data:
+      m = re.match("name:\s+'(.*?)',.* params: \[(.*?)],.* doc:\s+'(.*)'", d)
+      if not m: continue
+
+      name = m.group(1)
+      doc = m.group(3)
+
+      # Parse parameters
+      params = {}
+      for p in m.group(2).split(", "):
+        pcomps = p.split(":")
+        if (pcomps[0] == ""): continue
+        params[pcomps[0]] = pcomps[1].replace("'", "").strip()
+
+      self.DEBUG("Parsed name: {} - doc: {}".format(name, doc))
+      s = PipelineStepDoc()
+      s.name = name
+      s.doc = doc
+      s.param_map = params
+      self.pipeline_api.append(s)
+    
+    # Sort by name
+    self.pipeline_api.sort(key=lambda x: x.name)
+      
+
+  # Shows the api search bar.
+  # 
+  def show_api_search(self):
+    self.get_pipeline_api()   
+    api_list = ["{}: {}".format(p.name, p.doc) for p in self.pipeline_api]    
+
+    self.view.window().show_quick_panel(api_list, 
+      lambda idx: self.show_api_search_on_chosen(idx))
+
+  # Handles a search selection from show_api_search
+  # 
+  def show_api_search_on_chosen(self, idx):
+    if idx <= 0: return
+    step = self.pipeline_api[idx]
+    self.view.run_command("insert_snippet", { "contents": step.get_snippet() })
+
+class PipelineStepDoc:
+  name =        ""
+  doc =         ""
+  param_map =   {}
+
+  def get_snippet(self):
+    s = "{} ".format(self.name)
+    p = []
+    for key in sorted(self.param_map):
+      p.append("{}:'{}'".format(key, self.param_map[key]))
+    return s + ", ".join(p)
+
+
