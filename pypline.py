@@ -20,21 +20,22 @@ from xml.sax.saxutils import escape
 
 class PyplineCommand(sublime_plugin.TextCommand):
 
-  settings =              None
-  jenkins_uri =           ""
-  username =              ""
-  api_token =             ""
-  job_prefix =            ""
-  open_browser_build =    False
-  open_browser_api =      False
-  timeout_secs =          10
-  auth_tuple =            None
-  auth_crumb =            None
-  output_panel =          None
+  settings =                  None
+  jenkins_uri =               ""
+  username =                  ""
+  api_token =                 ""
+  job_prefix =                ""
+  open_browser_build_output = False
+  open_browser_steps_api =    False
+  timeout_secs =              20
+  auth_tuple =                None
+  auth_crumb =                None
 
-  filename =              "empty"
-  edit = None
-  pipeline_api =          None
+  filename =                  "empty"
+  output_panel =              None
+  pipeline_steps_api =        None  
+  edit =                      None
+  
 
   def run(self, edit, target_idx = -1):
     self.settings =       sublime.load_settings("pypline.sublime-settings")
@@ -42,8 +43,8 @@ class PyplineCommand(sublime_plugin.TextCommand):
     self.username =       self.settings.get("username", None)
     self.api_token =      self.settings.get("password", None)
     self.job_prefix =     self.settings.get("job_prefix", "temp")
-    self.open_browser_build =   self.settings.get("open_browser_build", False)
-    self.open_browser_api =   self.settings.get("open_browser_api", False)
+    self.open_browser_build_output =   self.settings.get("open_browser_build_output", False)
+    self.open_browser_steps_api =   self.settings.get("open_browser_steps_api", False)
     self.timeout_secs =    self.settings.get("open_browser_timeout_secs", 10)
     self.auth_tuple =   (self.username, self.api_token)
 
@@ -51,13 +52,13 @@ class PyplineCommand(sublime_plugin.TextCommand):
     if "." in self.filename:
       self.filename = os.path.splitext(self.filename)[0]
 
-    # Determine target.
+    # Determine command target.
     if target_idx != -1:
       self.target_option_select(target_idx, edit)
     else:
       self.view.window().show_quick_panel([
         "Pypline: Execute",
-        "Pypline: API"
+        "Pypline: Steps API"
       ], lambda idx: self.target_option_select(idx, edit))
 
   #############################################################################
@@ -69,10 +70,10 @@ class PyplineCommand(sublime_plugin.TextCommand):
     if index == 0:
       sublime.set_timeout_async(lambda: self.start_pipeline_build(edit), 0)
     elif index == 1:
-      if self.open_browser_api:
+      if self.open_browser_steps_api:
         self.open_browser_at("{}/pipeline-syntax".format(self.jenkins_uri))
       else:
-        self.show_api_search()
+        self.show_steps_api_search()
       
     return
 
@@ -251,12 +252,14 @@ class PyplineCommand(sublime_plugin.TextCommand):
     self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))    
     return False
 
+  #############################################################################
   # Remotely builds the passed Jenkins Pipeline source.
   # Pipeline source is inserted into a template 'config.xml' and then
   # remotely determines whether job exists and needs to be updated,
   # or job doesn't exist and needs to be created.
   # 
   def build_pipeline(self, source, job): 
+
     content = ""
     xmlpath = os.path.join(sublime.packages_path(), "pypline")
     with open('{}/config.xml'.format(xmlpath), 'r') as myfile:
@@ -285,19 +288,24 @@ class PyplineCommand(sublime_plugin.TextCommand):
     build_url = "{}/job/{}/{}".format(self.jenkins_uri, jobname, next_build_number)
     self.INFO("Build started for '{}' at {}".format(jobname, build_url))
 
-    # Wait for build to start then open browser to the URL (if specified)    
+    # Wait for build to start.
     if not self.build_ready(build_url): return
-    if self.open_browser_build:
+
+    # Stream output to Sublime console or open browser to output.
+    if self.open_browser_build_output:
       self.INFO("Opening browser to console output.")
-      self.open_browser_at(build_url)
+      self.open_browser_at("{}/console".format(build_url))
     else:
       # Print build output to console if specified.
       self.INFO("Streaming build output.")
       self.console_output(jobname, next_build_number)
 
-  def highlight_output(self):
-    self.output_panel.add_regions("", [sublime.Region(0, self.output_panel.size())], "string", "", 0)
-
+  #############################################################################
+  # Streams the build's output via Jenkins' progressiveText by keeping an 
+  # open session with the API, and writing out content as it comes in. The 
+  # method will return once the build is complete, which is determined
+  # via Jenkins API.
+  # 
   def console_output(self, jobname, buildnumber):
     # Get job console till job stops
     job_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/logText/progressiveText"
@@ -359,8 +367,10 @@ class PyplineCommand(sublime_plugin.TextCommand):
     self.complete = True
     self.INFO("-------------------------------------------------------------------------------")
 
-  # Retrieves a map of available pipeline steps in the format of 
-  # 'step name': 'documentation'
+  #############################################################################
+  # Generates the list of Pipeline steps by parsing the output from the
+  # 'pipeline-syntax/gdsl' endpoint. Would be nice if there was a library for
+  # parsing this, but some poorly written regex will do just nicely...
   # 
   def get_pipeline_api(self):
     url = "{}/pipeline-syntax/gdsl".format(self.jenkins_uri)
@@ -374,16 +384,17 @@ class PyplineCommand(sublime_plugin.TextCommand):
         m = re.match("method\((.*?)\)", line)
         if m: data.append(m.group(1))
 
-    # Parse the name, params, and documentation for each step in the GDSL method line.
-    self.pipeline_api = []
+    # Parse the step name, parameterss, and documentation in the GDSL method line.
+    self.pipeline_steps_api = []
     for d in data:
+
       m = re.match("name:\s+'(.*?)',.* params: \[(.*?)],.* doc:\s+'(.*)'", d)
       if not m: continue
 
       name = m.group(1)
       doc = m.group(3)
 
-      # Parse parameters
+      # Parse step parameters.
       params = {}
       for p in m.group(2).split(", "):
         pcomps = p.split(":")
@@ -395,28 +406,33 @@ class PyplineCommand(sublime_plugin.TextCommand):
       s.name = name
       s.doc = doc
       s.param_map = params
-      self.pipeline_api.append(s)
+      self.pipeline_steps_api.append(s)
     
-    # Sort by name
-    self.pipeline_api.sort(key=lambda x: x.name)
+    # Sort by step name.
+    self.pipeline_steps_api.sort(key=lambda x: x.name)
       
 
-  # Shows the api search bar.
+  #############################################################################
+  #  Shows the available Pipeline steps API via Sublime's quick panel.
   # 
-  def show_api_search(self):
+  def show_steps_api_search(self):
     self.get_pipeline_api()   
-    api_list = ["{}: {}".format(p.name, p.doc) for p in self.pipeline_api]    
+    api_list = ["{}: {}".format(p.name, p.doc) for p in self.pipeline_steps_api]    
 
     self.view.window().show_quick_panel(api_list, 
-      lambda idx: self.show_api_search_on_chosen(idx))
+      lambda idx: self.show_steps_api_search_on_chosen(idx))
 
-  # Handles a search selection from show_api_search
+  # Handles a search selection from show_steps_api_search
   # 
-  def show_api_search_on_chosen(self, idx):
+  def show_steps_api_search_on_chosen(self, idx):
     if idx <= 0: return
-    step = self.pipeline_api[idx]
+    step = self.pipeline_steps_api[idx]
     self.view.run_command("insert_snippet", { "contents": step.get_snippet() })
 
+
+###############################################################################
+# Class for storing Pipeline step meta-data
+###############################################################################
 class PipelineStepDoc:
   name =        ""
   doc =         ""

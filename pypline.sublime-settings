@@ -24,11 +24,11 @@
 
   // Flag indicating whether to show build output via browser instead of 
   // streaming the output to console.
-  "open_browser_build": false,
+  "open_browser_build_output": false,
 
   // Flag indicating whether to show pipeline api via browser instead of 
   // displaying the API-search/snippet-generator.
-  "open_browser_api": false,
+  "open_browser_steps_api": false,
 
   // Timeout for opening build in browser.
   "open_browser_timeout_secs": 20
