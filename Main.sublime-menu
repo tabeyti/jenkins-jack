@@ -1,83 +1,99 @@
 [
     {
-        "mnemonic": "J",
-        "caption": "Pypline",
-        "id": "pypline",
+        "mnemonic": "n", 
+        "caption": "Preferences", 
+        "id": "preferences", 
         "children": [
             {
-                "caption": "Settings – Default", 
-                "args": {
-                    "file": "${packages}/pypline/pypline.sublime-settings"
-                }, 
-                "command": "open_file"
-            }, 
-            {
-                "caption": "Settings – User", 
-                "args": {
-                    "file": "${packages}/User/pypline.sublime-settings"
-                }, 
-                "command": "open_file"
-            }, 
-            { "caption": "-" },
-            {
-                "command": "open_file",
-                "args": {
-                    "file": "${packages}/pypline/Default (OSX).sublime-keymap",
-                    "platform": "OSX"
-                },
-                "caption": "Key Bindings – Default"
-            },
-            {
-                "command": "open_file",
-                "args": {
-                    "file": "${packages}/pypline/Default (Linux).sublime-keymap",
-                    "platform": "Linux"
-                },
-                "caption": "Key Bindings – Default"
-            },
-            {
-                "command": "open_file",
-                "args": {
-                    "file": "${packages}/pypline/Default (Windows).sublime-keymap",
-                    "platform": "Windows"
-                },
-                "caption": "Key Bindings – Default"
-            },
-            {
-                "command": "open_file",
-                "args": {
-                    "file": "${packages}/User/Default (OSX).sublime-keymap",
-                    "platform": "OSX"
-                },
-                "caption": "Key Bindings – User"
-            },
-            {
-                "command": "open_file",
-                "args": {
-                    "file": "${packages}/User/Default (Linux).sublime-keymap",
-                    "platform": "Linux"
-                },
-                "caption": "Key Bindings – User"
-            },
-            {
-                "command": "open_file",
-                "args": {
-                    "file": "${packages}/User/Default (Windows).sublime-keymap",
-                    "platform": "Windows"
-                },
-                "caption": "Key Bindings – User"
-            },
-            { "caption": "-" },
-            {
-                "mnemonic": "E",
-                "caption": "Execute",
-                "command": "pypline_build"
-            },
-            {
-                "mnemonic": "A",
-                "caption": "Pipeline API",
-                "command": "pypline_show_api"
-            },
+                "mnemonic": "P", 
+                "caption": "Package Settings", 
+                "id": "package-settings", 
+                "children": [
+                    {                                        
+                        "mnemonic": "J",
+                        "caption": "Pypline",
+                        "id": "pypline",
+                        "children": [
+                            {
+                                "caption": "Settings – Default", 
+                                "args": {
+                                    "file": "${packages}/pypline/pypline.sublime-settings"
+                                }, 
+                                "command": "open_file"
+                            }, 
+                            {
+                                "caption": "Settings – User", 
+                                "args": {
+                                    "file": "${packages}/User/pypline.sublime-settings"
+                                }, 
+                                "command": "open_file"
+                            }, 
+                            { "caption": "-" },
+                            {
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/pypline/Default (OSX).sublime-keymap",
+                                    "platform": "OSX"
+                                },
+                                "caption": "Key Bindings – Default"
+                            },
+                            {
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/pypline/Default (Linux).sublime-keymap",
+                                    "platform": "Linux"
+                                },
+                                "caption": "Key Bindings – Default"
+                            },
+                            {
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/pypline/Default (Windows).sublime-keymap",
+                                    "platform": "Windows"
+                                },
+                                "caption": "Key Bindings – Default"
+                            },
+                            {
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/User/Default (OSX).sublime-keymap",
+                                    "platform": "OSX"
+                                },
+                                "caption": "Key Bindings – User"
+                            },
+                            {
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/User/Default (Linux).sublime-keymap",
+                                    "platform": "Linux"
+                                },
+                                "caption": "Key Bindings – User"
+                            },
+                            {
+                                "command": "open_file",
+                                "args": {
+                                    "file": "${packages}/User/Default (Windows).sublime-keymap",
+                                    "platform": "Windows"
+                                },
+                                "caption": "Key Bindings – User"
+                            },
+                            { "caption": "-" },
+                            {
+                                "mnemonic": "E",
+                                "caption": "Execute",
+                                "command": "pypline",
+                                "args": { "target_idx": 0 }
+                            },
+                            {
+                                "mnemonic": "A",
+                                "caption": "Steps API",
+                                "command": "pypline",
+                                "args": { "target_idx": 1 }
+                            },
+                        ]
+                    }
+                ]
+            }
         ]
     }
 ]

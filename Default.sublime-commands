@@ -5,7 +5,7 @@
         "args": { "target_idx": 0 }
     },
     {
-        "caption": "Pypline: API",
+        "caption": "Pypline: Steps API",
         "command": "pypline",
         "args": { "target_idx": 1 }
     }
