@@ -14,8 +14,8 @@
   "password": "",
 
   // Optional prefix to add to jobs that are created (meaning, they don't
-  // exist on the targeted  Jenkins server). Makes finding the created jobs 
-  // easier to locate :)
+  // exist on the targeted Jenkins server before building). Makes finding
+  // the created jobs easier to locate :)
   "job_prefix": "",
 
   /**
@@ -31,5 +31,9 @@
   "open_browser_steps_api": false,
 
   // Timeout for opening build in browser.
-  "open_browser_timeout_secs": 20
+  "open_browser_timeout_secs": 20,
+
+  // Flag to enable/disable autocompletion.
+  "autocompletion_enabled": true
+
 }
