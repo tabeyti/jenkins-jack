@@ -23,7 +23,7 @@ from xml.sax.saxutils import escape
 ############################################################################
 class Pypline:
 
-  DEBUG_ENABLED =             False
+  DEBUG_ENABLED =             True
 
   settings =                  None
   jenkins_uri =               ""
@@ -362,40 +362,61 @@ class Pypline:
     r = requests.get(url, verify=False)
     
     data = []
+    self.pipeline_steps_api = []
 
     # Grab method lines from GDSL text.
     for line in r.text.split("\n"):
-      if "method(name:" in line:
+      if "method(name:" in line: 
         m = re.match("method\((.*?)\)", line)
-        if m: data.append(m.group(1))
+        if not m: continue
 
-    # Parse the step name, parameterss, and documentation in the GDSL method line.
-    self.pipeline_steps_api = []
-    for d in data:
+        step = self.parse_method_line(line)
 
-      m = re.match("name:\s+'(.*?)',.* params: \[(.*?)],.* doc:\s+'(.*)'", d)
-      if not m: continue
+        if step != None and not any(p.name == step.name for p in self.pipeline_steps_api):
+          self.pipeline_steps_api.append(step)
+    
+    # Sort by step name.
+    self.pipeline_steps_api.sort(key=lambda x: x.name)
 
-      name = m.group(1)
+  def parse_method_line(self, line):
+
+    name = ""
+    doc = ""
+    params = {}
+
+    # First method signature.
+    m = re.match("method\(name:\s+'(.*?)',.* params: \[(.*?)],.* doc:\s+'(.*)'", line)
+    if m:
+      name = m.group(1) 
       doc = m.group(3)
 
       # Parse step parameters.
-      params = {}
+      params = {} 
       for p in m.group(2).split(", "):
         pcomps = p.split(":")
         if (pcomps[0] == ""): continue
         params[pcomps[0]] = pcomps[1].replace("'", "").strip()
 
-      self.DEBUG("Parsed name: {} - doc: {}".format(name, doc))
-      s = PipelineStepDoc()
-      s.name = name
-      s.doc = doc
-      s.param_map = params
-      self.pipeline_steps_api.append(s)
-    
-    # Sort by step name.
-    self.pipeline_steps_api.sort(key=lambda x: x.name)
-      
+    else:
+      m = re.match("method\(name:\s+'(.*?)',.*namedParams: \[(.*?)\],.* doc:\s+'(.*)'", line)
+      if not m: return None
+
+      name = m.group(1)
+      doc = m.group(3)
+
+      rawParams = m.group(2).split(", parameter")
+
+      for rp in rawParams:
+        tm = re.match(".*name:\s+'(.*?)', type:\s+'(.*?)'.*", rp)
+        if not tm: continue
+        params[tm.group(1)] = tm.group(2)
+
+    self.DEBUG("Parsed name: {} - doc: {}".format(name, doc))
+    s = PipelineStepDoc()
+    s.name = name
+    s.doc = doc
+    s.param_map = params 
+    return s
 
   #############################################################################
   #  Shows the available Pipeline steps API via Sublime's quick panel.
@@ -456,13 +477,12 @@ class PyplineCompletions(sublime_plugin.EventListener):
     return (completions, sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
   def get_completions(self):
-
     if pypline.pipeline_steps_api == None: 
       pypline.refresh_pipline_api()
 
     completions = []
     for step in pypline.pipeline_steps_api:
-      completions.append(("{}\tPypline".format(step.name), step.get_snippet()))
+      completions.append(("{}\t{}\tPypline".format(step.name, step.get_signature()), step.get_snippet()))
     return completions
  
 ###############################################################################
@@ -474,11 +494,31 @@ class PipelineStepDoc:
   param_map =   {}
 
   def get_snippet(self):
-    s = "{} ".format(self.name)
     p = [] 
     for key in sorted(self.param_map):
-      p.append("{}:'{}'".format(key, self.param_map[key]))
-    return s + ", ".join(p)
+      value = self.param_default_value(self.param_map[key])
+      p.append("{}:{}".format(key, value))
+    return "{} {}".format(self.name, ", ".join(p))
+
+  def get_signature(self):
+    p = [] 
+    for key in sorted(self.param_map):
+      p.append("{}:{}".format(key, self.param_map[key]))
+    return "{}({})".format(self.name, ", ".join(p))
+
+  def param_default_value(self, param):
+    if param == "java.lang.String":
+      return "\"\""
+    if param == "Closure":
+      return "\{\}"
+    if param == "Map":
+      return "[:]"
+    if param == "int":
+      return "0"
+    if param == "boolean":
+      return "true"
+    else:
+      return "[unknown_param]"
 
 
 ###############################################################################
