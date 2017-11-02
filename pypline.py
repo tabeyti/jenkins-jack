@@ -22,6 +22,9 @@ from xml.sax.saxutils import escape
 # Core class (whatever that means in this instance).
 ############################################################################
 class Pypline:
+
+  DEBUG_ENABLED =             False
+
   settings =                  None
   jenkins_uri =               ""
   username =                  ""
@@ -94,7 +97,7 @@ class Pypline:
     self.OUT("[{}] - {}".format(label, message))
     
   def DEBUG(self, message):
-    print("[DEBUG] - {}".format(message))
+    if self.DEBUG_ENABLED: print("[DEBUG] - {}".format(message))
 
   def INFO(self, message):
     self.MYPRINT("INFO", message)
@@ -398,7 +401,7 @@ class Pypline:
   #  Shows the available Pipeline steps API via Sublime's quick panel.
   # 
   def show_steps_api_search(self, view):
-    self.refresh_pipline_api()   
+    self.refresh_pipline_api()
     api_list = ["{}: {}".format(p.name, p.doc) for p in self.pipeline_steps_api]    
 
     view.window().show_quick_panel(api_list, 
@@ -453,7 +456,10 @@ class PyplineCompletions(sublime_plugin.EventListener):
     return (completions, sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
   def get_completions(self):
-    pypline.refresh_pipline_api()
+
+    if pypline.pipeline_steps_api == None: 
+      pypline.refresh_pipline_api()
+
     completions = []
     for step in pypline.pipeline_steps_api:
       completions.append(("{}\tPypline".format(step.name), step.get_snippet()))
