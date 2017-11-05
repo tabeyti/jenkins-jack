@@ -70,6 +70,11 @@ class Pypline:
     # Create/retrieve/show our output panel and clear the contents.
     self.open_output_panel();
 
+    # Grab file name (to be used for jenkins job update/create)
+    self.filename = ntpath.basename(view.file_name())
+    if "." in self.filename:
+      self.filename = os.path.splitext(self.filename)[0]
+
     # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
     # TODO: CSRF crumb support for console output is not supported yet.
     self.get_auth_crumb()
