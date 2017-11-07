@@ -29,7 +29,7 @@ class Pypline:
   jenkins_uri =               ""
   username =                  ""
   api_token =                 ""
-  job_prefix =                ""
+  job_prefix =                "" 
   open_browser_build_output = False
   open_browser_steps_api =    False
   autocompletion_enabled =    True
@@ -41,9 +41,11 @@ class Pypline:
   output_panel =              None
   pipeline_steps_api =        None  
 
-  def __init__(self):
-    self.settings =       sublime.load_settings("pypline.sublime-settings")
+  def load_settings(self, settings):
+    self.settings =       settings
+    print("SETTINGS: {}".format(self.settings))
     self.jenkins_uri =    self.settings.get("jenkins_uri", "http://127.0.0.1:8080")
+    print("STUFF: ".format(self.jenkins_uri))
     self.username =       self.settings.get("username", None)
     self.api_token =      self.settings.get("password", None)
     self.job_prefix =     self.settings.get("job_prefix", "temp")
@@ -52,6 +54,7 @@ class Pypline:
     self.open_browser_build_output =    self.settings.get("open_browser_build_output", False)
     self.open_browser_steps_api =       self.settings.get("open_browser_steps_api", False)
     self.autocompletion_enabled =       self.settings.get("autocompletion_enabled", True)
+
 
   def open_output_panel(self):
     self.output_panel = sublime.active_window().create_output_panel(self.filename)
@@ -448,7 +451,10 @@ pypline = Pypline()
 class PyplineCommand(sublime_plugin.TextCommand):
   
   def run(self, edit, target_idx = -1):
-           
+    
+    settings =       sublime.load_settings("pypline.sublime-settings")
+    pypline.load_settings(settings)
+
     # Determine command target.
     if target_idx != -1:
       self.target_option_select(target_idx, edit)

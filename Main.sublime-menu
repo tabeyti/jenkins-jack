@@ -10,7 +10,6 @@
                 "id": "package-settings", 
                 "children": [
                     {                                        
-                        "mnemonic": "J",
                         "caption": "Pypline",
                         "id": "pypline",
                         "children": [
