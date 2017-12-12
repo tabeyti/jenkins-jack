@@ -257,7 +257,9 @@ class Pypline:
     xmlpath = os.path.join(sublime.packages_path(), "pypline")
     with open('{}/config.xml'.format(xmlpath), 'r') as myfile:
       content = myfile.read().replace('\n', '')
-    config = content.replace("++CONTENT++", source)
+
+    # Take into account special characters for XML. XML is shit&;
+    config = content.replace("++CONTENT++", "<![CDATA[" + source + "]]>")
 
     # If job exists, update. If not, create.
     jobname = job
@@ -291,7 +293,7 @@ class Pypline:
     else:
       # Print build output to console if specified.
       self.INFO("Streaming build output.")
-      self.console_output(jobname, next_build_number)
+      self.stream_console_output(jobname, next_build_number)
 
   #############################################################################
   # Streams the build's output via Jenkins' progressiveText by keeping an 
@@ -299,7 +301,11 @@ class Pypline:
   # method will return once the build is complete, which is determined
   # via Jenkins API.
   # 
-  def console_output(self, jobname, buildnumber):
+  def stream_console_output(self, jobname, buildnumber):
+    
+    # Switch focus to the console output panel.
+    sublime.active_window().focus_view(self.output_panel)
+
     # Get job console till job stops
     job_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/logText/progressiveText"
     self.INFO("-------------------------------------------------------------------------------")
