@@ -63,6 +63,7 @@ class Pypline:
     self.output_panel.set_read_only(False)
     self.output_panel.set_syntax_file("Packages/Text/Plain Text.tmLanguage")
     sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(self.filename)})
+    sublime.active_window().focus_view(self.output_panel)
 
   ############################################################################
   # Starts the flow for remotely building a Jenkins pipeline job,
@@ -95,9 +96,10 @@ class Pypline:
   #############################################################################
   # Logging Methods
   #
-
+#<editor-fold desc="Loggin Methods">
   def OUT(self, message):
     self.output_panel.run_command("append", {"characters": "{}\n".format(message), "scroll_to_end": True})
+    self.output_panel.run_command("move_to", {"to": "eof"})
     # self.output_panel.add_regions("ham", [self.output_panel.visible_region()], "string", "", 0)
 
   def MYPRINT(self, label, message):
@@ -115,11 +117,12 @@ class Pypline:
 
   def ERROR(self, message):
     self.MYPRINT("ERROR", message)
+#</editor-fold>
 
   #############################################################################
   # Request Methods
   #
-
+#<editor-fold desc="HTTP Request Methods">
   def get_request_headers(self):
     if not self.auth_crumb:
       return {'Content-Type':'text/xml'}
@@ -244,6 +247,7 @@ class Pypline:
 
     self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))    
     return False
+#</editor-fold>
 
   #############################################################################
   # Remotely builds the passed Jenkins Pipeline source.
