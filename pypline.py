@@ -14,8 +14,11 @@ import ntpath
 import re
 import json
 
-import Pypline.models
+# Local source imports.
+from Pypline.models import PipelineStepDoc
+from Pypline.models import PipelineVarDoc
 
+# Dependency imports.
 import mdpopups
 from lxml import html
 from bs4 import BeautifulSoup
@@ -57,28 +60,43 @@ class Pypline:
   auth_tuple =                None
   auth_crumb =                None
 
+  view =                      None
+
   filename =                  "empty"
   output_panel =              None
   pipeline_steps_api =        None  
   pipeline_globalvars_api =   None
   existing_job =              None
 
-  def initialize(self):
-    self.output_panel = sublime.active_window().create_output_panel(self.filename)
+  ############################################################################
+  # Loads the settings....
+  def load_settings(self, settings):
+    self.settings =                       settings
+    self.jenkins_uri =                    self.settings.get("jenkins_uri", "http://127.0.0.1:8080")
+    self.username =                       self.settings.get("username", None)
+    self.api_token =                      self.settings.get("password", None)
+    self.job_prefix =                     self.settings.get("job_prefix", "")
+    self.timeout_secs =                   self.settings.get("open_browser_timeout_secs", 10)
+    self.open_browser_build_output =      self.settings.get("open_browser_build_output", False)
+    self.open_browser_steps_api =         self.settings.get("open_browser_steps_api", False)
+    self.snippets_enabled =               self.settings.get("snippets_enabled", True)
+
+  ############################################################################
+  # Reloads the Pypline object for use.
+  def reload(self, view):
+    if view is None or view.file_name() is None: return
+
+    # Grab the view/file-name (to be used for jenkins job update/create)
+    self.filename = ntpath.basename(view.file_name())
+    if "." in self.filename:
+      self.filename = os.path.splitext(self.filename)[0]
+
     settings = sublime.load_settings("pypline.sublime-settings")
     self.load_settings(settings)
 
-  def load_settings(self, settings):
-    self.settings =       settings
-    self.jenkins_uri =    self.settings.get("jenkins_uri", "http://127.0.0.1:8080")
-    self.username =       self.settings.get("username", None)
-    self.api_token =      self.settings.get("password", None)
-    self.job_prefix =     self.settings.get("job_prefix", "temp")
-    self.timeout_secs =   self.settings.get("open_browser_timeout_secs", 10)
-    self.auth_tuple =     (self.username, self.api_token)
-    self.open_browser_build_output =    self.settings.get("open_browser_build_output", False)
-    self.open_browser_steps_api =       self.settings.get("open_browser_steps_api", False)
-    self.snippets_enabled =       self.settings.get("snippets_enabled", True)
+    self.view = view
+    self.output_panel = sublime.active_window().create_output_panel(self.filename)    
+    self.auth_tuple = (self.username, self.api_token)    
 
   ############################################################################
   # Starts the flow for remotely building a Jenkins pipeline job,
@@ -87,11 +105,6 @@ class Pypline:
 
     # Create/retrieve/show our output panel and clear the contents.
     self.open_output_panel();
-
-      # Grab file name (to be used for jenkins job update/create)
-    self.filename = ntpath.basename(view.file_name())
-    if "." in self.filename:
-      self.filename = os.path.splitext(self.filename)[0]
 
     # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
     # TODO: CSRF crumb support for console output is not supported yet.
@@ -532,12 +545,13 @@ class Pypline:
       jobname = os.path.splitext(jobname)[0]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-# # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # #
-# # # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ • ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # # #
-# # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # #
+# # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ • ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # #
+# # # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ • • • ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # # #
+# # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ • ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-# Time to get lazy. Time to get crazy. It's singleton time, baby.
+# Time to get lazy. Time to get crazy. 
+# Just give in. It's singleton time, baby.
 pypline = Pypline()
 
 ###############################################################################
@@ -546,7 +560,7 @@ pypline = Pypline()
 class PyplineCommand(sublime_plugin.TextCommand):
   
   def run(self, edit, target_idx = -1):    
-    pypline.initialize()
+    pypline.reload(self.view)
 
     # grab the default commands from the Default.sublime-commands resource
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
@@ -581,7 +595,7 @@ class PyplineCompletions(sublime_plugin.EventListener):
     if not is_groovy_view(view, locations) or not pypline.snippets_enabled: 
       return ([], 0)
 
-    pypline.initialize()
+    pypline.reload(view)
     completions = self.get_completions()
     return (completions, sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
