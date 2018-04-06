@@ -5,8 +5,13 @@
         "args": { "target_idx": 0 }
     },
     {
-        "caption": "Pypline: Steps API",
+        "caption": "Pypline: Step Reference",
         "command": "pypline",
         "args": { "target_idx": 1 }
+    },
+    {
+        "caption": "Pypline: Global Variables Reference",
+        "command": "pypline",
+        "args": { "target_idx": 2 }
     }
 ]
