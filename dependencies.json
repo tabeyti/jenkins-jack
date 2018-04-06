@@ -1,7 +1,11 @@
 {
    "*": {
       "*": [
-         "requests"
+         "requests",
+         "bs4",
+         "lxml",
+         "mdpopups",
+         "python-markdown"
       ]
    }
 }
