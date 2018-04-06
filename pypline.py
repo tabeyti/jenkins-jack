@@ -13,6 +13,7 @@ import tempfile
 import subprocess
 import ntpath
 import re
+import Pypline.models
 
 from xml import etree
 from time import sleep
@@ -507,42 +508,6 @@ class PyplineCompletions(sublime_plugin.EventListener):
     for step in pypline.pipeline_steps_api:
       completions.append(("{}\t{}\tPypline".format(step.name, step.get_signature()), step.get_snippet()))
     return completions
- 
-###############################################################################
-# Model for storing Pipeline step meta-data.
-###############################################################################
-class PipelineStepDoc:
-  name =        ""
-  doc =         ""
-  param_map =   {}
-
-  def get_snippet(self):
-    p = [] 
-    for key in sorted(self.param_map):
-      value = self.param_default_value(self.param_map[key])
-      p.append("{}:{}".format(key, value))
-    return "{} {}".format(self.name, ", ".join(p))
-
-  def get_signature(self):
-    p = [] 
-    for key in sorted(self.param_map):
-      p.append("{}:{}".format(key, self.param_map[key]))
-    return "{}({})".format(self.name, ", ".join(p))
-
-  def param_default_value(self, param):
-    if param == "java.lang.String":
-      return "\"\""
-    if param == "Closure":
-      return "\{\}"
-    if param == "Map":
-      return "[:]"
-    if param == "int":
-      return "0"
-    if param == "boolean":
-      return "true"
-    else:
-      return "[unknown_param]"
-
 
 ###############################################################################
 # Global (static ?) methods.
