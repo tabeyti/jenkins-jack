@@ -85,12 +85,14 @@ class Pypline:
     content = view.substr(sublime.Region(0, view.size()))
     self.build_pipeline(content, self.filename)
 
+  ############################################################################
+  # Prepares and opens the output panel celated to the active window.
   def open_output_panel(self):
     self.output_panel = sublime.active_window().create_output_panel(self.filename)
     self.output_panel.run_command("select_all")
     self.output_panel.run_command("right_delete")
     self.output_panel.set_read_only(False)
-    self.output_panel.set_syntax_file("Packages/Text/Plain Text.tmLanguage")
+    self.output_panel.set_syntax_file("pypline-log-syntax.sublime-syntax")
     sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(self.filename)})
 
   #############################################################################
@@ -304,25 +306,23 @@ class Pypline:
   # open session with the API, and writing out content as it comes in. The 
   # method will return once the build is complete, which is determined
   # via Jenkins API.
-  # 
-  def stream_console_output(self, jobname, buildnumber):
-    
+  def stream_console_output(self, jobname, buildnumber):    
     # Switch focus to the console output panel.
-    sublime.active_window().focus_view(self.output_panel)
+    sublime.active_window().focus_view(self.output_panel)    
+    barrier_line = '-' * 80   
 
     # Get job console till job stops
     job_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/logText/progressiveText"
-    self.INFO("-------------------------------------------------------------------------------")
+    self.INFO(barrier_line)
     self.INFO("Getting Console output {}".format(job_url))
-    self.INFO("-------------------------------------------------------------------------------\n")
+    self.INFO(barrier_line)
+    self.OUT(barrier_line + ":" + "\n")
     start_at = 0
     stream_open = True
     check_job_status = 0
-
     console_requests = requests.session()
     
     while stream_open:
-
       console_response = console_requests.post(
         job_url,
         data={'start': start_at })
@@ -361,13 +361,15 @@ class Pypline:
         job_bulding= job_requests.json().get("building")
         if not job_bulding:
           # We are done
-          self.INFO("Console stream ended.")
           stream_open = False
         else:
           # Job is still running
           check_job_status = 0
   
     self.complete = True
+    self.OUT(":" + barrier_line + "\n")
+    self.INFO("-------------------------------------------------------------------------------")
+    self.INFO("Console stream ended.")
     self.INFO("-------------------------------------------------------------------------------")
 
   #############################################################################

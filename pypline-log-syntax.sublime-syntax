@@ -1,0 +1,67 @@
+%YAML 1.2
+---
+name: Pypline Log
+scope: source.pypline
+
+contexts:
+  main:
+    
+    - match: '^\[INFO\]'
+      scope: variable.annotation.cs
+      push: log.body
+    - match: '.*\-+:'
+      push: console.body
+    - match: '^\[WARN\].*'
+      scope: entity.name.namespace.cs
+    - match: '^\[ERROR\].*'
+      scope: keyword.control.import.cs
+    - match: '^\[DEBUG\]'
+      scope: constant.language.cs
+
+  log.body:
+    - match: .*
+      scope: string.quoted.double.cs
+    - match: \n
+      pop: true
+
+  console.body:
+    - include: console.body.command
+    - include: console.body.pipelinecommand
+    - include: console.body.link
+    - include: console.body.pipelineexception
+    - match: '.*:\-+'
+      pop: true
+    # - match: .*
+    #   scope: variable.other.cs
+
+  console.body.link:
+    - match: 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)'
+      scope: entity.name.function.cs
+
+  console.body.pipelinecommand:
+    - match: '^\[Pipeline\].*'
+      scope: comment.line.double-slash.cs
+
+  console.body.pipelineexception:
+    # - match: ^.+Exception[^\n]++(\s+at .++)+
+    - match: '(^\d+\) .+)|(^.+Exception: .+)|(^\s+at .+)|(^\s+... \d+ more)|(^\s*Caused by:.+)'
+      scope: keyword.control.import.cs
+
+  console.body.command:
+    - match: '^\s*[>+]\s+'
+      scope: keyword.control.import.cs
+      push:
+        - match: \w+
+          scope: entity.name.function.cs
+          push: 
+            - match: .*
+              scope: variable.parameter.cs
+            - match: $
+              pop: true
+        - match: \s+
+          pop: true
+
+
+# https://www.sublimetext.com/docs/3/syntax.html
+# 
+# 
