@@ -15,13 +15,13 @@ import re
 import json
 
 # Local source imports.
-from Pypline.models import PipelineStepDoc
-from Pypline.models import PipelineVarDoc
+from .models import PipelineStepDoc
+from .models import PipelineVarDoc
 
 # Dependency imports.
 import mdpopups
 from lxml import html
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup 
 from xml import etree
 from time import sleep
 from xml.sax.saxutils import escape
@@ -52,7 +52,7 @@ class Pypline:
   jenkins_uri =               ""
   username =                  ""
   api_token =                 ""
-  job_prefix =                "" 
+  job_prefix =                ""  
   open_browser_build_output = False
   open_browser_steps_api =    False
   snippets_enabled =          True
