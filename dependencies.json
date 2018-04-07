@@ -1,11 +1,18 @@
 {
-   "*": {
-      "*": [
-         "requests",
-         "bs4",
-         "lxml",
-         "mdpopups",
-         "python-markdown"
-      ]
-   }
+    "*": {
+        ">=3124": [
+            "requests",
+            "bs4",
+            "lxml",
+            "pygments",
+
+            // Dependencies for mdpopups
+            "mdpopups",
+            "python-markdown",            
+            "python-jinja2",
+            "markupsafe",
+            "pymdownx",
+            "pyyaml"
+        ]
+    }
 }
