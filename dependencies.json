@@ -5,8 +5,6 @@
             "bs4",
             "lxml",
             "pygments",
-
-            // Dependencies for mdpopups
             "mdpopups",
             "python-markdown",            
             "python-jinja2",
