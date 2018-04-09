@@ -13,6 +13,7 @@ import subprocess
 import ntpath
 import re
 import json
+import datetime
 
 # Local source imports.
 from .models import PipelineStepDoc
@@ -47,6 +48,7 @@ pre {
 class Pypline:
 
   DEBUG_ENABLED =             True
+  LOGGING_ENABLED =           True
 
   settings =                  None
   jenkins_uri =               ""
@@ -124,25 +126,29 @@ class Pypline:
 
 #<editor-fold desc="Loggin Methods">
   def OUT(self, message):
-    self.output_panel.run_command("append", {"characters": "{}\n".format(message), "scroll_to_end": True})
+    self.output_panel.run_command("append", {"characters": message, "scroll_to_end": True})
     self.output_panel.run_command("move_to", {"to": "eof"})
 
+  def OUT_LINE(self, message):
+    self.OUT("{}\n".format(message))
+
   def MYPRINT(self, label, message):
-    print("[{}] - {}".format(label, message))
-    self.OUT("[{}] - {}".format(label, message))
+    message = "[{}] {} >> {}".format(label, datetime.datetime.now().strftime("%H:%M:%S"), message)
+    print(message)
+    if label == "E": self.OUT_LINE(message)
     
   def DEBUG(self, message):
-    if self.DEBUG_ENABLED: 
-      self.MYPRINT("DEBUG", message)
+    if self.DEBUG_ENABLED:
+      self.MYPRINT("D", message)
 
   def INFO(self, message):
-    self.MYPRINT("INFO", message)
+    self.MYPRINT("I", message)
 
   def WARN(self, message):
-    self.MYPRINT("WARN", message)
+    self.MYPRINT("W", message)
 
   def ERROR(self, message):
-    self.MYPRINT("ERROR", message)
+    self.MYPRINT("E", message)
 #</editor-fold>
 
 #<editor-fold desc="HTTP Request Methods">
@@ -269,15 +275,18 @@ class Pypline:
 
   def build_ready(self, build_url):
     timeout = self.timeout_secs
+    self.OUT("Build not ready. Waiting.")
     while timeout > 0:
       r = requests.get(build_url)
       if r.status_code == requests.codes.ok:
+        self.OUT_LINE("")
         return True
-      self.INFO("Build not ready. Waiting...")
+      self.OUT('.')
       sleep(1)
       timeout = timeout - 1
 
-    self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))    
+    self.OUT_LINE("")
+    self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))
     return False
 #</editor-fold>
 
@@ -343,10 +352,9 @@ class Pypline:
 
     # Get job console till job stops
     job_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/logText/progressiveText"
-    self.INFO(barrier_line)
-    self.INFO("Getting Console output {}".format(job_url))
-    self.INFO(barrier_line)
-    self.OUT(barrier_line + ":" + "\n")
+    self.OUT_LINE(barrier_line)
+    self.OUT_LINE("Getting Console output {}".format(job_url))
+    self.OUT_LINE(barrier_line)
     start_at = 0
     stream_open = True
     check_job_status = 0
@@ -374,7 +382,7 @@ class Pypline:
         # Print to output panel.
         content = str(console_response.content, 'ascii')
         for line in content.replace("\\t", "\t").split("\r\n"):
-          self.OUT("{}".format(line))
+          self.OUT_LINE("{}".format(line))
 
         sleep(1)
 
@@ -397,10 +405,9 @@ class Pypline:
           check_job_status = 0
   
     self.complete = True
-    self.OUT(":" + barrier_line + "\n")
-    self.INFO("-------------------------------------------------------------------------------")
-    self.INFO("Console stream ended.")
-    self.INFO("-------------------------------------------------------------------------------")
+    self.OUT_LINE("-------------------------------------------------------------------------------")
+    self.OUT_LINE("Console stream ended.")
+    self.OUT_LINE("-------------------------------------------------------------------------------")
 
   #############################################################################
   # Shows the available Pipeline global vars and shared library calls via
@@ -423,7 +430,7 @@ class Pypline:
     content = content.replace("<code>", "").replace("</code>", "")
 
     mdpopups.show_popup(view=view, css=STYLES, md=True, content=content, location=-1, max_width=1024, max_height=768)
-    view.run_command("insert_snippet", { "contents": var.name})
+    # view.run_command("insert_snippet", { "contents": var.name})
 
   #############################################################################
   #  Shows the available Pipeline steps API via Sublime's quick panel.
@@ -564,8 +571,7 @@ class PyplineCommand(sublime_plugin.TextCommand):
 
     # grab the default commands from the Default.sublime-commands resource
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
-    command_names = [x['caption'] for x in data]    
-    pypline.DEBUG(command_names)
+    command_names = [x['caption'] for x in data]
 
     if target_idx != -1:
       self.target_option_select(target_idx, edit)
