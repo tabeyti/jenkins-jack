@@ -121,7 +121,7 @@ class Pypline:
     self.output_panel.run_command("select_all")
     self.output_panel.run_command("right_delete")
     self.output_panel.set_read_only(False)
-    self.output_panel.set_syntax_file("pypline-log-syntax.sublime-syntax")
+    self.output_panel.set_syntax_file("Packages/Pypline/pypline-log-syntax.sublime-syntax")
     sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(self.filename)})
 
 #<editor-fold desc="Loggin Methods">
