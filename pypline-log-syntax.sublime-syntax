@@ -26,7 +26,7 @@ contexts:
       scope: keyword.control.import.cs
 
   console.body.command:
-    - match: '^(\s*|\[.*\]?\s+)[+>]+\s+'
+    - match: '^(\s*|\[.*\]?\s+)[+>]{1}\s+'
       push:
         - match: \w+
           scope: entity.name.function.cs
