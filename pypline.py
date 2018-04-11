@@ -62,13 +62,12 @@ class Pypline:
   auth_tuple =                None
   auth_crumb =                None
 
-  view =                      None
-
   filename =                  "empty"
   output_panel =              None
   pipeline_steps_api =        None  
   pipeline_globalvars_api =   None
   existing_job =              None
+  active_build_url =          None
 
   ############################################################################
   # Loads the settings....
@@ -95,18 +94,18 @@ class Pypline:
 
     settings = sublime.load_settings("pypline.sublime-settings")
     self.load_settings(settings)
-
-    self.view = view
-    self.output_panel = sublime.active_window().create_output_panel(self.filename)    
     self.auth_tuple = (self.username, self.api_token)    
 
   ############################################################################
   # Starts the flow for remotely building a Jenkins pipeline job,
   # using the user's view contents as the pipeline script.
   def start_pipeline_build(self, view):
+    if self.active_build_url != None:
+      self.WARN("Pipeline already building/streaming: {}.".format(self.active_build_url))
+      return
 
     # Create/retrieve/show our output panel and clear the contents.
-    self.open_output_panel();
+    self.reload_output_panel();
 
     # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
     # TODO: CSRF crumb support for console output is not supported yet.
@@ -116,12 +115,15 @@ class Pypline:
 
   ############################################################################
   # Prepares and opens the output panel celated to the active window.
-  def open_output_panel(self):
+  def reload_output_panel(self):
     self.output_panel = sublime.active_window().create_output_panel(self.filename)
     self.output_panel.run_command("select_all")
     self.output_panel.run_command("right_delete")
     self.output_panel.set_read_only(False)
     self.output_panel.set_syntax_file("Packages/Pypline/pypline-log-syntax.sublime-syntax")
+    self.open_output_panel()
+
+  def open_output_panel(self):
     sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(self.filename)})
 
 #<editor-fold desc="Loggin Methods">
@@ -189,7 +191,7 @@ class Pypline:
     self.INFO("GET: {}".format(url))
     r = requests.get(url, auth=self.auth_tuple)
     if r.status_code == requests.codes.ok:
-      return True 
+      return True
     return False
 
   def get_job_config(self, jobname):
@@ -273,9 +275,24 @@ class Pypline:
       url, jobname, r.status_code))
     return None
 
+  def abort_active_build(self):
+    url = "{}/stop".format(self.active_build_url)
+    self.INFO("POST: {}".format(url))
+
+    r = requests.post(
+      url, 
+      auth=self.auth_tuple,
+      headers=self.get_request_headers())
+
+    if r.status_code == requests.codes.ok or r.status_code == 201:
+      return r.text + "."
+    self.ERROR("POST: {} - Could not abort job {} - Status code {}".format(
+      url, jobname, r.status_code))
+    return None
+
   def build_ready(self, build_url):
     timeout = self.timeout_secs
-    self.OUT("Build not ready. Waiting.")
+    self.OUT("Waiting for build.")
     while timeout > 0:
       r = requests.get(build_url)
       if r.status_code == requests.codes.ok:
@@ -296,7 +313,6 @@ class Pypline:
   # remotely determines whether job exists and needs to be updated,
   # or job doesn't exist and needs to be created.
   def build_pipeline(self, source, job): 
-
     content = ""
     xmlpath = os.path.join(sublime.packages_path(), "pypline")
     with open('{}/config.xml'.format(xmlpath), 'r') as myfile:
@@ -325,33 +341,33 @@ class Pypline:
 
     # Start build, create build URL, and wait for build to begin.
     if not self.build_job(jobname): return
-    build_url = "{}/job/{}/{}".format(self.jenkins_uri, jobname, next_build_number)
-    self.INFO("Build started for '{}' at {}".format(jobname, build_url))
+    self.active_build_url = "{}/job/{}/{}".format(self.jenkins_uri, jobname, next_build_number)
+    self.INFO("Build started for '{}' at {}".format(jobname, self.active_build_url))
 
     # Wait for build to start.
-    if not self.build_ready(build_url): return
+    if not self.build_ready(self.active_build_url): return
 
     # Stream output to Sublime console or open browser to output.
     if self.open_browser_build_output:
       self.INFO("Opening browser to console output.")
-      self.open_browser_at("{}/console".format(build_url))
+      self.open_browser_at("{}/console".format(self.active_build_url))
     else:
       # Print build output to console if specified.
       self.INFO("Streaming build output.")
-      self.stream_console_output(jobname, next_build_number)
+      self.stream_console_output(self.active_build_url)
 
   #############################################################################
   # Streams the build's output via Jenkins' progressiveText by keeping an 
   # open session with the API, and writing out content as it comes in. The 
   # method will return once the build is complete, which is determined
   # via Jenkins API.
-  def stream_console_output(self, jobname, buildnumber):    
+  def stream_console_output(self, build_url):    
     # Switch focus to the console output panel.
     sublime.active_window().focus_view(self.output_panel)    
     barrier_line = '-' * 80   
 
     # Get job console till job stops
-    job_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/logText/progressiveText"
+    job_url = "{}/logText/progressiveText".format(build_url)
     self.OUT_LINE(barrier_line)
     self.OUT_LINE("Getting Console output {}".format(job_url))
     self.OUT_LINE(barrier_line)
@@ -390,8 +406,7 @@ class Pypline:
 
       # No content for a while lets check if job is still running
       if check_job_status > 1:
-
-        job_status_url = self.jenkins_uri + "/job/" + jobname + "/" + str(buildnumber) + "/api/json"
+        job_status_url = "{}/api/json".format(build_url)
         job_requests = requests.get(
           job_status_url,
           headers=self.get_request_headers())
@@ -404,7 +419,8 @@ class Pypline:
           # Job is still running
           check_job_status = 0
   
-    self.complete = True
+    self.build_running = None
+    self.active_build_url = None
     self.OUT_LINE("-------------------------------------------------------------------------------")
     self.OUT_LINE("Console stream ended.")
     self.OUT_LINE("-------------------------------------------------------------------------------")
@@ -573,6 +589,11 @@ class PyplineCommand(sublime_plugin.TextCommand):
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
     command_names = [x['caption'] for x in data]
 
+    # Create additional 'abort' command if there is an pipeline currently
+    # running which we are streaming console output from.
+    if pypline.active_build_url is not None:
+      command_names.append("Pypline: Abort Build")
+
     if target_idx != -1:
       self.target_option_select(target_idx, edit)
     else:
@@ -591,6 +612,12 @@ class PyplineCommand(sublime_plugin.TextCommand):
         pypline.show_steps_api_search(self.view)
     elif index == 2:
       pypline.show_globalvars_api_search(self.view)
+    elif index == 3:
+      pypline.open_output_panel()
+    elif index == 4:
+      pypline.abort_active_build()
+      # self.view.window().show_quick_panel(pypline.view_list, 
+      #   lambda idx: print(idx))
 
 ###############################################################################
 # Event class for handling Jenkins Pipeline auto-completions.
