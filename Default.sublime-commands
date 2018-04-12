@@ -5,18 +5,28 @@
         "args": { "target_idx": 0 }
     },
     {
-        "caption": "Pypline: Step Reference",
+        "caption": "Pypline: Abort",
         "command": "pypline",
         "args": { "target_idx": 1 }
     },
     {
-        "caption": "Pypline: Global Variables Reference",
+        "caption": "Pypline: Step Reference",
         "command": "pypline",
         "args": { "target_idx": 2 }
     },
     {
-        "caption": "Pypline: Open Output Panel",
+        "caption": "Pypline: Global Variables Reference",
         "command": "pypline",
         "args": { "target_idx": 3 }
+    },
+    {
+        "caption": "Pypline: Validate Declarative Pipeline",
+        "command": "pypline",
+        "args": { "target_idx": 4 }
+    },
+    {
+        "caption": "Pypline: Open Output Panel",
+        "command": "pypline",
+        "args": { "target_idx": 5 }
     }
 ]

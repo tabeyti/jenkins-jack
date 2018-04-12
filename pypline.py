@@ -128,6 +128,8 @@ class Pypline:
 
 #<editor-fold desc="Loggin Methods">
   def OUT(self, message):
+    if None == self.output_panel:
+      self.reload_output_panel()
     self.output_panel.run_command("append", {"characters": message, "scroll_to_end": True})
     self.output_panel.run_command("move_to", {"to": "eof"})
 
@@ -290,6 +292,22 @@ class Pypline:
       url, jobname, r.status_code))
     return None
 
+  def validate_pipeline(self, content):    
+    url = "{}/pipeline-model-converter/validate".format(self.jenkins_uri)
+    payload = {"jenkinsfile": content}
+    self.INFO("POST: {}".format(url))
+
+    r = requests.post(
+      url, 
+      auth=self.auth_tuple,
+      data=payload)
+
+    if r.status_code == requests.codes.ok or r.status_code == 201:
+      return r.text
+    self.ERROR("POST: {} - Could not validate pipeline - Status code {}".format(
+      url, r.status_code))
+    return None
+
   def build_ready(self, build_url):
     timeout = self.timeout_secs
     self.OUT("Waiting for build.")
@@ -424,6 +442,17 @@ class Pypline:
     self.OUT_LINE("-------------------------------------------------------------------------------")
     self.OUT_LINE("Console stream ended.")
     self.OUT_LINE("-------------------------------------------------------------------------------")
+
+  #############################################################################
+  # Validates the active view's pipeline code.
+  def validate(self, view):
+    if not is_groovy_view(view): return
+
+    content = view.substr(sublime.Region(0, view.size()))
+    r = self.validate_pipeline(content)
+    response_text = r.split("\r\n")
+    for line in response_text:
+      self.OUT_LINE(line)
 
   #############################################################################
   # Shows the available Pipeline global vars and shared library calls via
@@ -589,11 +618,6 @@ class PyplineCommand(sublime_plugin.TextCommand):
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
     command_names = [x['caption'] for x in data]
 
-    # Create additional 'abort' command if there is an pipeline currently
-    # running which we are streaming console output from.
-    if pypline.active_build_url is not None:
-      command_names.append("Pypline: Abort Build")
-
     if target_idx != -1:
       self.target_option_select(target_idx, edit)
     else:
@@ -606,16 +630,19 @@ class PyplineCommand(sublime_plugin.TextCommand):
     if index == 0:
       sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
     elif index == 1:
+      pypline.abort_active_build()
+    elif index == 2:
       if pypline.open_browser_steps_api:
         pypline.open_browser_at("{}/pipeline-syntax".format(pypline.jenkins_uri))
       else:
         pypline.show_steps_api_search(self.view)
-    elif index == 2:
-      pypline.show_globalvars_api_search(self.view)
     elif index == 3:
-      pypline.open_output_panel()
+      pypline.show_globalvars_api_search(self.view)
     elif index == 4:
-      pypline.abort_active_build()
+      pypline.validate(self.view)
+    elif index == 5:
+      pypline.open_output_panel()
+    
       # self.view.window().show_quick_panel(pypline.view_list, 
       #   lambda idx: print(idx))
 
