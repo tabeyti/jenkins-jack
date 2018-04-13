@@ -20,19 +20,34 @@ To access the invokable commands:
 - (Windows/Linux): `ctrl+shift+j`
 - (OSX): `super+shift+j`
 
-There are currently two commands to select from:
+## Commands
 
-#### Pypline: Execute
+#### Execute
 Builds the current Jenkins Pipeline script you are working on remotely.
 If the job doesn't exist, a pipeline job will be created for you. If the job _does_ exist, it will just update the job's pipeline script (nothing else).
 
 By default, the job's build output will stream to your Sublime's console window. If you would rather view the output via browser, set the configuration flag `open_browser_build` to `true` and a this command will open a page to your build's console output.
 
-#### Pypline: Steps API
+#### Abort
+Aborts a streaming pipeline build (if one is active).
+
+#### Steps Reference
 
 A searchable list of the available Pipeline steps will be provided to the user, with each step containing a short description of what it does. On selection of a step, a snippet of the step's call signature will be pooped out fer ya.
 
 This command has an alternative option. If you would rather just view the Pipeline steps via browser, set the configuration flag `open_browser_api` to `true` and this command will then open your browser to your Jenkins' Pipeline Snippet Generator page.
+
+#### Global Variable Reference
+
+A searchable list of the avialable Pipeline global vars is provided. When a selection is made, the user will be presented with a phantom popup of the var's documentation (no snippets currently).
+
+#### Validate Declarative Pipeline
+
+Validates a declarative pipeline screipt in your view.
+
+#### Open Output Panel
+
+Just quick option for opening the output panel for your view.
 
 ## Support
 Do you have a feature request or would like to report a bug? Super duper! Create an issue via github's [issue tracker](https://github.com/tabeyti/pypline/issues). 
