@@ -97,23 +97,6 @@ class Pypline:
     self.auth_tuple = (self.username, self.api_token)    
 
   ############################################################################
-  # Starts the flow for remotely building a Jenkins pipeline job,
-  # using the user's view contents as the pipeline script.
-  def start_pipeline_build(self, view):
-    if self.active_build_url != None:
-      self.WARN("Pipeline already building/streaming: {}.".format(self.active_build_url))
-      return
-
-    # Create/retrieve/show our output panel and clear the contents.
-    self.reload_output_panel();
-
-    # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
-    # TODO: CSRF crumb support for console output is not supported yet.
-    self.get_auth_crumb()
-    content = view.substr(sublime.Region(0, view.size()))
-    self.build_pipeline(content, self.filename)
-
-  ############################################################################
   # Prepares and opens the output panel celated to the active window.
   def reload_output_panel(self):
     self.output_panel = sublime.active_window().create_output_panel(self.filename)
@@ -155,7 +138,7 @@ class Pypline:
     self.MYPRINT("E", message)
 #</editor-fold>
 
-#<editor-fold desc="HTTP Request Methods">
+#<editor-fold desc="HTTP Request Methods for Jenkins">
   def get_request_headers(self):
     if not self.auth_crumb:
       return {'Content-Type':'text/xml'}
@@ -292,7 +275,7 @@ class Pypline:
       url, jobname, r.status_code))
     return None
 
-  def validate_pipeline(self, content):    
+  def validate_dec_pipeline_job(self, content):    
     url = "{}/pipeline-model-converter/validate".format(self.jenkins_uri)
     payload = {"jenkinsfile": content}
     self.INFO("POST: {}".format(url))
@@ -324,6 +307,23 @@ class Pypline:
     self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))
     return False
 #</editor-fold>
+
+  ############################################################################
+  # Starts the flow for remotely building a Jenkins pipeline job,
+  # using the user's view contents as the pipeline script.
+  def start_pipeline_build(self, view):
+    if self.active_build_url != None:
+      self.WARN("Pipeline already building/streaming: {}.".format(self.active_build_url))
+      return
+
+    # Create/retrieve/show our output panel and clear the contents.
+    self.reload_output_panel();
+
+    # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
+    # TODO: CSRF crumb support for console output is not supported yet.
+    self.get_auth_crumb()
+    content = view.substr(sublime.Region(0, view.size()))
+    self.build_pipeline(content, self.filename)
 
   #############################################################################
   # Remotely builds the passed Jenkins Pipeline source.
@@ -367,12 +367,16 @@ class Pypline:
 
     # Stream output to Sublime console or open browser to output.
     if self.open_browser_build_output:
-      self.INFO("Opening browser to console output.")
-      self.open_browser_at("{}/console".format(self.active_build_url))
+      browser_url = "{}/console".format(self.active_build_url)
+      self.OUT_LINE("Opening browser to console output: {}".format(browser_url))
+      self.open_browser_at(browser_url)
     else:
       # Print build output to console if specified.
       self.INFO("Streaming build output.")
       self.stream_console_output(self.active_build_url)
+
+    # Indicate job is finished.
+    self.active_build_url = None
 
   #############################################################################
   # Streams the build's output via Jenkins' progressiveText by keeping an 
@@ -415,8 +419,7 @@ class Pypline:
 
         # Print to output panel.
         content = str(console_response.content, 'ascii')
-        for line in content.replace("\\t", "\t").split("\r\n"):
-          self.OUT_LINE("{}".format(line))
+        self.OUT_LINE(content.replace("\\t", "\t").replace("\r\n", "\n"))
 
         sleep(1)
 
@@ -437,8 +440,6 @@ class Pypline:
           # Job is still running
           check_job_status = 0
   
-    self.build_running = None
-    self.active_build_url = None
     self.OUT_LINE("-------------------------------------------------------------------------------")
     self.OUT_LINE("Console stream ended.")
     self.OUT_LINE("-------------------------------------------------------------------------------")
@@ -449,7 +450,7 @@ class Pypline:
     if not is_groovy_view(view): return
 
     content = view.substr(sublime.Region(0, view.size()))
-    r = self.validate_pipeline(content)
+    r = self.validate_dec_pipeline_job(content)
     response_text = r.split("\r\n")
     for line in response_text:
       self.OUT_LINE(line)
@@ -611,7 +612,7 @@ pypline = Pypline()
 ###############################################################################
 class PyplineCommand(sublime_plugin.TextCommand):
   
-  def run(self, edit, target_idx = -1):    
+  def run(self, edit, target_idx = -1):
     pypline.reload(self.view)
 
     # grab the default commands from the Default.sublime-commands resource
@@ -643,9 +644,6 @@ class PyplineCommand(sublime_plugin.TextCommand):
     elif index == 5:
       pypline.open_output_panel()
     
-      # self.view.window().show_quick_panel(pypline.view_list, 
-      #   lambda idx: print(idx))
-
 ###############################################################################
 # Event class for handling Jenkins Pipeline auto-completions.
 ###############################################################################
