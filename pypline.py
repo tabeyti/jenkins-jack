@@ -396,8 +396,9 @@ class Pypline:
     start_at = 0
     stream_open = True
     check_job_status = 0
-    console_requests = requests.session()
-    
+    console_requests = requests.session()    
+    end_delay = 0
+
     while stream_open:
       console_response = console_requests.post(
         job_url,
@@ -420,12 +421,11 @@ class Pypline:
         # Print to output panel.
         content = str(console_response.content, 'ascii')
         self.OUT_LINE(content.replace("\\t", "\t").replace("\r\n", "\n"))
-
         sleep(1)
 
         start_at = int(console_response.headers.get("X-Text-Size"))
 
-      # No content for a while lets check if job is still running
+      # No content for a while, so lets check if job is still running.
       if check_job_status > 1:
         job_status_url = "{}/api/json".format(build_url)
         job_requests = requests.get(
@@ -434,8 +434,10 @@ class Pypline:
 
         job_bulding= job_requests.json().get("building")
         if not job_bulding:
-          # We are done
-          stream_open = False
+          if end_delay > 0:
+            # We are done
+            stream_open = False
+          else: end_delay = end_delay + 1
         else:
           # Job is still running
           check_job_status = 0
