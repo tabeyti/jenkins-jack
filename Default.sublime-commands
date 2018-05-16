@@ -28,5 +28,10 @@
         "caption": "Pypline: Open Output Panel",
         "command": "pypline",
         "args": { "target_idx": 5 }
+    },
+    {
+        "caption": "Pypline: Run Groovy Script Console",
+        "command": "pypline",
+        "args": { "target_idx": 6 }
     }
 ]

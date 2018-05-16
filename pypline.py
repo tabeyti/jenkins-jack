@@ -309,6 +309,34 @@ class Pypline:
 #</editor-fold>
 
   ############################################################################
+  # Executes text in the current view as a Jenkins script console script.
+  # Content should be scripts one would execute in the Jenkins Script Console
+  # page.
+  def script_console_run(self, view):
+    # Create/retrieve/show our output panel and clear the contents.
+    self.reload_output_panel();
+
+    # Retrieve jenkins authentication crumb (CSRF token) to make requests remotely.
+    # TODO: CSRF crumb support for console output is not supported yet.
+    self.get_auth_crumb()
+    content = view.substr(sublime.Region(0, view.size()))
+
+    url = "{}/scriptText".format(self.jenkins_uri)
+    payload = {'script':content}
+    self.INFO("POST: {}".format(url))
+    r = requests.post(
+      url,
+      auth=self.auth_tuple,
+      data=payload)
+
+    if r.status_code == requests.codes.ok or r.status_code == 201 or r.status_code == 200:
+      print(r)
+      self.OUT_LINE(r.text.replace("\r\n", "\n"))
+      return
+
+    self.ERROR("POST: {} - Could run script - Status code {}".format(url, r.status_code))
+
+  ############################################################################
   # Starts the flow for remotely building a Jenkins pipeline job,
   # using the user's view contents as the pipeline script.
   def start_pipeline_build(self, view):
@@ -645,6 +673,8 @@ class PyplineCommand(sublime_plugin.TextCommand):
       pypline.validate(self.view)
     elif index == 5:
       pypline.open_output_panel()
+    elif index == 6:
+      pypline.script_console_run(self.view)
     
 ###############################################################################
 # Event class for handling Jenkins Pipeline auto-completions.
