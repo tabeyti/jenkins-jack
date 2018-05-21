@@ -450,10 +450,10 @@ class Pypline:
         try:
           content = str(console_response.content, 'ascii')
           self.OUT_LINE(content.replace("\\t", "\t").replace("\r\n", "\n"))
-          sleep(1)
         except:
           self.OUT_LINE('[Issue decoding string]')
 
+        sleep(1)
         start_at = int(console_response.headers.get("X-Text-Size"))
 
       # No content for a while, so lets check if job is still running.
