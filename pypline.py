@@ -22,7 +22,7 @@ from .models import PipelineVarDoc
 # Dependency imports.
 import mdpopups
 from lxml import html
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup
 from xml import etree
 from time import sleep
 from xml.sax.saxutils import escape
@@ -42,10 +42,10 @@ pre {
 }
 '''
 
-# **************************************************************************
-# Core class (whatever that means in this instance).
-# **************************************************************************
 class Pypline:
+  """
+  Core class (whatever that means in this instance).
+  """
 
   DEBUG_ENABLED =             True
   LOGGING_ENABLED =           True
@@ -54,7 +54,7 @@ class Pypline:
   jenkins_uri =               ""
   username =                  ""
   api_token =                 ""
-  job_prefix =                ""  
+  job_prefix =                ""
   open_browser_build_output = False
   open_browser_steps_api =    False
   snippets_enabled =          True
@@ -64,14 +64,15 @@ class Pypline:
 
   filename =                  "empty"
   output_panel =              None
-  pipeline_steps_api =        None  
+  pipeline_steps_api =        None
   pipeline_globalvars_api =   None
   existing_job =              None
   active_build_url =          None
 
-  ############################################################################
-  # Loads the settings....
   def load_settings(self, settings):
+    """
+    Loads settings
+    """
     self.settings =                       settings
     self.jenkins_uri =                    self.settings.get("jenkins_uri", "http://127.0.0.1:8080")
     self.username =                       self.settings.get("username", None)
@@ -82,9 +83,11 @@ class Pypline:
     self.open_browser_steps_api =         self.settings.get("open_browser_steps_api", False)
     self.snippets_enabled =               self.settings.get("snippets_enabled", True)
 
-  ############################################################################
-  # Reloads the Pypline object for use.
+
   def reload(self, view):
+    """
+    Reloads the Pypline object for use.
+    """
     if view is None or view.file_name() is None: return
 
     # Grab the view/file-name (to be used for jenkins job update/create)
@@ -94,11 +97,12 @@ class Pypline:
 
     settings = sublime.load_settings("pypline.sublime-settings")
     self.load_settings(settings)
-    self.auth_tuple = (self.username, self.api_token)    
+    self.auth_tuple = (self.username, self.api_token)
 
-  ############################################################################
-  # Prepares and opens the output panel celated to the active window.
   def reload_output_panel(self):
+    """
+    Prepares and opens the output panel celated to the active window.
+    """
     self.output_panel = sublime.active_window().create_output_panel(self.filename)
     self.output_panel.run_command("select_all")
     self.output_panel.run_command("right_delete")
@@ -123,7 +127,7 @@ class Pypline:
     message = "[{}] {} >> {}".format(label, datetime.datetime.now().strftime("%H:%M:%S"), message)
     print(message)
     if label == "E": self.OUT_LINE(message)
-    
+
   def DEBUG(self, message):
     if self.DEBUG_ENABLED:
       self.MYPRINT("D", message)
@@ -149,13 +153,13 @@ class Pypline:
       self.username,
       self.api_token,
       self.jenkins_uri.replace("http://", ""))
-    self.INFO("GET: {}".format(url))     
-    r = requests.get(url)      
+    self.INFO("GET: {}".format(url))
+    r = requests.get(url)
     if r.status_code != requests.codes.ok:
       self.WARN("GET: {} - Could not retrieve 'crumb' for authentication - Status code {}".format(
       url,  r.status_code))
       return None
-    
+
     data = json.loads(r.text)
     self.auth_crumb = (data["crumbRequestField"], data["crumb"])
     self.INFO("Crumb retrieved - {}:{}".format(self.auth_crumb[0], self.auth_crumb[1]))
@@ -190,9 +194,9 @@ class Pypline:
 
   def update_job(self, jobname, content):
     url = "{}/job/{}/config.xml".format(self.jenkins_uri, jobname)
-    self.INFO("POST: {}".format(url)) 
+    self.INFO("POST: {}".format(url))
     r = requests.post(
-      url, 
+      url,
       data = content,
       headers=self.get_request_headers(),
       auth=self.auth_tuple)
@@ -215,12 +219,12 @@ class Pypline:
 
     self.ERROR("GET: {} - Could not retrieve global vars html - {} - {}".format(url, r.status_code, r.text))
     return None
-    
+
   def create_job(self, jobname, content):
     url = "{}/createItem?name={}".format(self.jenkins_uri, jobname)
-    self.INFO("POST: {}".format(url))     
+    self.INFO("POST: {}".format(url))
     r = requests.post(
-      url, 
+      url,
       data = content,
       headers=self.get_request_headers(),
       auth=self.auth_tuple)
@@ -236,7 +240,7 @@ class Pypline:
     self.INFO("GET: {}".format(url))
     r = requests.get(
       url,
-      headers=self.get_request_headers())    
+      headers=self.get_request_headers())
 
     if r.status_code != requests.codes.ok:
       self.WARN("GET: {} - Issue retrieving build number for job {} - Status code: {} - {}".format(
@@ -250,7 +254,7 @@ class Pypline:
 
     self.INFO("POST: {}".format(url))
     r = requests.post(
-      url, 
+      url,
       auth=self.auth_tuple,
       headers=self.get_request_headers())
 
@@ -265,7 +269,7 @@ class Pypline:
     self.INFO("POST: {}".format(url))
 
     r = requests.post(
-      url, 
+      url,
       auth=self.auth_tuple,
       headers=self.get_request_headers())
 
@@ -275,13 +279,13 @@ class Pypline:
       url, jobname, r.status_code))
     return None
 
-  def validate_dec_pipeline_job(self, content):    
+  def validate_dec_pipeline_job(self, content):
     url = "{}/pipeline-model-converter/validate".format(self.jenkins_uri)
     payload = {"jenkinsfile": content}
     self.INFO("POST: {}".format(url))
 
     r = requests.post(
-      url, 
+      url,
       auth=self.auth_tuple,
       data=payload)
 
@@ -308,11 +312,12 @@ class Pypline:
     return False
 #</editor-fold>
 
-  ############################################################################
-  # Executes text in the current view as a Jenkins script console script.
-  # Content should be scripts one would execute in the Jenkins Script Console
-  # page.
   def script_console_run(self, view):
+    """
+    Executes text in the current view as a Jenkins script console script.
+    Content should be scripts one would execute in the Jenkins Script Console
+    page.
+    """
     # Create/retrieve/show our output panel and clear the contents.
     self.reload_output_panel();
 
@@ -336,10 +341,11 @@ class Pypline:
 
     self.ERROR("POST: {} - Could run script - Status code {}".format(url, r.status_code))
 
-  ############################################################################
-  # Starts the flow for remotely building a Jenkins pipeline job,
-  # using the user's view contents as the pipeline script.
   def start_pipeline_build(self, view):
+    """
+    Starts the flow for remotely building a Jenkins pipeline job,
+    using the user's view contents as the pipeline script.
+    """
     if self.active_build_url != None:
       self.WARN("Pipeline already building/streaming: {}.".format(self.active_build_url))
       return
@@ -353,12 +359,13 @@ class Pypline:
     content = view.substr(sublime.Region(0, view.size()))
     self.build_pipeline(content, self.filename)
 
-  #############################################################################
-  # Remotely builds the passed Jenkins Pipeline source.
-  # Pipeline source is inserted into a template 'config.xml' and then
-  # remotely determines whether job exists and needs to be updated,
-  # or job doesn't exist and needs to be created.
-  def build_pipeline(self, source, job): 
+  def build_pipeline(self, source, job):
+    """
+    Remotely builds the passed Jenkins Pipeline source.
+    Pipeline source is inserted into a template 'config.xml' and then
+    remotely determines whether job exists and needs to be updated,
+    or job doesn't exist and needs to be created.
+    """
     content = ""
     xmlpath = os.path.join(sublime.packages_path(), "pypline")
     with open('{}/config.xml'.format(xmlpath), 'r') as myfile:
@@ -406,15 +413,16 @@ class Pypline:
     # Indicate job is finished.
     self.active_build_url = None
 
-  #############################################################################
-  # Streams the build's output via Jenkins' progressiveText by keeping an 
-  # open session with the API, and writing out content as it comes in. The 
-  # method will return once the build is complete, which is determined
-  # via Jenkins API.
-  def stream_console_output(self, build_url):    
+  def stream_console_output(self, build_url):
+    """
+    Streams the build's output via Jenkins' progressiveText by keeping an
+    open session with the API, and writing out content as it comes in. The
+    method will return once the build is complete, which is determined
+    via Jenkins API.
+    """
     # Switch focus to the console output panel.
-    sublime.active_window().focus_view(self.output_panel)    
-    barrier_line = '-' * 80   
+    sublime.active_window().focus_view(self.output_panel)
+    barrier_line = '-' * 80
 
     # Get job console till job stops
     job_url = "{}/logText/progressiveText".format(build_url)
@@ -424,7 +432,7 @@ class Pypline:
     start_at = 0
     stream_open = True
     check_job_status = 0
-    console_requests = requests.session()    
+    console_requests = requests.session()
     end_delay = 0
 
     while stream_open:
@@ -472,14 +480,15 @@ class Pypline:
         else:
           # Job is still running
           check_job_status = 0
-  
+
     self.OUT_LINE("-------------------------------------------------------------------------------")
     self.OUT_LINE("Console stream ended.")
     self.OUT_LINE("-------------------------------------------------------------------------------")
 
-  #############################################################################
-  # Validates the active view's pipeline code.
   def validate(self, view):
+    """
+    Validates the active view's pipeline code.
+    """
     if not is_groovy_view(view): return
 
     content = view.substr(sublime.Region(0, view.size()))
@@ -488,20 +497,22 @@ class Pypline:
     for line in response_text:
       self.OUT_LINE(line)
 
-  #############################################################################
-  # Shows the available Pipeline global vars and shared library calls via
-  # Sublime's quick panel.
   def show_globalvars_api_search(self, view):
-    self.refresh_pipeline_globalvars_api()    
-    api_list = ["{}: {}".format(v.name, "{}...".format(v.description[:40])) for v in self.pipeline_globalvars_api]    
-    view.window().show_quick_panel(api_list, 
+    """
+    Shows the available Pipeline global vars and shared library calls via
+    Sublime's quick panel.
+    """
+    self.refresh_pipeline_globalvars_api()
+    api_list = ["{}: {}".format(v.name, "{}...".format(v.description[:40])) for v in self.pipeline_globalvars_api]
+    view.window().show_quick_panel(api_list,
       lambda idx: self.show_globalvars_api_search_on_chosen(view, idx))
 
-  #############################################################################
-  # Handles a search selection for the show_globalvars_api_search method.
   def show_globalvars_api_search_on_chosen(self, view, idx):
+    """
+    Handles a search selection for the show_globalvars_api_search method.
+    """
     if idx < 0: return
-    var = self.pipeline_globalvars_api[idx]    
+    var = self.pipeline_globalvars_api[idx]
 
     # Add var name as title to the content and remove code tags (messes up formatting)
     content = var.descriptionHtml
@@ -511,18 +522,21 @@ class Pypline:
     mdpopups.show_popup(view=view, css=STYLES, md=True, content=content, location=-1, max_width=1024, max_height=768)
     # view.run_command("insert_snippet", { "contents": var.name})
 
-  #############################################################################
-  #  Shows the available Pipeline steps API via Sublime's quick panel.
   def show_steps_api_search(self, view):
+    """
+    Shows the available Pipeline steps API via Sublime's quick panel.
+    """
+
     self.refresh_pipeline_steps_api()
     api_list = ["{}: {}".format(p.name, p.doc) for p in self.pipeline_steps_api]
 
-    view.window().show_quick_panel(api_list, 
+    view.window().show_quick_panel(api_list,
       lambda idx: self.show_steps_api_search_on_chosen(view, idx))
 
-  #############################################################################
-  # Handles a search selection from show_steps_api_search
   def show_steps_api_search_on_chosen(self, view, idx):
+    """
+    Handles a search selection from show_steps_api_search
+    """
     if idx <= 0: return
     step = self.pipeline_steps_api[idx]
     view.run_command("insert_snippet", { "contents": step.get_snippet() })
@@ -551,21 +565,21 @@ class Pypline:
 
       child = child.find_next("dt")
 
-
-  #############################################################################
-  # Generates the list of Pipeline steps by parsing the output from the
-  # 'pipeline-syntax/gdsl' endpoint. Would be nice if there was a library for
-  # parsing this, but some poorly written regex will do just nicely...
   def refresh_pipeline_steps_api(self):
+    """
+    Generates the list of Pipeline steps by parsing the output from the
+    'pipeline-syntax/gdsl' endpoint. Would be nice if there was a library for
+    parsing this, but some poorly written regex will do just nicely...
+    """
     url = "{}/pipeline-syntax/gdsl".format(self.jenkins_uri)
     r = requests.get(url, verify=False)
-    
+
     data = []
     self.pipeline_steps_api = []
 
     # Grab method lines from GDSL text.
     for line in r.text.split("\n"):
-      if "method(name:" in line: 
+      if "method(name:" in line:
         m = re.match("method\((.*?)\)", line)
         if not m: continue
 
@@ -573,15 +587,16 @@ class Pypline:
 
         if step != None:
           if any(p.name == step.name and len(p.param_map) < len(step.param_map) for p in self.pipeline_steps_api):
-            self.pipeline_steps_api = [x for x in self.pipeline_steps_api if not x.name == step.name]          
+            self.pipeline_steps_api = [x for x in self.pipeline_steps_api if not x.name == step.name]
           self.pipeline_steps_api.append(step)
-    
+
     # Sort by step name.
     self.pipeline_steps_api.sort(key=lambda x: x.name)
 
-  #############################################################################
-  # Parses a GDSL method line, returning a PipelineStepDoc object.
   def parse_method_line(self, line):
+    """
+    Parses a GDSL method line, returning a PipelineStepDoc object.
+    """
     name = ""
     doc = ""
     params = {}
@@ -590,12 +605,12 @@ class Pypline:
     # First method signature.
     m = re.match("method\(name:\s+'(.*?)',.* params: \[(.*?)],.* doc:\s+'(.*)'", line)
     if m:
-      name = m.group(1) 
+      name = m.group(1)
       doc = m.group(3)
       match_type = 1
 
       # Parse step parameters.
-      params = {} 
+      params = {}
       for p in m.group(2).split(", "):
         self.DEBUG("\t param: {}".format(p))
         pcomps = p.split(":")
@@ -636,19 +651,19 @@ class Pypline:
 # # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ • ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-# Time to get lazy. Time to get crazy. 
+# Time to get lazy. Time to get crazy.
 # Just give in. It's singleton time, baby.
 pypline = Pypline()
 
-###############################################################################
-# Class for the command entry point.
-###############################################################################
 class PyplineCommand(sublime_plugin.TextCommand):
-  
+  """
+  Class for the command entry point.
+  """
+
   def run(self, edit, target_idx = -1):
     pypline.reload(self.view)
 
-    # grab the default commands from the Default.sublime-commands resource
+    # Grab the default commands from the Default.sublime-commands resource.
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
     command_names = [x['caption'] for x in data]
 
@@ -656,9 +671,9 @@ class PyplineCommand(sublime_plugin.TextCommand):
       self.target_option_select(target_idx, edit)
     else:
       self.view.window().show_quick_panel(
-        command_names, 
+        command_names,
         lambda idx: self.target_option_select(idx, edit))
-  
+
   def target_option_select(self, index, edit):
     if index == -1: return
     if index == 0:
@@ -678,22 +693,22 @@ class PyplineCommand(sublime_plugin.TextCommand):
       pypline.open_output_panel()
     elif index == 6:
       pypline.script_console_run(self.view)
-    
-###############################################################################
-# Event class for handling Jenkins Pipeline auto-completions.
-###############################################################################
+
 class PyplineCompletions(sublime_plugin.EventListener):
+  """
+  Event class for handling Jenkins Pipeline auto-completions.
+  """
 
   def on_query_completions(self, view, prefix, locations):
-    if not is_groovy_view(view, locations) or not pypline.snippets_enabled: 
+    if not is_groovy_view(view, locations) or not pypline.snippets_enabled:
       return ([], 0)
 
     pypline.reload(view)
     completions = self.get_completions()
     return (completions, sublime.INHIBIT_EXPLICIT_COMPLETIONS)
 
-  def get_completions(self):    
-    if pypline.pipeline_steps_api == None: 
+  def get_completions(self):
+    if pypline.pipeline_steps_api == None:
       pypline.refresh_pipeline_steps_api()
 
     completions = []
@@ -701,14 +716,11 @@ class PyplineCompletions(sublime_plugin.EventListener):
       completions.append(("{}\t{}\tPypline".format(step.name, step.get_signature()), step.get_snippet()))
     return completions
 
-# *****************************************************************************
-# Global (static ?) methods.
-# *****************************************************************************
 def is_groovy_view(view, locations = None):
-    return (
-      (view.file_name() and is_groovy_file(view.file_name())) or 
-      ('Groovy' in view.settings().get('syntax')) or 
-      ( locations and len(locations) and '.groovy' in view.scope_name(locations[0])))
+  return (
+    (view.file_name() and is_groovy_file(view.file_name())) or
+    ('Groovy' in view.settings().get('syntax')) or
+    ( locations and len(locations) and '.groovy' in view.scope_name(locations[0])))
 
 def is_groovy_file(file):
   return file and file.endswith('.groovy')
