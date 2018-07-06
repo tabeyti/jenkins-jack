@@ -5,13 +5,18 @@ scope: source.pypline
 
 contexts:
   main:
-    - match: '^\[E\].*'
+    - match: '^\[?(I|INFO)\]? '
+      scope: variable.function.cs
+    - match: '^\[?(D|DEBUG)\]? '
+      scope: source.cs
+    - match: '^\[?(W|WARN(ING)?)\]? .*'
+      scope: string.quoted.double.cs
+    - match: '^\[?(E|ERROR(ED)?)\]? .*'
       scope: keyword.control.import.cs
     - include: console.body.command
     - include: console.body.pipelinecommand
     - include: console.body.link
     - include: console.body.pipelineexception
-
 
   console.body.link:
     - match: 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)'
