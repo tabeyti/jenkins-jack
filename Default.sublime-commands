@@ -33,5 +33,10 @@
         "caption": "Pypline: Run Groovy Script Console",
         "command": "pypline",
         "args": { "target_idx": 6 }
+    },
+    {
+        "caption": "Pypline: Download Build Log",
+        "command": "pypline",
+        "args": { "target_idx": 7 }
     }
 ]
