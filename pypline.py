@@ -163,12 +163,22 @@ class Pypline:
 
   #------------------------------------------------------------------------------
   def get_auth_crumb(self):
-    url = "http://{}:{}@{}//crumbIssuer/api/json".format(
+    # Extract post-fix http/https
+    uri_postfix = 'http'
+    m = re.match('(^https?):\/\/', self.jenkins_uri)
+    if m:
+      uri_postfix = m.group(1)
+    url = "{}://{}:{}@{}/crumbIssuer/api/json".format(
+      uri_postfix,
       self.username,
       self.api_token,
-      self.jenkins_uri.replace("http://", ""))
+      self.jenkins_uri.replace("http://", "").replace('https://', ''))
     self.INFO("GET: {}".format(url))
-    r = requests.get(url)
+    try:
+      r = requests.get(url)
+    except:
+      self.WARN('Error sending crump api request.')
+      return None
     if r.status_code != requests.codes.ok:
       self.WARN("GET: {} - Could not retrieve 'crumb' for authentication - Status code {}".format(
       url,  r.status_code))
@@ -191,7 +201,7 @@ class Pypline:
         self.INFO('Please open a browser on: ' + url)
 
   def job_exists(self, jobname):
-    url = "{}/job/{}".format(self.jenkins_uri, jobname)
+    url = "{}/job/{}/api/json".format(self.jenkins_uri, jobname)
     self.INFO("GET: {}".format(url))
     r = requests.get(url, auth=self.auth_tuple)
     if r.status_code == requests.codes.ok:
