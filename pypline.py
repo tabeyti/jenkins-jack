@@ -7,9 +7,8 @@ import sublime_plugin
 
 import os
 import sys
-import pprint
 import requests
-import tempfile
+import inspect
 import subprocess
 import ntpath
 import re
@@ -22,11 +21,8 @@ from .models import PipelineVarDoc
 
 # Dependency imports.
 import mdpopups
-from lxml import html
 from bs4 import BeautifulSoup
-from xml import etree
 from time import sleep
-from xml.sax.saxutils import escape
 
 STYLES = '''
 #outer {
@@ -132,7 +128,15 @@ class Pypline:
 
   #------------------------------------------------------------------------------
   def MYPRINT(self, label, message):
-    message = "[{}] {} >> {}".format(label, datetime.datetime.now().strftime("%H:%M:%S"), message)
+    curframe = inspect.currentframe()
+    calframe = inspect.getouterframes(curframe, 2)
+    calling_method = calframe[2][3]
+
+    message = "[{}] {} - {} >> {}".format(
+      label,
+      datetime.datetime.now().strftime("%H:%M:%S"),
+      calling_method,
+      message)
     print(message)
     if label == "E": self.OUT_LINE(message)
 
@@ -177,7 +181,7 @@ class Pypline:
     try:
       r = requests.get(url)
     except:
-      self.WARN('Error sending crump api request.')
+      self.WARN('Error sending crumb api request.')
       return None
     if r.status_code != requests.codes.ok:
       self.WARN("GET: {} - Could not retrieve 'crumb' for authentication - Status code {}".format(
