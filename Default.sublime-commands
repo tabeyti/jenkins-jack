@@ -38,5 +38,10 @@
         "caption": "Pypline: Download Build Log",
         "command": "pypline",
         "args": { "target_idx": 7 }
+    },
+    {
+        "caption": "Pypline: Update",
+        "command": "pypline",
+        "args": { "target_idx": 8 }
     }
 ]
