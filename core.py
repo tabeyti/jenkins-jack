@@ -385,6 +385,7 @@ class Pypline:
       on_cancel=None
     )
 
+  #------------------------------------------------------------------------------
   def ask_build_number(self, view, job_name):
     view.window().show_input_panel(
       caption='Enter Build Number',
@@ -394,6 +395,7 @@ class Pypline:
       on_cancel=None
     )
 
+  #------------------------------------------------------------------------------
   def display_log(self, view, job_name, build_number):
     sublime.status_message('Retrieving build log for {} #{}'.format(job_name, build_number))
     content = self.get_build_log(job_name, build_number)
@@ -450,9 +452,18 @@ class Pypline:
     self.build_pipeline(content, self.filename)
 
   #------------------------------------------------------------------------------
-  def build_pipeline(self, source, job):
+  def start_pipeline_update(self, view):
     """
-    Remotely builds the passed Jenkins Pipeline source.
+    Updates your script/job on the Jenkins Master.
+    """
+    self.reload_output_panel()
+    self.get_auth_crumb()
+    content = view.substr(sublime.Region(0, view.size()))
+    self.create_update_pipeline(content, self.filename)
+
+  #------------------------------------------------------------------------------
+  def create_update_pipeline(self, source, job):
+    """
     Pipeline source is inserted into a template 'config.xml' and then
     remotely determines whether the job exists and needs to be updated,
     or job doesn't exist and needs to be created.
@@ -465,12 +476,12 @@ class Pypline:
     # Take into account special characters for XML. XML is shit&;
     config = content.replace("++CONTENT++", "<![CDATA[" + source + "]]>")
 
-    # If job exists, update. If not, create.
+    # Format job name based on config.
     jobname = job
     if len(self.job_prefix.strip()) != 0:
       jobname = self.job_prefix + "-" +  job
 
-    next_build_number = 1
+    # If job exists, update. If not, create.
     if not self.job_exists(jobname):
       self.INFO("{} doesn't exist. Creating...".format(jobname))
       if not self.create_job(jobname, config): return
@@ -480,8 +491,17 @@ class Pypline:
       if not uj:
         self.INFO(uj)
         return
-      next_build_number = self.next_buildnum(jobname)
+    self.OUT('Successfully updated Pipeline: {}'.format(jobname))
+    return jobname
+
+  #------------------------------------------------------------------------------
+  def build_pipeline(self, source, job):
+    """
+    Remotely builds the passed Jenkins Pipeline source.
+    """    
+    jobname = self.create_update_pipeline(source, job)
     self.existing_job = jobname
+    next_build_number = self.next_buildnum(jobname)
 
     # Start build, create build URL, and wait for build to begin.
     if not self.build_job(jobname): return
@@ -739,6 +759,7 @@ class Pypline:
     s.param_map = params
     return s
 
+  #------------------------------------------------------------------------------
   def job_name_from_view(self, view):
     #   # Grab file name (to be used for jenkins job update/create)
     jobname = ntpath.basename(view.file_name())
