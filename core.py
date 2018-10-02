@@ -491,14 +491,14 @@ class Pypline:
       if not uj:
         self.INFO(uj)
         return
-    self.OUT('Successfully updated Pipeline: {}'.format(jobname))
+    self.OUT('Successfully updated Pipeline: {}\n'.format(jobname))
     return jobname
 
   #------------------------------------------------------------------------------
   def build_pipeline(self, source, job):
     """
     Remotely builds the passed Jenkins Pipeline source.
-    """    
+    """
     jobname = self.create_update_pipeline(source, job)
     self.existing_job = jobname
     next_build_number = self.next_buildnum(jobname)
