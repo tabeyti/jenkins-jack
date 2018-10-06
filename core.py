@@ -125,18 +125,18 @@ class Pypline:
 
 #<editor-fold desc="Loggin Methods">
   #------------------------------------------------------------------------------
-  def OUT(self, message):
+  def out(self, message):
     if None == self.output_panel:
       self.reload_output_panel()
     self.output_panel.run_command("append", {"characters": message, "scroll_to_end": True})
     self.output_panel.run_command("move_to", {"to": "eof"})
 
   #------------------------------------------------------------------------------
-  def OUT_LINE(self, message):
-    self.OUT("{}\n".format(message))
+  def out_line(self, message):
+    self.out("{}\n".format(message))
 
   #------------------------------------------------------------------------------
-  def MYPRINT(self, label, message):
+  def myprint(self, label, message):
     curframe = inspect.currentframe()
     calframe = inspect.getouterframes(curframe, 2)
     calling_method = calframe[2][3]
@@ -147,24 +147,24 @@ class Pypline:
       calling_method,
       message)
     print(message)
-    if label == "E": self.OUT_LINE(message)
+    if label == "E": self.out_line(message)
 
   #------------------------------------------------------------------------------
-  def DEBUG(self, message):
+  def debug(self, message):
     if self.DEBUG_ENABLED:
-      self.MYPRINT("D", message)
+      self.myprint("D", message)
 
   #------------------------------------------------------------------------------
-  def INFO(self, message):
-    self.MYPRINT("I", message)
+  def info(self, message):
+    self.myprint("I", message)
 
   #------------------------------------------------------------------------------
-  def WARN(self, message):
-    self.MYPRINT("W", message)
+  def warn(self, message):
+    self.myprint("W", message)
 
   #------------------------------------------------------------------------------
-  def ERROR(self, message):
-    self.MYPRINT("E", message)
+  def error(self, message):
+    self.myprint("E", message)
 #</editor-fold>
 
 #<editor-fold desc="HTTP Request Methods for Jenkins">
@@ -186,20 +186,20 @@ class Pypline:
       self.username,
       self.api_token,
       self.jenkins_uri.replace("http://", "").replace('https://', ''))
-    self.INFO("GET: {}".format(url))
+    self.info("GET: {}".format(url))
     try:
       r = requests.get(url)
     except:
-      self.WARN('Error sending crumb api request.')
+      self.warn('Error sending crumb api request.')
       return None
     if r.status_code != requests.codes.ok:
-      self.WARN("GET: {} - Could not retrieve 'crumb' for authentication - Status code {}".format(
+      self.warn("GET: {} - Could not retrieve 'crumb' for authentication - Status code {}".format(
       url,  r.status_code))
       return None
 
     data = json.loads(r.text)
     self.auth_crumb = (data["crumbRequestField"], data["crumb"])
-    self.INFO("Crumb retrieved - {}:{}".format(self.auth_crumb[0], self.auth_crumb[1]))
+    self.info("Crumb retrieved - {}:{}".format(self.auth_crumb[0], self.auth_crumb[1]))
 
   #------------------------------------------------------------------------------
   def open_browser_at(self, url):
@@ -211,11 +211,12 @@ class Pypline:
       try:
         subprocess.Popen(['xdg-open', url])
       except:
-        self.INFO('Please open a browser on: ' + url)
+        self.info('Please open a browser on: ' + url)
 
+  #------------------------------------------------------------------------------
   def job_exists(self, jobname):
     url = "{}/job/{}/api/json".format(self.jenkins_uri, jobname)
-    self.INFO("GET: {}".format(url))
+    self.info("GET: {}".format(url))
     r = requests.get(url, auth=self.auth_tuple)
     if r.status_code == requests.codes.ok:
       return True
@@ -224,17 +225,17 @@ class Pypline:
   #------------------------------------------------------------------------------
   def get_job_config(self, jobname):
     url = "{}/job/{}/config.xml".format(self.jenkins_uri, jobname)
-    self.INFO("GET: {}".format(url))
+    self.info("GET: {}".format(url))
     r = requests.get(url, auth=self.auth_tuple)
     if r.status_code == requests.codes.ok:
       return r.text
-    self.ERROR("GET: {} - Status Code: {}".format(url, r.status_code))
+    self.error("GET: {} - Status Code: {}".format(url, r.status_code))
     return None
 
   #------------------------------------------------------------------------------
   def update_job(self, jobname, content):
     url = "{}/job/{}/config.xml".format(self.jenkins_uri, jobname)
-    self.INFO("POST: {}".format(url))
+    self.info("POST: {}".format(url))
     r = requests.post(
       url,
       data = content,
@@ -243,7 +244,7 @@ class Pypline:
 
     if r.status_code == requests.codes.ok:
       return r.text + "."
-    self.ERROR("POST: {} - Could not update job {} - Status code {}".format(
+    self.error("POST: {} - Could not update job {} - Status code {}".format(
       url, jobname, r.status_code))
     return None
 
@@ -253,18 +254,18 @@ class Pypline:
       url = "{}/job/{}/pipeline-syntax/globals".format(self.jenkins_uri, self.existing_job)
     else:
       url = "{}/pipeline-syntax/globals".format(self.jenkins_uri)
-    self.INFO("GET: {}".format(url))
+    self.info("GET: {}".format(url))
     r = requests.get(url, headers=self.get_request_headers(), auth=self.auth_tuple)
     if r.status_code == requests.codes.ok:
       return r.text
 
-    self.ERROR("GET: {} - Could not retrieve global vars html - {} - {}".format(url, r.status_code, r.text))
+    self.error("GET: {} - Could not retrieve global vars html - {} - {}".format(url, r.status_code, r.text))
     return None
 
   #------------------------------------------------------------------------------
   def create_job(self, jobname, content):
     url = "{}/createItem?name={}".format(self.jenkins_uri, jobname)
-    self.INFO("POST: {}".format(url))
+    self.info("POST: {}".format(url))
     r = requests.post(
       url,
       data = content,
@@ -273,22 +274,22 @@ class Pypline:
 
     if r.status_code == requests.codes.ok:
       return r.text + "."
-    self.ERROR("POST: {} - Could not create job {} - Status code {} - {}".format(
+    self.error("POST: {} - Could not create job {} - Status code {} - {}".format(
       url, jobname, r.status_code, r.text))
     return None
 
   #------------------------------------------------------------------------------
   def next_buildnum(self, jobname):
     url = "{}/job/{}/lastBuild/buildNumber".format(self.jenkins_uri, jobname)
-    self.INFO("GET: {}".format(url))
+    self.info("GET: {}".format(url))
     r = requests.get(
       url,
       headers=self.get_request_headers())
 
     if r.status_code != requests.codes.ok:
-      self.WARN("GET: {} - Issue retrieving build number for job {} - Status code: {} - {}".format(
+      self.warn("GET: {} - Issue retrieving build number for job {} - Status code: {} - {}".format(
         url, jobname, r.status_code, r.text))
-      self.WARN("Defaulting build number to 1.")
+      self.warn("Defaulting build number to 1.")
       return 1
     return int(r.text) + 1
 
@@ -296,7 +297,7 @@ class Pypline:
   def build_job(self, jobname):
     url = "{}/job/{}/build".format(self.jenkins_uri, jobname)
 
-    self.INFO("POST: {}".format(url))
+    self.info("POST: {}".format(url))
     r = requests.post(
       url,
       auth=self.auth_tuple,
@@ -304,14 +305,14 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201:
       return r.text + "."
-    self.ERROR("POST: {} - Could not build job {} - Status code {}".format(
+    self.error("POST: {} - Could not build job {} - Status code {}".format(
       url, jobname, r.status_code))
     return None
 
   #------------------------------------------------------------------------------
   def abort_active_build(self):
     url = "{}/stop".format(self.active_build_url)
-    self.INFO("POST: {}".format(url))
+    self.info("POST: {}".format(url))
 
     r = requests.post(
       url,
@@ -320,7 +321,7 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201:
       return r.text + "."
-    self.ERROR("POST: {} - Could not abort job {} - Status code {}".format(
+    self.error("POST: {} - Could not abort job {} - Status code {}".format(
       url, jobname, r.status_code))
     return None
 
@@ -328,7 +329,7 @@ class Pypline:
   def validate_dec_pipeline_job(self, content):
     url = "{}/pipeline-model-converter/validate".format(self.jenkins_uri)
     payload = {"jenkinsfile": content}
-    self.INFO("POST: {}".format(url))
+    self.info("POST: {}".format(url))
 
     r = requests.post(
       url,
@@ -337,31 +338,31 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201:
       return r.text
-    self.ERROR("POST: {} - Could not validate pipeline - Status code {}".format(
+    self.error("POST: {} - Could not validate pipeline - Status code {}".format(
       url, r.status_code))
     return None
 
   #------------------------------------------------------------------------------
   def build_ready(self, build_url):
     timeout = self.timeout_secs
-    self.OUT("Waiting for build.")
+    self.out("Waiting for build.")
     while timeout > 0:
       r = requests.get(build_url)
       if r.status_code == requests.codes.ok:
-        self.OUT_LINE("")
+        self.out_line("")
         return True
-      self.OUT('.')
+      self.out('.')
       sleep(1)
       timeout = timeout - 1
 
-    self.OUT_LINE("")
-    self.ERROR("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))
+    self.out_line("")
+    self.error("Timed out at {} secs waiting for build at {}".format(self.timeout_secs, build_url))
     return False
 
   #------------------------------------------------------------------------------
   def get_build_log(self, job_name, build_number):
     url = "{}/job/{}/{}/consoleText".format(self.jenkins_uri, job_name, build_number)
-    self.INFO("GET: {}".format(url))
+    self.info("GET: {}".format(url))
     r = requests.get(
       url,
       auth=self.auth_tuple,
@@ -369,7 +370,7 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201:
       return r.text
-    self.ERROR("POST: {} - Could retrieve log for job {} ${} - Status code {}".format(
+    self.error("POST: {} - Could retrieve log for job {} ${} - Status code {}".format(
       url, job_name, build_number, r.status_code))
     return None
 
@@ -419,7 +420,7 @@ class Pypline:
 
     url = "{}/scriptText".format(self.jenkins_uri)
     payload = {'script':content}
-    self.INFO("POST: {}".format(url))
+    self.info("POST: {}".format(url))
     r = requests.post(
       url,
       auth=self.auth_tuple,
@@ -427,10 +428,10 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201 or r.status_code == 200:
       print(r)
-      self.OUT_LINE(r.text.replace("\r\n", "\n"))
+      self.out_line(r.text.replace("\r\n", "\n"))
       return
 
-    self.ERROR("POST: {} - Could not run script - Status code {}".format(url, r.status_code))
+    self.error("POST: {} - Could not run script - Status code {}".format(url, r.status_code))
 
   #------------------------------------------------------------------------------
   def start_pipeline_build(self, view):
@@ -439,7 +440,7 @@ class Pypline:
     using the user's view content as the pipeline script.
     """
     if self.active_build_url != None:
-      self.WARN("Pipeline already building/streaming: {}.".format(self.active_build_url))
+      self.warn("Pipeline already building/streaming: {}.".format(self.active_build_url))
       return
 
     # Create/retrieve/show our output panel and clear the contents.
@@ -483,15 +484,16 @@ class Pypline:
 
     # If job exists, update. If not, create.
     if not self.job_exists(jobname):
-      self.INFO("{} doesn't exist. Creating...".format(jobname))
+      self.info("{} doesn't exist. Creating...".format(jobname))
       if not self.create_job(jobname, config): return
     else:
-      self.INFO("{} already exists. Reconfiguring...".format(jobname))
+      self.info("{} already exists. Reconfiguring...".format(jobname))
       uj = self.update_job(jobname, config)
       if not uj:
-        self.INFO(uj)
+        self.info(uj)
         return
-    self.OUT('Successfully updated Pipeline: {}\n'.format(jobname))
+    self.out('-' * 80)
+    self.out('Successfully updated Pipeline: {}\n'.format(jobname))
     return jobname
 
   #------------------------------------------------------------------------------
@@ -506,7 +508,7 @@ class Pypline:
     # Start build, create build URL, and wait for build to begin.
     if not self.build_job(jobname): return
     self.active_build_url = "{}/job/{}/{}".format(self.jenkins_uri, jobname, next_build_number)
-    self.INFO("Build started for '{}' at {}".format(jobname, self.active_build_url))
+    self.info("Build started for '{}' at {}".format(jobname, self.active_build_url))
 
     # Wait for build to start.
     if not self.build_ready(self.active_build_url): return
@@ -514,11 +516,11 @@ class Pypline:
     # Stream output to Sublime console or open browser to output.
     if self.open_browser_build_output:
       browser_url = "{}/console".format(self.active_build_url)
-      self.OUT_LINE("Opening browser to console output: {}".format(browser_url))
+      self.out_line("Opening browser to console output: {}".format(browser_url))
       self.open_browser_at(browser_url)
     else:
       # Print build output to console if specified.
-      self.INFO("Streaming build output.")
+      self.info("Streaming build output.")
       self.stream_console_output(self.active_build_url)
 
     # Indicate job is finished.
@@ -538,9 +540,9 @@ class Pypline:
 
     # Get job console till job stops
     job_url = "{}/logText/progressiveText".format(build_url)
-    self.OUT_LINE(barrier_line)
-    self.OUT_LINE("Getting Console output {}".format(job_url))
-    self.OUT_LINE(barrier_line)
+    self.out_line(barrier_line)
+    self.out_line("Getting Console output {}".format(job_url))
+    self.out_line(barrier_line)
     start_at = 0
     stream_open = True
     check_job_status = 0
@@ -555,9 +557,9 @@ class Pypline:
       content_length = int(console_response.headers.get("Content-Length",-1))
 
       if console_response.status_code != 200:
-        self.ERROR("Error getting console output. Status code: {}".format(console_response.status_code))
-        self.ERROR(console_response.content)
-        self.ERROR(console_response.headers)
+        self.error("Error getting console output. Status code: {}".format(console_response.status_code))
+        self.error(console_response.content)
+        self.error(console_response.headers)
         return
 
       if content_length == 0:
@@ -569,9 +571,9 @@ class Pypline:
         # Print to output panel.
         try:
           content = str(console_response.content, 'ascii')
-          self.OUT_LINE(content.replace("\\t", "\t").replace("\r\n", "\n"))
+          self.out_line(content.replace("\\t", "\t").replace("\r\n", "\n"))
         except:
-          self.OUT_LINE('[Issue decoding string]')
+          self.out_line('[Issue decoding string. Call nine wan wan!]')
 
         sleep(1)
         start_at = int(console_response.headers.get("X-Text-Size"))
@@ -593,9 +595,9 @@ class Pypline:
           # Job is still running
           check_job_status = 0
 
-    self.OUT_LINE("-------------------------------------------------------------------------------")
-    self.OUT_LINE("Console stream ended.")
-    self.OUT_LINE("-------------------------------------------------------------------------------")
+    self.out_line("-------------------------------------------------------------------------------")
+    self.out_line("Console stream ended.")
+    self.out_line("-------------------------------------------------------------------------------")
 
   #------------------------------------------------------------------------------
   def validate(self, view):
@@ -608,7 +610,7 @@ class Pypline:
     r = self.validate_dec_pipeline_job(content)
     response_text = r.split("\r\n")
     for line in response_text:
-      self.OUT_LINE(line)
+      self.out_line(line)
 
   #------------------------------------------------------------------------------
   def show_globalvars_api_search(self, view):
@@ -732,7 +734,7 @@ class Pypline:
       # Parse step parameters.
       params = {}
       for p in m.group(2).split(", "):
-        self.DEBUG("\t param: {}".format(p))
+        self.debug("\t param: {}".format(p))
         pcomps = p.split(":")
         if (pcomps[0] == ""): continue
         params[pcomps[0]] = pcomps[1].replace("'", "").strip()
@@ -747,12 +749,12 @@ class Pypline:
 
       rawParams = m.group(2).split(", parameter")
       for rp in rawParams:
-        self.DEBUG("\t param: {}".format(rp))
+        self.debug("\t param: {}".format(rp))
         tm = re.match(".*name:\s+'(.*?)', type:\s+'(.*?)'.*", rp)
         if not tm: continue
         params[tm.group(1)] = tm.group(2)
 
-    self.DEBUG("Parsed name: {} - doc: {} - match_type: {}".format(name, doc, match_type))
+    self.debug("Parsed name: {} - doc: {} - match_type: {}".format(name, doc, match_type))
     s = PipelineStepDoc()
     s.name = name
     s.doc = doc
