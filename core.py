@@ -122,6 +122,7 @@ class Pypline:
   #------------------------------------------------------------------------------
   def open_output_panel(self):
     sublime.active_window().run_command("show_panel", {"panel": "output.{}".format(self.filename)})
+    sublime.active_window().focus_view(self.output_panel)
 
 #<editor-fold desc="Loggin Methods">
   #------------------------------------------------------------------------------
