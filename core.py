@@ -401,6 +401,7 @@ class Pypline:
     sublime.status_message('Retrieving build log for {} #{}'.format(job_name, build_number))
     content = self.get_build_log(job_name, build_number)
     tab = sublime.active_window().new_file()
+    tab.set_syntax_file("Packages/Pypline/pypline-log-syntax.sublime-syntax")
     tab.run_command("append", {"characters": content, "scroll_to_end": False})
 
   #------------------------------------------------------------------------------
