@@ -391,18 +391,31 @@ class Pypline:
     view.window().show_input_panel(
       caption='Enter Build Number',
       initial_text='',
-      on_done=lambda build_number: sublime.set_timeout_async(lambda: self.display_log(view, job_name, build_number), 0),
+      on_done=lambda build_number: sublime.set_timeout_async(lambda: self.ask_regex_filter(view, job_name, build_number), 0),
       on_change=None,
       on_cancel=None
     )
 
   #------------------------------------------------------------------------------
-  def display_log(self, view, job_name, build_number):
+  def ask_regex_filter(self, view, job_name, build_number):
+    view.window().show_input_panel(
+      caption='Regex Filter',
+      initial_text='.*',
+      on_done=lambda regex_exp: sublime.set_timeout_async(lambda: self.display_log(view, job_name, build_number, regex_exp), 0),
+      on_change=None,
+      on_cancel=None
+      )
+
+  #------------------------------------------------------------------------------
+  def display_log(self, view, job_name, build_number, regex):
     sublime.status_message('Retrieving build log for {} #{}'.format(job_name, build_number))
-    content = self.get_build_log(job_name, build_number)
+
+    url = "{}/job/{}/{}".format(self.jenkins_uri, job_name, build_number)
+
+    # TODO: Config option to output to either output panel or new tab/view.
     tab = sublime.active_window().new_file()
     tab.set_syntax_file("Packages/Pypline/pypline-log-syntax.sublime-syntax")
-    tab.run_command("append", {"characters": content, "scroll_to_end": False})
+    self.stream_console_output(tab, url, regex.strip())
 
   #------------------------------------------------------------------------------
   def script_console_run(self, view):
@@ -521,28 +534,32 @@ class Pypline:
     else:
       # Print build output to console if specified.
       self.INFO("Streaming build output.")
-      self.stream_console_output(self.active_build_url)
+
+      # Switch focus to the console output panel.
+      sublime.active_window().focus_view(self.output_panel)
+      self.stream_console_output(self.output_panel, self.active_build_url)
 
     # Indicate job is finished.
     self.active_build_url = None
 
   #------------------------------------------------------------------------------
-  def stream_console_output(self, build_url):
+  def stream_console_output(self, view, build_url, regex=None):
     """
     Streams the build's output via Jenkins' progressiveText, by keeping an
     open session with the API, while writing out content as it comes in. The
     method will return once the build is complete, which is determined
     via Jenkins API.
     """
-    # Switch focus to the console output panel.
-    sublime.active_window().focus_view(self.output_panel)
     barrier_line = '-' * 80
 
     # Get job console till job stops
     job_url = "{}/logText/progressiveText".format(build_url)
-    self.OUT_LINE(barrier_line)
-    self.OUT_LINE("Getting Console output {}".format(job_url))
-    self.OUT_LINE(barrier_line)
+    # self.OUT_LINE(barrier_line)
+    # self.OUT_LINE("Getting Console output {}".format(job_url))
+    # self.OUT_LINE(barrier_line)
+    view_outline(view, barrier_line)
+    view_outline(view, "Getting Console output {}".format(job_url))
+    view_outline(view, barrier_line)
     start_at = 0
     stream_open = True
     check_job_status = 0
@@ -557,9 +574,9 @@ class Pypline:
       content_length = int(console_response.headers.get("Content-Length",-1))
 
       if console_response.status_code != 200:
-        self.ERROR("Error getting console output. Status code: {}".format(console_response.status_code))
-        self.ERROR(console_response.content)
-        self.ERROR(console_response.headers)
+        view_outline(view, "Error getting console output. Status code: {}".format(console_response.status_code))
+        view_outline(view, console_response.content)
+        view_outline(view, console_response.headers)
         return
 
       if content_length == 0:
@@ -571,9 +588,16 @@ class Pypline:
         # Print to output panel.
         try:
           content = str(console_response.content, 'ascii')
-          self.OUT_LINE(content.replace("\\t", "\t").replace("\r\n", "\n"))
+
+          # If regex was provided, apply filter for each line received.
+          if regex is not None:
+            for l in content.splitlines():
+              if re.search(regex, l):
+                view_outline(view, l.replace("\\t", "\t").replace("\r\n", "\n"))
+          else:
+            view_outline(view, content.replace("\\t", "\t").replace("\r\n", "\n"))
         except:
-          self.OUT_LINE('[Issue decoding string]')
+          view_outline(view, '[Issue decoding string]')
 
         sleep(1)
         start_at = int(console_response.headers.get("X-Text-Size"))
@@ -595,9 +619,9 @@ class Pypline:
           # Job is still running
           check_job_status = 0
 
-    self.OUT_LINE("-------------------------------------------------------------------------------")
-    self.OUT_LINE("Console stream ended.")
-    self.OUT_LINE("-------------------------------------------------------------------------------")
+    view_outline(view, "-------------------------------------------------------------------------------")
+    view_outline(view, "Console stream ended.")
+    view_outline(view, "-------------------------------------------------------------------------------")
 
   #------------------------------------------------------------------------------
   def validate(self, view):
@@ -767,3 +791,11 @@ class Pypline:
     jobname = ntpath.basename(view.file_name())
     if "." in jobname:
       jobname = os.path.splitext(jobname)[0]
+
+
+def view_outline(view, message):
+  view_out(view, "{}\n".format(message))
+
+def view_out(view, message):
+  view.run_command("append", {"characters": message, "scroll_to_end": True})
+  view.run_command("move_to", {"to": "eof"})
