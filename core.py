@@ -10,19 +10,7 @@ import ntpath
 import re
 import json
 import datetime
-
-import sublime
-import sublime_plugin
-
-import os
-import sys
-import requests
-import inspect
-import subprocess
-import ntpath
-import re
-import json
-import datetime
+import time
 
 # Local source imports.
 from .models import PipelineStepDoc
@@ -31,7 +19,6 @@ from .models import PipelineVarDoc
 # Dependency imports.
 import mdpopups
 from bs4 import BeautifulSoup
-from time import sleep
 
 STYLES = '''
 #outer {
@@ -234,6 +221,28 @@ class Pypline:
     return None
 
   #------------------------------------------------------------------------------
+  def get_job_names(self):
+    url = '{}/api/json?tree=jobs[name]'.format(self.jenkins_uri)
+    self.info('GET: {}'.format(url))
+    r = requests.get(url, auth=self.auth_tuple)
+    if r.status_code != requests.codes.ok:
+      self.error("GET: {} - Status Code: {}".format(url, r.status_code))
+      return None
+    data = r.json()
+    return [d['name'] for d in data['jobs']]
+
+  #------------------------------------------------------------------------------
+  def get_build_numbers(self, job_name):
+    url = '{}/job/{}/api/json?tree=builds[number]'.format(self.jenkins_uri, job_name)
+    self.info('GET: {}'.format(url))
+    r = requests.get(url, auth=self.auth_tuple)
+    if r.status_code != requests.codes.ok:
+      self.error("GET: {} - Status Code: {}".format(url, r.status_code))
+      return None
+    data = r.json()
+    return [str(d['number']) for d in data['builds']]
+
+  #------------------------------------------------------------------------------
   def update_job(self, jobname, content):
     url = "{}/job/{}/config.xml".format(self.jenkins_uri, jobname)
     self.info("POST: {}".format(url))
@@ -353,7 +362,7 @@ class Pypline:
         self.out_line("")
         return True
       self.out('.')
-      sleep(1)
+      time.sleep(1)
       timeout = timeout - 1
 
     self.out_line("")
@@ -379,44 +388,37 @@ class Pypline:
 
   #------------------------------------------------------------------------------
   def ask_job_name(self, view):
-    view.window().show_input_panel(
-      caption='Enter Job Name',
-      initial_text='',
-      on_done=lambda job_name: self.ask_build_number(view, job_name),
-      on_change=None,
-      on_cancel=None
+    job_names = self.get_job_names()
+    view.window().show_quick_panel(
+        job_names,
+        lambda idx: self.ask_build_number(view, job_names, idx)
     )
 
   #------------------------------------------------------------------------------
-  def ask_build_number(self, view, job_name):
-    view.window().show_input_panel(
-      caption='Enter Build Number',
-      initial_text='',
-      on_done=lambda build_number: sublime.set_timeout_async(lambda: self.ask_regex_filter(view, job_name, build_number), 0),
-      on_change=None,
-      on_cancel=None
+  def ask_build_number(self, view, job_names, job_idx):
+    if job_idx == -1:
+      return
+
+    job_name = job_names[job_idx]
+    build_numbers = self.get_build_numbers(job_name)
+    view.window().show_quick_panel(
+        build_numbers,
+        lambda idx: self.display_log(view, job_name, build_numbers, idx)
     )
 
   #------------------------------------------------------------------------------
-  def ask_regex_filter(self, view, job_name, build_number):
-    view.window().show_input_panel(
-      caption='Regex Filter',
-      initial_text='.*',
-      on_done=lambda regex_exp: sublime.set_timeout_async(lambda: self.display_log(view, job_name, build_number, regex_exp), 0),
-      on_change=None,
-      on_cancel=None
-      )
+  def display_log(self, view, job_name, build_numbers, build_number_idx):
+    if build_number_idx == -1:
+      return
 
-  #------------------------------------------------------------------------------
-  def display_log(self, view, job_name, build_number, regex):
+    build_number = build_numbers[build_number_idx]
     sublime.status_message('Retrieving build log for {} #{}'.format(job_name, build_number))
-
     url = "{}/job/{}/{}".format(self.jenkins_uri, job_name, build_number)
 
     # TODO: Config option to output to either output panel or new tab/view.
     tab = sublime.active_window().new_file()
     tab.set_syntax_file("Packages/Pypline/pypline-log-syntax.sublime-syntax")
-    self.stream_console_output(tab, url, regex.strip())
+    sublime.set_timeout_async(lambda: self.stream_console_output(tab, url), 0)
 
   #------------------------------------------------------------------------------
   def script_console_run(self, view):
@@ -545,7 +547,7 @@ class Pypline:
     self.active_build_url = None
 
   #------------------------------------------------------------------------------
-  def stream_console_output(self, view, build_url, regex=None):
+  def stream_console_output(self, view, build_url):
     """
     Streams the build's output via Jenkins' progressiveText, by keeping an
     open session with the API, while writing out content as it comes in. The
@@ -556,9 +558,6 @@ class Pypline:
 
     # Get job console till job stops
     job_url = "{}/logText/progressiveText".format(build_url)
-    # self.OUT_LINE(barrier_line)
-    # self.OUT_LINE("Getting Console output {}".format(job_url))
-    # self.OUT_LINE(barrier_line)
     view_outline(view, barrier_line)
     view_outline(view, "Getting Console output {}".format(job_url))
     view_outline(view, barrier_line)
@@ -575,6 +574,8 @@ class Pypline:
 
       content_length = int(console_response.headers.get("Content-Length",-1))
 
+      self.debug('Content length: {} bytes'.format(str(content_length)))
+
       if console_response.status_code != 200:
         view_outline(view, "Error getting console output. Status code: {}".format(console_response.status_code))
         view_outline(view, console_response.content)
@@ -582,26 +583,19 @@ class Pypline:
         return
 
       if content_length == 0:
-        sleep(1)
+        time.sleep(1)
         check_job_status +=1
       else:
         check_job_status = 0
 
         # Print to output panel.
         try:
-          content = str(console_response.content, 'ascii')
-
-          # If regex was provided, apply filter for each line received.
-          if regex is not None:
-            for l in content.splitlines():
-              if re.search(regex, l):
-                view_outline(view, l.replace("\\t", "\t").replace("\r\n", "\n"))
-          else:
-            view_outline(view, content.replace("\\t", "\t").replace("\r\n", "\n"))
+          content = str(console_response.content, 'ascii').replace("\\t", "\t").replace("\r\n", "\n")
+          view_outline(view, content)
         except:
           view_outline(view, '[Issue decoding string]')
 
-        sleep(1)
+        time.sleep(1)
         start_at = int(console_response.headers.get("X-Text-Size"))
 
       # No content for a while, so lets check if job is still running.
@@ -611,7 +605,7 @@ class Pypline:
           job_status_url,
           headers=self.get_request_headers())
 
-        job_bulding= job_requests.json().get("building")
+        job_bulding = job_requests.json().get("building")
         if not job_bulding:
           if end_delay > 0:
             # We are done
@@ -794,10 +788,10 @@ class Pypline:
     if "." in jobname:
       jobname = os.path.splitext(jobname)[0]
 
-
+#------------------------------------------------------------------------------
 def view_outline(view, message):
   view_out(view, "{}\n".format(message))
 
+#------------------------------------------------------------------------------
 def view_out(view, message):
   view.run_command("append", {"characters": message, "scroll_to_end": True})
-  view.run_command("move_to", {"to": "eof"})
