@@ -509,8 +509,8 @@ class Pypline:
       if not uj:
         self.info(uj)
         return
-    self.out('-' * 80)
-    self.out('Successfully updated Pipeline: {}\n'.format(jobname))
+    self.out_line('-' * 80)
+    self.out_line('Successfully updated Pipeline: {}'.format(jobname))
     return jobname
 
   #------------------------------------------------------------------------------
