@@ -43,5 +43,11 @@
         "caption": "Pypline: Update",
         "command": "pypline",
         "args": { "target_idx": 8 }
+    },
+    {
+        "caption": "Pypline: Job Display",
+        "command": "pypline",
+        "args": { "target_idx": 9 }
     }
+
 ]

@@ -52,6 +52,9 @@ class PyplineCommand(sublime_plugin.TextCommand):
       pypline.ask_job_name(self.view)
     elif index == 8:
       pypline.start_pipeline_update(self.view)
+    elif index == 9:
+      pypline.ask_job_name(self.view, True)
+
 
 #------------------------------------------------------------------------------
 class PyplineCompletions(sublime_plugin.EventListener):

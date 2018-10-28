@@ -387,12 +387,18 @@ class Pypline:
 #</editor-fold>
 
   #------------------------------------------------------------------------------
-  def ask_job_name(self, view):
+  def ask_job_name(self, view, open_job=False):
     job_names = self.get_job_names()
-    view.window().show_quick_panel(
+    if open_job:
+      view.window().show_quick_panel(
         job_names,
-        lambda idx: self.ask_build_number(view, job_names, idx)
-    )
+        lambda idx: self.open_job(view, job_names, idx)
+      )
+    else:
+      view.window().show_quick_panel(
+          job_names,
+          lambda idx: self.ask_build_number(view, job_names, idx)
+      )
 
   #------------------------------------------------------------------------------
   def ask_build_number(self, view, job_names, job_idx):
@@ -419,6 +425,15 @@ class Pypline:
     tab = sublime.active_window().new_file()
     tab.set_syntax_file("Packages/Pypline/pypline-log-syntax.sublime-syntax")
     sublime.set_timeout_async(lambda: self.stream_console_output(tab, url), 0)
+
+  #------------------------------------------------------------------------------
+  def open_job(self, view, job_names, idx):
+    if idx == -1:
+      return
+
+    job_name = job_names[idx]
+    url = "{}/job/{}".format(self.jenkins_uri, job_name)
+    self.open_browser_at(url)
 
   #------------------------------------------------------------------------------
   def script_console_run(self, view):
