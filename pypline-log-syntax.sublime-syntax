@@ -1,16 +1,17 @@
 %YAML 1.2
 ---
+# To see scope of something under your cursor, use CTRL+ALT_SHIFT+P
 name: Pypline Log
 scope: source.pypline
 
 contexts:
   main:
     - match: '^\[?(I|INFO)\]? '
+      scope: entity.name.class.cs
+    - match: '^\[?(D|DEBUG)\]? .*'
       scope: variable.function.cs
-    - match: '^\[?(D|DEBUG)\]? '
-      scope: source.cs
     - match: '^\[?(W|WARN(ING)?)\]? .*'
-      scope: string.quoted.double.cs
+      scope: constant.language.cs
     - match: '^\[?(E|ERROR(ED)?)\]? .*'
       scope: keyword.control.import.cs
     - include: console.body.command
