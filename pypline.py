@@ -14,45 +14,43 @@ class PyplineCommand(sublime_plugin.TextCommand):
   Class for the command entry point.
   """
   #------------------------------------------------------------------------------
-  def run(self, edit, target_idx = -1):
-    pypline.reload(self.view)
+  def run(self, edit, target=None):    
 
     # Grab the default commands from the Default.sublime-commands resource.
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
     command_names = [x['caption'] for x in data]
-
-    if target_idx != -1:
-      self.target_option_select(target_idx, edit)
-    else:
+    command_targets = [x['args']['target'] for x in data]
+ 
+    if target is None:
       self.view.window().show_quick_panel(
         command_names,
-        lambda idx: self.target_option_select(idx, edit))
+        lambda idx: self.target_option_select(command_targets[idx], edit))
 
-  #------------------------------------------------------------------------------
-  def target_option_select(self, index, edit):
-    if index == -1: return
-    if index == 0:
+  def target_option_select(self, target, edit):
+    if target is None: return
+    pypline.out_line(target)
+    if target == "execute":
       sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
-    elif index == 1:
+    elif target == "abort":
       pypline.abort_active_build()
-    elif index == 2:
+    elif target == "step_reference":
       if pypline.open_browser_steps_api:
         pypline.open_browser_at("{}/pipeline-syntax".format(pypline.jenkins_uri))
       else:
         pypline.show_steps_api_search(self.view)
-    elif index == 3:
+    elif target == "global_vars_reference":
       pypline.show_globalvars_api_search(self.view)
-    elif index == 4:
+    elif target == "validate_dec_pipeline":
       pypline.validate(self.view)
-    elif index == 5:
+    elif target == "open_output_panel":
       pypline.open_output_panel()
-    elif index == 6:
+    elif target == "run_console_groovy_script":
       pypline.script_console_run(self.view)
-    elif index == 7:
+    elif target == "download_build_log":
       pypline.ask_job_name(self.view)
-    elif index == 8:
+    elif target == "update":
       pypline.start_pipeline_update(self.view)
-    elif index == 9:
+    elif target == "job_display":
       pypline.ask_job_name(self.view, True)
 
 
