@@ -1,53 +1,52 @@
 [
     {
         "caption": "Pypline: Execute",
-        "command": "pypline",
-        "args": { "target_idx": 0 }
+        "command": "potato",
+        "args": { "target": "execute" }
     },
     {
         "caption": "Pypline: Abort",
-        "command": "pypline",
-        "args": { "target_idx": 1 }
+        "command": "potato",
+        "args": { "target": "abort" }
     },
     {
         "caption": "Pypline: Step Reference",
-        "command": "pypline",
-        "args": { "target_idx": 2 }
+        "command": "potato",
+        "args": { "target": "step_reference" }
     },
     {
         "caption": "Pypline: Global Variables Reference",
-        "command": "pypline",
-        "args": { "target_idx": 3 }
+        "command": "potato",
+        "args": { "target": "global_vars_reference" }
     },
     {
         "caption": "Pypline: Validate Declarative Pipeline",
-        "command": "pypline",
-        "args": { "target_idx": 4 }
+        "command": "potato",
+        "args": { "target": "validate_dec_pipeline" }
     },
     {
         "caption": "Pypline: Open Output Panel",
-        "command": "pypline",
-        "args": { "target_idx": 5 }
+        "command": "potato",
+        "args": { "target": "open_output_panel" }
     },
     {
-        "caption": "Pypline: Run Groovy Script Console",
-        "command": "pypline",
-        "args": { "target_idx": 6 }
+        "caption": "Pypline: Run Console Groovy Script",
+        "command": "potato",
+        "args": { "target": "run_console_groovy_script" }
     },
     {
         "caption": "Pypline: Download Build Log",
-        "command": "pypline",
-        "args": { "target_idx": 7 }
+        "command": "potato",
+        "args": { "target": "download_build_log" }
     },
     {
-        "caption": "Pypline: Update",
-        "command": "pypline",
-        "args": { "target_idx": 8 }
+        "caption": "PPypline: Update",
+        "command": "potato",
+        "args": { "target": "update" }
     },
     {
         "caption": "Pypline: Job Display",
-        "command": "pypline",
-        "args": { "target_idx": 9 }
+        "command": "potato",
+        "args": { "target": "job_display" }
     }
-
 ]
