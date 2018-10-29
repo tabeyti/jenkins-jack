@@ -28,7 +28,6 @@ class PyplineCommand(sublime_plugin.TextCommand):
 
   def target_option_select(self, target, edit):
     if target is None: return
-    pypline.out_line(target)
     if target == "execute":
       sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
     elif target == "abort":
