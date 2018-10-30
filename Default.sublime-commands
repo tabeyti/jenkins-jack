@@ -40,7 +40,7 @@
         "args": { "target": "download_build_log" }
     },
     {
-        "caption": "PPypline: Update",
+        "caption": "Pypline: Update",
         "command": "potato",
         "args": { "target": "update" }
     },

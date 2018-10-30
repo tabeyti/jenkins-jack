@@ -396,8 +396,8 @@ class Pypline:
       )
     else:
       view.window().show_quick_panel(
-          job_names,
-          lambda idx: self.ask_build_number(view, job_names, idx)
+        job_names,
+        lambda idx: self.ask_build_number(view, job_names, idx)
       )
 
   #------------------------------------------------------------------------------
@@ -408,8 +408,8 @@ class Pypline:
     job_name = job_names[job_idx]
     build_numbers = self.get_build_numbers(job_name)
     view.window().show_quick_panel(
-        build_numbers,
-        lambda idx: self.display_log(view, job_name, build_numbers, idx)
+      build_numbers,
+      lambda idx: self.display_log(view, job_name, build_numbers, idx)
     )
 
   #------------------------------------------------------------------------------
