@@ -14,20 +14,23 @@ class PyplineCommand(sublime_plugin.TextCommand):
   Class for the command entry point.
   """
   #------------------------------------------------------------------------------
-  def run(self, edit, target=None):    
+  def run(self, edit, target=None):
 
     # Grab the default commands from the Default.sublime-commands resource.
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
     command_names = [x['caption'] for x in data]
     command_targets = [x['args']['target'] for x in data]
- 
+
     if target is None:
       self.view.window().show_quick_panel(
         command_names,
-        lambda idx: self.target_option_select(command_targets[idx], edit))
+        lambda idx: self.target_option_select(idx, command_targets[idx], edit))
 
-  def target_option_select(self, target, edit):
-    if target is None: return
+  def target_option_select(self, idx, target, edit):
+    if idx == -1 or target is None: return
+
+    pypline.reload(self.view)
+
     if target == "execute":
       sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
     elif target == "abort":
