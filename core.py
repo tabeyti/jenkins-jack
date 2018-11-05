@@ -232,8 +232,53 @@ class Pypline:
     return [d['name'] for d in data['jobs']]
 
   #------------------------------------------------------------------------------
+  def get_jobs_from_url(self, root_url):
+    url = '{}/api/json?tree=jobs[fullName,url]'.format(root_url)
+    print('GET: {}'.format(url))
+    r = requests.get(url, auth=('tabeyti','e1d6c427cea3d3757e5b74bdbb22bfb2'))
+    if r.status_code != requests.codes.ok:
+      print("ERROR - GET: {} - Status Code: {}".format(url, r.status_code))
+      sys.exit(1)
+    data = r.json()
+    return data['jobs']
+
+  #------------------------------------------------------------------------------
+  def get_jobs(self, job=None):
+    """
+    Recursive method for retrieving all Jenkins jobs, taking into account
+    multibranch pipelines and folders.
+    """
+    if (job is not None and 
+      job['_class'] != 'jenkins.branch.OrganizationFolder' and 
+      job['_class'] != 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject' and
+      job['_class'] != 'com.cloudbees.hudson.plugins.folder.Folder'):
+      return [job]
+
+    if job is None:
+      children = self.get_jobs_from_url(self.jenkins_uri)
+    else:
+      children = self.get_jobs_from_url(job['url'])
+
+    job_list = []
+    for c in children:
+      job_list = job_list + self.get_jobs(c)
+
+    return job_list
+
+  #------------------------------------------------------------------------------
   def get_build_numbers(self, job_name):
     url = '{}/job/{}/api/json?tree=builds[number]'.format(self.jenkins_uri, job_name)
+    self.info('GET: {}'.format(url))
+    r = requests.get(url, auth=self.auth_tuple)
+    if r.status_code != requests.codes.ok:
+      self.error("GET: {} - Status Code: {}".format(url, r.status_code))
+      return None
+    data = r.json()
+    return [str(d['number']) for d in data['builds']]
+
+  #------------------------------------------------------------------------------
+  def get_build_numbers_from_url(self, root):
+    url = '{}/api/json?tree=builds[number]'.format(root)
     self.info('GET: {}'.format(url))
     r = requests.get(url, auth=self.auth_tuple)
     if r.status_code != requests.codes.ok:
@@ -388,38 +433,41 @@ class Pypline:
 
   #------------------------------------------------------------------------------
   def ask_job_name(self, view, open_job=False):
-    job_names = self.get_job_names()
+    jobs = self.get_jobs()
+    job_names = [j['fullName'] for j in jobs]
     if open_job:
       view.window().show_quick_panel(
         job_names,
-        lambda idx: self.open_job(view, job_names, idx)
+        lambda idx: self.open_job(view, jobs, idx)
       )
     else:
       view.window().show_quick_panel(
         job_names,
-        lambda idx: self.ask_build_number(view, job_names, idx)
+        lambda idx: self.ask_build_number(view, jobs, idx)
       )
 
   #------------------------------------------------------------------------------
-  def ask_build_number(self, view, job_names, job_idx):
+  def ask_build_number(self, view, jobs, job_idx):
     if job_idx == -1:
       return
-
-    job_name = job_names[job_idx]
-    build_numbers = self.get_build_numbers(job_name)
+    job = jobs[job_idx]
+    job_name = job['fullName']
+    build_numbers = self.get_build_numbers_from_url(job['url'])
     view.window().show_quick_panel(
       build_numbers,
-      lambda idx: self.display_log(view, job_name, build_numbers, idx)
+      lambda idx: self.display_log(view, job, build_numbers, idx)
     )
 
   #------------------------------------------------------------------------------
-  def display_log(self, view, job_name, build_numbers, build_number_idx):
+  def display_log(self, view, job, build_numbers, build_number_idx):
     if build_number_idx == -1:
       return
 
     build_number = build_numbers[build_number_idx]
-    sublime.status_message('Retrieving build log for {} #{}'.format(job_name, build_number))
-    url = "{}/job/{}/{}".format(self.jenkins_uri, job_name, build_number)
+    sublime.status_message('Retrieving build log for {} #{}'.format(job['fullName'], build_number))
+    url = "{}/{}".format(job['url'], build_number)
+
+    self.info('URL: {}'.format(url))
 
     # TODO: Config option to output to either output panel or new tab/view.
     tab = sublime.active_window().new_file()
@@ -427,13 +475,11 @@ class Pypline:
     sublime.set_timeout_async(lambda: self.stream_console_output(tab, url), 0)
 
   #------------------------------------------------------------------------------
-  def open_job(self, view, job_names, idx):
+  def open_job(self, view, jobs, idx):
     if idx == -1:
       return
-
-    job_name = job_names[idx]
-    url = "{}/job/{}".format(self.jenkins_uri, job_name)
-    self.open_browser_at(url)
+    job = jobs[idx]
+    self.open_browser_at(job['url'])
 
   #------------------------------------------------------------------------------
   def script_console_run(self, view):
