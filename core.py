@@ -221,64 +221,65 @@ class Pypline:
     return None
 
   #------------------------------------------------------------------------------
-  def get_job_names(self):
-    url = '{}/api/json?tree=jobs[name]'.format(self.jenkins_uri)
-    self.info('GET: {}'.format(url))
-    r = requests.get(url, auth=self.auth_tuple)
-    if r.status_code != requests.codes.ok:
-      self.error("GET: {} - Status Code: {}".format(url, r.status_code))
-      return None
-    data = r.json()
-    return [d['name'] for d in data['jobs']]
+  def from_url_format(self, url):
+    # Replace base Jenkins URI with the one defined in the config.
+    # We do this since Jenkins will provide the URI with a base which may be
+    # different from the one specified in the configuration.
+    url = url.strip('/')
+    m = re.match('.*?/(job/.*)', url)
+    if m:
+      url = '{}/{}'.format(self.jenkins_uri, m.group(1))
+
+    return url
 
   #------------------------------------------------------------------------------
   def get_jobs_from_url(self, root_url):
-    url = '{}/api/json?tree=jobs[fullName,url]'.format(root_url)
-    print('GET: {}'.format(url))
-    r = requests.get(url, auth=('tabeyti','e1d6c427cea3d3757e5b74bdbb22bfb2'))
+    root_url = self.from_url_format(root_url)
+
+    # Grab 3 levels worth of jobs, accounting for multi-branch and org-folder jobs
+    # and their children
+    url = '{}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]'.format(root_url.strip('/'))
+    self.info('GET: {}'.format(url))
+    r = requests.get(url, auth=(self.auth_tuple))
     if r.status_code != requests.codes.ok:
-      print("ERROR - GET: {} - Status Code: {}".format(url, r.status_code))
+      self.error("ERROR - GET: {} - Status Code: {}".format(url, r.status_code))
       sys.exit(1)
     data = r.json()
     return data['jobs']
 
   #------------------------------------------------------------------------------
   def get_jobs(self, job=None):
-    """
-    Recursive method for retrieving all Jenkins jobs, taking into account
-    multibranch pipelines and folders.
-    """
-    if (job is not None and 
-      job['_class'] != 'jenkins.branch.OrganizationFolder' and 
-      job['_class'] != 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject' and
-      job['_class'] != 'com.cloudbees.hudson.plugins.folder.Folder'):
-      return [job]
 
     if job is None:
-      children = self.get_jobs_from_url(self.jenkins_uri)
+      jobs = self.get_jobs_from_url(self.jenkins_uri)
     else:
-      children = self.get_jobs_from_url(job['url'])
+      jobs = self.get_jobs_from_url(job['url'])
 
+    # Not all jobs are top level. Need to grab child jobs from certain class
+    # types.
     job_list = []
-    for c in children:
-      job_list = job_list + self.get_jobs(c)
+    for job in jobs:
+      if job['_class'] == 'com.cloudbees.hudson.plugins.folder.Folder':
+        job_list = job_list + self.get_jobs(job)
+
+      # If this is a multibranch parent, grab all it's immediate children.
+      if job['_class'] == 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject':
+        for c in job['jobs']:
+          job_list.append(c)
+      # If this is a org folder parent, grab all second level children.
+      elif job['_class'] == 'jenkins.branch.OrganizationFolder':
+        for pc in job['jobs']:
+          for c in pc['jobs']:
+            job_list.append(c)
+      else:
+        job_list.append(job)
 
     return job_list
 
   #------------------------------------------------------------------------------
-  def get_build_numbers(self, job_name):
-    url = '{}/job/{}/api/json?tree=builds[number]'.format(self.jenkins_uri, job_name)
-    self.info('GET: {}'.format(url))
-    r = requests.get(url, auth=self.auth_tuple)
-    if r.status_code != requests.codes.ok:
-      self.error("GET: {} - Status Code: {}".format(url, r.status_code))
-      return None
-    data = r.json()
-    return [str(d['number']) for d in data['builds']]
-
-  #------------------------------------------------------------------------------
-  def get_build_numbers_from_url(self, root):
-    url = '{}/api/json?tree=builds[number]'.format(root)
+  def get_build_numbers_from_url(self, root_url):
+    root_url = self.from_url_format(root_url)
+    url = '{}/api/json?tree=builds[number]'.format(root_url.strip('/'))
     self.info('GET: {}'.format(url))
     r = requests.get(url, auth=self.auth_tuple)
     if r.status_code != requests.codes.ok:
@@ -465,7 +466,8 @@ class Pypline:
 
     build_number = build_numbers[build_number_idx]
     sublime.status_message('Retrieving build log for {} #{}'.format(job['fullName'], build_number))
-    url = "{}/{}".format(job['url'], build_number)
+    job_url = self.from_url_format(job['url'])
+    url = "{}/{}".format(job_url, build_number)
 
     self.info('URL: {}'.format(url))
 
@@ -651,8 +653,7 @@ class Pypline:
 
         # Print to output panel.
         try:
-          content = str(console_response.content, 'ascii').replace("\\t", "\t").replace("\r\n", "\n")
-          view_outline(view, content)
+          view_outline(view, console_response.content.decode('utf-8').replace("\\t", "\t").replace("\r\n", "\n"))
         except:
           view_outline(view, '[Issue decoding string]')
 
