@@ -14,24 +14,18 @@
                         "id": "pypline",
                         "children": [
                             {
-                                "caption": "Settings – Default", 
+                                "command": "edit_settings",
                                 "args": {
-                                    "file": "${packages}/pypline/pypline.sublime-settings"
-                                }, 
-                                "command": "open_file"
-                            }, 
-                            {
-                                "caption": "Settings – User", 
-                                "args": {
-                                    "file": "${packages}/User/pypline.sublime-settings"
-                                }, 
-                                "command": "open_file"
-                            }, 
+                                    "base_file": "${packages}/Pypline/pypline.sublime-settings",
+                                    "default": "{\n$0\n}\n"
+                                },
+                                "caption": "Settings"
+                            },
                             { "caption": "-" },
                             {
                                 "command": "open_file",
                                 "args": {
-                                    "file": "${packages}/pypline/Default (OSX).sublime-keymap",
+                                    "file": "${packages}/Pypline/Default (OSX).sublime-keymap",
                                     "platform": "OSX"
                                 },
                                 "caption": "Key Bindings – Default"
@@ -39,7 +33,7 @@
                             {
                                 "command": "open_file",
                                 "args": {
-                                    "file": "${packages}/pypline/Default (Linux).sublime-keymap",
+                                    "file": "${packages}/Pypline/Default (Linux).sublime-keymap",
                                     "platform": "Linux"
                                 },
                                 "caption": "Key Bindings – Default"
@@ -47,7 +41,7 @@
                             {
                                 "command": "open_file",
                                 "args": {
-                                    "file": "${packages}/pypline/Default (Windows).sublime-keymap",
+                                    "file": "${packages}/Pypline/Default (Windows).sublime-keymap",
                                     "platform": "Windows"
                                 },
                                 "caption": "Key Bindings – Default"

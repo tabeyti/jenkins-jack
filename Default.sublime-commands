@@ -1,52 +1,52 @@
 [
     {
         "caption": "Pypline: Execute",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "execute" }
     },
     {
         "caption": "Pypline: Abort",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "abort" }
     },
     {
+        "caption": "Pypline: Update",
+        "command": "pypline",
+        "args": { "target": "update" }
+    },
+    {
+        "caption": "Pypline: Open Output Panel",
+        "command": "pypline",
+        "args": { "target": "open_output_panel" }
+    },
+    {
         "caption": "Pypline: Step Reference",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "step_reference" }
     },
     {
         "caption": "Pypline: Global Variables Reference",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "global_vars_reference" }
     },
     {
         "caption": "Pypline: Validate Declarative Pipeline",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "validate_dec_pipeline" }
     },
     {
-        "caption": "Pypline: Open Output Panel",
-        "command": "potato",
-        "args": { "target": "open_output_panel" }
-    },
-    {
         "caption": "Pypline: Run Console Groovy Script",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "run_console_groovy_script" }
     },
     {
         "caption": "Pypline: Download Build Log",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "download_build_log" }
     },
     {
-        "caption": "Pypline: Update",
-        "command": "potato",
-        "args": { "target": "update" }
-    },
-    {
         "caption": "Pypline: Job Display",
-        "command": "potato",
+        "command": "pypline",
         "args": { "target": "job_display" }
     }
 ]
