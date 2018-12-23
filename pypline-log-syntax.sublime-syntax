@@ -6,13 +6,13 @@ scope: source.pypline
 
 contexts:
   main:
-    - match: '^\[?(I|INFO)\]? '
+    - match: '^\[?.*(I|INFO)\]? '
       scope: entity.name.class.cs
-    - match: '^\[?(D|DEBUG)\]? .*'
+    - match: '^\[?.*(D|DEBUG)\]? .*'
       scope: variable.function.cs
-    - match: '^\[?(W|WARN(ING)?)\]? .*'
+    - match: '^\[?.*(W|WARN(ING)?)\]? .*'
       scope: constant.language.cs
-    - match: '^\[?(E|ERROR(ED)?)\]? .*'
+    - match: '^\[?.*(E|ERROR(ED)?)\]? .*'
       scope: keyword.control.import.cs
     - include: console.body.command
     - include: console.body.pipelinecommand
