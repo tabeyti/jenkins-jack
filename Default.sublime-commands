@@ -1,52 +1,87 @@
 [
     {
-        "caption": "Pypline: Execute",
+        "caption": "Execute",
         "command": "pypline",
-        "args": { "target": "execute" }
+        "description": "Executes the current view as a pipeline job.",
+        "args": { "target": "pypline_execute" },
+        "children": []
     },
     {
-        "caption": "Pypline: Abort",
+        "caption": "Abort",
         "command": "pypline",
-        "args": { "target": "abort" }
+        "description": "Aborts the active pipeline job initiated by Execute.",
+        "args": { "target": "pypline_abort" },
+        "children": []
     },
     {
-        "caption": "Pypline: Update",
+        "caption": "Update",
         "command": "pypline",
-        "args": { "target": "update" }
+        "description": "Updates the current view's associated pipeline job configuration.",
+        "args": { "target": "pypline_update" },
+        "children": []
     },
     {
-        "caption": "Pypline: Open Output Panel",
+        "caption": "Open Output Panel",
         "command": "pypline",
-        "args": { "target": "open_output_panel" }
+        "description": "Opens the active pipleine job's output panel.",
+        "args": { "target": "pypline_open_output_panel" },
+        "children": []
     },
     {
-        "caption": "Pypline: Step Reference",
+        "caption": "Step Reference",
         "command": "pypline",
-        "args": { "target": "step_reference" }
+        "description": "Provides a list of pipelines steps from the targted Jenkins.",
+        "args": { "target": "pypline_step_reference" },
+        "children": []
     },
     {
-        "caption": "Pypline: Global Variables Reference",
+        "caption": "Global Variables Reference",
         "command": "pypline",
-        "args": { "target": "global_vars_reference" }
+        "description": "Provides a list of steps from the Shares Library and global variables.",
+        "args": { "target": "pypline_global_vars_reference" },
+        "children": []
     },
     {
-        "caption": "Pypline: Validate Declarative Pipeline",
+        "caption": "Validate Declarative Pipeline",
         "command": "pypline",
-        "args": { "target": "validate_dec_pipeline" }
+        "description": "Validates the current view's declarative pipeline syntax.",
+        "args": { "target": "pypline_validate_dec_pipeline" },
+        "children": []
     },
     {
-        "caption": "Pypline: Run Console Groovy Script",
+        "caption": "Jenkins",
         "command": "pypline",
-        "args": { "target": "run_console_groovy_script" }
-    },
-    {
-        "caption": "Pypline: Download Build Log",
-        "command": "pypline",
-        "args": { "target": "download_build_log" }
-    },
-    {
-        "caption": "Pypline: Job Display",
-        "command": "pypline",
-        "args": { "target": "job_display" }
+        "description": "A list of Jenkins system commands.",
+        "args": { "target": "children" },
+        "children": [
+            {
+                "caption": "Run Console Groovy Script",
+                "command": "pypline",
+                "description": "Runs the current view's system groovy script (script console).",
+                "args": { "target": "jenkins_run_console_groovy_script" },
+                "children": []
+            },
+            {
+                "caption": "Download Build Log",
+                "command": "pypline",
+                "description": "Allows the user to select a build to download the log from.",
+                "args": { "target": "jenkins_download_build_log" },
+                "children": []
+            },
+            {
+                "caption": "Job",
+                "command": "pypline",
+                "description": "A list of Jenkins Job commands.",
+                "args": { "target": "children" },
+                "children": [
+                    {
+                        "caption": "Display",
+                        "command": "pypline",
+                        "description": "Allows a user to select a job to open on their browser.",
+                        "args": { "target": "jenkins_job_display" }
+                    }
+                ]
+            }
+        ]
     }
 ]
