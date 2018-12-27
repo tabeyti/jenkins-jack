@@ -13,7 +13,7 @@ class PyplineCommand(sublime_plugin.TextCommand):
   """
   Class for the command entry point.
   """
-  OPTIONS_PREFIX = '+'
+  OPTIONS_PREFIX = '[+]'
 
   #------------------------------------------------------------------------------
   def run(self, edit, target=None):
@@ -48,45 +48,65 @@ class PyplineCommand(sublime_plugin.TextCommand):
       func = getattr(self, target)
       func()
 
+  #------------------------------------------------------------------------------
   def extract_option_names(self, data):
+    sorted(data, key=lambda i: len(i['children']) if 'children' in i else 0) 
     return [
-      '[{}]:  {}'.format(x['caption'], x['description']) if ('children' in x and len(x['children'])) <= 0 
+      '<{}>:  {}'.format(x['caption'], x['description']) if ('children' in x and len(x['children'])) <= 0 
       else '{} {}'.format(self.OPTIONS_PREFIX, x['caption']) 
       for x in data
     ]
 
+  #------------------------------------------------------------------------------
   def pypline_execute(self):
     sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
 
+  #------------------------------------------------------------------------------
   def pypline_abort(self):
     pypline.abort_active_build()
 
+  #------------------------------------------------------------------------------
   def pypline_update(self):
     pypline.start_pipeline_update(self.view)
 
+  #------------------------------------------------------------------------------
   def pypline_step_reference(self):
     if pypline.open_browser_steps_api:
         pypline.open_browser_at("{}/pipeline-syntax".format(pypline.jenkins_uri))
     else:
       pypline.show_steps_api_search(self.view)
 
+  #------------------------------------------------------------------------------
   def pypline_global_vars_reference(self):
     pypline.show_globalvars_api_search(self.view)
 
+  #------------------------------------------------------------------------------
   def pypline_validate_dec_pipeline(self):
     pypline.validate(self.view)
 
+  #------------------------------------------------------------------------------
   def pypline_open_output_panel(self):
     pypline.open_output_panel()
 
+  #------------------------------------------------------------------------------
   def jenkins_run_console_groovy_script(self):
     pypline.script_console_run(self.view)
 
-  def jenkins_download_build_log(self):
+  #------------------------------------------------------------------------------    
+  def jenkins_job_download_build_log(self):
     pypline.ask_job_name(self.view)
 
+  #------------------------------------------------------------------------------
   def jenkins_job_display(self):
     pypline.ask_job_name(self.view, True)
+
+  #------------------------------------------------------------------------------
+  def jenkins_node_display(self):
+    pypline.ask_node_name(self.view)
+
+  #------------------------------------------------------------------------------
+  def jenkins_node_storage(self):
+    pypline.display_node_storage(self.view)
 
 
 #------------------------------------------------------------------------------

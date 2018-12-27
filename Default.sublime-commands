@@ -1,52 +1,60 @@
 [
     {
-        "caption": "Execute",
+        "caption": "Pipeline",
         "command": "pypline",
-        "description": "Executes the current view as a pipeline job.",
-        "args": { "target": "pypline_execute" },
-        "children": []
-    },
-    {
-        "caption": "Abort",
-        "command": "pypline",
-        "description": "Aborts the active pipeline job initiated by Execute.",
-        "args": { "target": "pypline_abort" },
-        "children": []
-    },
-    {
-        "caption": "Update",
-        "command": "pypline",
-        "description": "Updates the current view's associated pipeline job configuration.",
-        "args": { "target": "pypline_update" },
-        "children": []
-    },
-    {
-        "caption": "Open Output Panel",
-        "command": "pypline",
-        "description": "Opens the active pipleine job's output panel.",
-        "args": { "target": "pypline_open_output_panel" },
-        "children": []
-    },
-    {
-        "caption": "Step Reference",
-        "command": "pypline",
-        "description": "Provides a list of pipelines steps from the targted Jenkins.",
-        "args": { "target": "pypline_step_reference" },
-        "children": []
-    },
-    {
-        "caption": "Global Variables Reference",
-        "command": "pypline",
-        "description": "Provides a list of steps from the Shares Library and global variables.",
-        "args": { "target": "pypline_global_vars_reference" },
-        "children": []
-    },
-    {
-        "caption": "Validate Declarative Pipeline",
-        "command": "pypline",
-        "description": "Validates the current view's declarative pipeline syntax.",
-        "args": { "target": "pypline_validate_dec_pipeline" },
-        "children": []
+        "description": "Pipeline specific commands.",
+        "args": { "target": "children" },
+        "children": [
+            {
+                "caption": "Execute",
+                "command": "pypline",
+                "description": "Executes the current view as a pipeline job.",
+                "args": { "target": "pypline_execute" },
+                "children": []
+            },
+            {
+                "caption": "Abort",
+                "command": "pypline",
+                "description": "Aborts the active pipeline job initiated by Execute.",
+                "args": { "target": "pypline_abort" },
+                "children": []
+            },
+            {
+                "caption": "Update",
+                "command": "pypline",
+                "description": "Updates the current view's associated pipeline job configuration.",
+                "args": { "target": "pypline_update" },
+                "children": []
+            },
+            {
+                "caption": "Open Output Panel",
+                "command": "pypline",
+                "description": "Opens the active pipleine job's output panel.",
+                "args": { "target": "pypline_open_output_panel" },
+                "children": []
+            },
+            {
+                "caption": "Step Reference",
+                "command": "pypline",
+                "description": "Provides a list of pipelines steps from the targted Jenkins.",
+                "args": { "target": "pypline_step_reference" },
+                "children": []
+            },
+            {
+                "caption": "Global Variables Reference",
+                "command": "pypline",
+                "description": "Provides a list of steps from the Shares Library and global variables.",
+                "args": { "target": "pypline_global_vars_reference" },
+                "children": []
+            },
+            {
+                "caption": "Validate Declarative Pipeline",
+                "command": "pypline",
+                "description": "Validates the current view's declarative pipeline syntax.",
+                "args": { "target": "pypline_validate_dec_pipeline" },
+                "children": []
+            }
+        ]
     },
     {
         "caption": "Jenkins",
@@ -62,11 +70,24 @@
                 "children": []
             },
             {
-                "caption": "Download Build Log",
+                "caption": "Nodes",
                 "command": "pypline",
-                "description": "Allows the user to select a build to download the log from.",
-                "args": { "target": "jenkins_download_build_log" },
-                "children": []
+                "description": "A list of Jenkins node/slave commands",
+                "args": { "target": "children" },
+                "children": [
+                    {
+                        "caption": "Storage",
+                        "command": "pypline",
+                        "description": "Displays storage stats for all nodes.",
+                        "args": { "target": "jenkins_node_storage" }
+                    },
+                    {
+                        "caption": "Display",
+                        "command": "pypline",
+                        "description": "Allows a user to select a node to open in browser.",
+                        "args": { "target": "jenkins_node_display" }
+                    }
+                ]
             },
             {
                 "caption": "Job",
@@ -79,6 +100,13 @@
                         "command": "pypline",
                         "description": "Allows a user to select a job to open on their browser.",
                         "args": { "target": "jenkins_job_display" }
+                    },
+                    {
+                        "caption": "Download Build Log",
+                        "command": "pypline",
+                        "description": "Select a job and build to download the log.",
+                        "args": { "target": "jenkins_job_download_build_log" },
+                        "children": []
                     }
                 ]
             }
