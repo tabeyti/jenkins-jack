@@ -426,11 +426,37 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201:
       return r.text
-    self.error("POST: {} - Could retrieve log for job {} ${} - Status code {}".format(
+    self.error("GET: {} - Could retrieve log for job {} ${} - Status code {}".format(
       url, job_name, build_number, r.status_code))
     return None
 
+  #------------------------------------------------------------------------------
+  def get_nodes(self):
+    url = "{}/computer/api/json".format(self.jenkins_uri)
+    self.info("GET: {}".format(url))
+    r = requests.get(
+      url,
+      auth=self.auth_tuple,
+      headers=self.get_request_headers())
+
+    if r.status_code == requests.codes.ok or r.status_code == 201:
+      return r.json()['computer']
+    self.error("GET: {} - Could retrieve nodes - Status code {}".format(r.status_code))
+    return None
+
 #</editor-fold>
+
+  #------------------------------------------------------------------------------
+  def ask_node_name(self, view):
+    """
+    Retrieves list of nodes from Jenkins and displays a selection list.
+    """
+    nodes = self.get_nodes()
+    node_names = ['[{}] {}'.format('Offline' if n['offline'] else 'Online', n['displayName']) for n in nodes]
+    view.window().show_quick_panel(
+        node_names,
+        lambda idx: self.open_node(nodes, idx)
+      )
 
   #------------------------------------------------------------------------------
   def ask_job_name(self, view, open_job=False):
@@ -477,11 +503,25 @@ class Pypline:
     sublime.set_timeout_async(lambda: self.stream_console_output(tab, url), 0)
 
   #------------------------------------------------------------------------------
+  def open_node(self, nodes, idx):
+    """
+    Opens the selected node in the browser.
+    """
+    if idx == -1: return
+    node = nodes[idx]
+    self.open_browser_at('{}/computer/{}'.format(self.jenkins_uri, node['displayName']))
+
+  #------------------------------------------------------------------------------
   def open_job(self, view, jobs, idx):
     if idx == -1:
       return
     job = jobs[idx]
     self.open_browser_at(job['url'])
+
+  #------------------------------------------------------------------------------
+  def display_node_storage(self, view):
+    nodes = self.get_nodes()
+    print(nodes)
 
   #------------------------------------------------------------------------------
   def script_console_run(self, view):
