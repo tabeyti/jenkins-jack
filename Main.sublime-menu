@@ -72,17 +72,11 @@
                             },
                             { "caption": "-" },
                             {
-                                "mnemonic": "E",
-                                "caption": "Execute",
+                                "mnemonic": "C",
+                                "caption": "Command List",
                                 "command": "pypline",
-                                "args": { "target_idx": 0 }
-                            },
-                            {
-                                "mnemonic": "A",
-                                "caption": "Steps API",
-                                "command": "pypline",
-                                "args": { "target_idx": 1 }
-                            },
+                                "args": { "target": null }
+                            }
                         ]
                     }
                 ]

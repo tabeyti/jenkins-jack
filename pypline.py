@@ -13,47 +13,80 @@ class PyplineCommand(sublime_plugin.TextCommand):
   """
   Class for the command entry point.
   """
+  OPTIONS_PREFIX = '+'
+
   #------------------------------------------------------------------------------
   def run(self, edit, target=None):
-
     # Grab the default commands from the Default.sublime-commands resource.
     data = json.loads(sublime.load_resource("Packages/Pypline/Default.sublime-commands"))
-    command_names = [x['caption'] for x in data]
-    command_targets = [x['args']['target'] for x in data]
+    option_names = self.extract_option_names(data)
 
     if target is None:
       self.view.window().show_quick_panel(
-        command_names,
-        lambda idx: self.target_option_select(idx, command_targets[idx], edit))
+        option_names,
+        lambda idx: self.eval_option(idx, data)
+        )
 
-  def target_option_select(self, idx, target, edit):
-    if idx == -1 or target is None: return
-
+  #------------------------------------------------------------------------------
+  def eval_option(self, idx, options):
+    """
+    Recursive function that either triggers a command if its a leaf,
+    or displays a list of child options/commands to select.
+    """
+    if idx == -1 or options is None: return
     pypline.reload(self.view)
+    option = options[idx]
+    target = option['args']['target']
 
-    if target == "execute":
-      sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
-    elif target == "abort":
-      pypline.abort_active_build()
-    elif target == "step_reference":
-      if pypline.open_browser_steps_api:
+    if target == 'children' and len(option['children']) > 0:
+      option_names = self.extract_option_names(option['children'])
+      self.view.window().show_quick_panel(
+        option_names,
+        lambda idx: self.eval_option(idx, option['children'])
+        )
+    else:
+      func = getattr(self, target)
+      func()
+
+  def extract_option_names(self, data):
+    return [
+      '[{}]:  {}'.format(x['caption'], x['description']) if ('children' in x and len(x['children'])) <= 0 
+      else '{} {}'.format(self.OPTIONS_PREFIX, x['caption']) 
+      for x in data
+    ]
+
+  def pypline_execute(self):
+    sublime.set_timeout_async(lambda: pypline.start_pipeline_build(self.view), 0)
+
+  def pypline_abort(self):
+    pypline.abort_active_build()
+
+  def pypline_update(self):
+    pypline.start_pipeline_update(self.view)
+
+  def pypline_step_reference(self):
+    if pypline.open_browser_steps_api:
         pypline.open_browser_at("{}/pipeline-syntax".format(pypline.jenkins_uri))
-      else:
-        pypline.show_steps_api_search(self.view)
-    elif target == "global_vars_reference":
-      pypline.show_globalvars_api_search(self.view)
-    elif target == "validate_dec_pipeline":
-      pypline.validate(self.view)
-    elif target == "open_output_panel":
-      pypline.open_output_panel()
-    elif target == "run_console_groovy_script":
-      pypline.script_console_run(self.view)
-    elif target == "download_build_log":
-      pypline.ask_job_name(self.view)
-    elif target == "update":
-      pypline.start_pipeline_update(self.view)
-    elif target == "job_display":
-      pypline.ask_job_name(self.view, True)
+    else:
+      pypline.show_steps_api_search(self.view)
+
+  def pypline_global_vars_reference(self):
+    pypline.show_globalvars_api_search(self.view)
+
+  def pypline_validate_dec_pipeline(self):
+    pypline.validate(self.view)
+
+  def pypline_open_output_panel(self):
+    pypline.open_output_panel()
+
+  def jenkins_run_console_groovy_script(self):
+    pypline.script_console_run(self.view)
+
+  def jenkins_download_build_log(self):
+    pypline.ask_job_name(self.view)
+
+  def jenkins_job_display(self):
+    pypline.ask_job_name(self.view, True)
 
 
 #------------------------------------------------------------------------------
