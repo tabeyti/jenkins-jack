@@ -509,7 +509,10 @@ class Pypline:
     """
     if idx == -1: return
     node = nodes[idx]
-    self.open_browser_at('{}/computer/{}'.format(self.jenkins_uri, node['displayName']))
+    node_name = node['displayName']
+    if node_name == 'master':
+      node_name = '(master)'
+    self.open_browser_at('{}/computer/{}'.format(self.jenkins_uri, node_name))
 
   #------------------------------------------------------------------------------
   def open_job(self, view, jobs, idx):
@@ -753,11 +756,10 @@ class Pypline:
     if idx < 0: return
     var = self.pipeline_globalvars_api[idx]
 
-    # Add var name as title to the content and remove code tags (messes up formatting)
-    content = var.descriptionHtml
-    content = "<div id='outer'><h2>{}</h2>".format(var.name) + content + "</div>"
-    content = content.replace("<code>", "").replace("</code>", "")
-
+    # Add var name as title to the content, remove code tags (messes up formatting), and
+    # convert pre tags to markdown code blocks.
+    content = "<div id='outer' markdown='1'><h2>{}</h2>".format(var.name) + var.descriptionHtml + "</div>"
+    content = content.replace("<code>", "").replace("</code>", "").replace("<pre>", "\n\n```groovy\n").replace("</pre>", "\n```\n\n")
     mdpopups.show_popup(view=view, css=STYLES, md=True, content=content, location=-1, max_width=1024, max_height=768)
     # view.run_command("insert_snippet", { "contents": var.name})
 
@@ -770,13 +772,14 @@ class Pypline:
     self.refresh_pipeline_steps_api()
     api_list = ["{}: {}".format(p.name, p.doc) for p in self.pipeline_steps_api]
 
-    view.window().show_quick_panel(api_list,
+    view.window().show_quick_panel(
+      api_list,
       lambda idx: self.show_steps_api_search_on_chosen(view, idx))
 
   #------------------------------------------------------------------------------
   def show_steps_api_search_on_chosen(self, view, idx):
     """
-    Handles a search selection from show_steps_api_search
+    Handles a search selection from show_steps_api_search.
     """
     if idx <= 0: return
     step = self.pipeline_steps_api[idx]
