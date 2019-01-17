@@ -11,6 +11,7 @@ import re
 import json
 import datetime
 import time
+import decimal
 
 # Local source imports.
 from .models import PipelineStepDoc
@@ -523,8 +524,26 @@ class Pypline:
 
   #------------------------------------------------------------------------------
   def display_node_storage(self, view):
+    # content = '<table><tr><td>Node</td><td>Free Space</td></tr>'
+    diskspace_key = 'hudson.node_monitors.DiskSpaceMonitor'
     nodes = self.get_nodes()
-    print(nodes)
+    for n in nodes:
+      if not 'monitorData' in n: continue
+      if not diskspace_key in n['monitorData']: continue
+      if n['monitorData'][diskspace_key] is None: continue
+
+      # https://github.com/jenkinsci/jenkins/blob/master/core/src/main/java/hudson/node_monitors/AbstractDiskSpaceMonitor.java#L74
+      size_bytes = int(n['monitorData']['hudson.node_monitors.DiskSpaceMonitor']['size'])
+      size_gb = size_bytes/1024/1024/1024
+
+      # content += '<tr><td>{}</td><td>{}</td></tr>'.format(n['displayName'], round(size_gb, 2))
+
+      self.out_line('{}:\t\t{} GB'.format(n['displayName'], round(size_gb, 2)))
+
+    # content += '</table>'
+    # print(content)
+    # view.add_phantom('test', view.sel()[0], content, sublime.LAYOUT_BLOCK)
+
 
   #------------------------------------------------------------------------------
   def script_console_run(self, view):
