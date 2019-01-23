@@ -71,12 +71,6 @@
             {
                 "caption": "Display",
                 "command": "pypline",
-                "description": "Allows a user to select a node to open in browser.",
-                "args": { "target": "jenkins_node_display" }
-            },            
-            {
-                "caption": "Display",
-                "command": "pypline",
                 "description": "Allows a user to select a job to open on their browser.",
                 "args": { "target": "jenkins_job_display" }
             },
