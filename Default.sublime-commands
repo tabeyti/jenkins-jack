@@ -56,24 +56,18 @@
         "args": { "target": "children" },
         "children": [
             {
-                "caption": "Run Console Groovy Script",
+                "caption": "Console Groovy Script",
                 "command": "pypline",
-                "description": "Runs the current view's system groovy script (script console).",
+                "description": "Runs the current view's script as a system/node console script (script console).",
                 "args": { "target": "jenkins_run_console_groovy_script" },
                 "children": []
-            },            
+            },
             {
-                "caption": "Storage",
+                "caption": "Node Storage",
                 "command": "pypline",
                 "description": "Displays storage stats for all nodes.",
                 "args": { "target": "jenkins_node_storage" }
             },
-            {
-                "caption": "Display",
-                "command": "pypline",
-                "description": "Allows a user to select a node to open in browser.",
-                "args": { "target": "jenkins_node_display" }
-            },            
             {
                 "caption": "Display",
                 "command": "pypline",
