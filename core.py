@@ -448,16 +448,22 @@ class Pypline:
 #</editor-fold>
 
   #------------------------------------------------------------------------------
-  def ask_node_name(self, view):
+  def ask_node_name(self, view, run_script=False):
     """
     Retrieves list of nodes from Jenkins and displays a selection list.
     """
     nodes = self.get_nodes()
     node_names = ['[{}] {}'.format('Offline' if n['offline'] else 'Online', n['displayName']) for n in nodes]
-    view.window().show_quick_panel(
-        node_names,
-        lambda idx: self.open_node(nodes, idx)
-      )
+    if run_script:
+      view.window().show_quick_panel(
+          node_names,
+          lambda idx: self.script_console_run(view, nodes[idx]['displayName'])
+        )
+    else:
+      view.window().show_quick_panel(
+          node_names,
+          lambda idx: self.open_node(nodes, idx)
+        )
 
   #------------------------------------------------------------------------------
   def ask_job_name(self, view, open_job=False):
@@ -546,7 +552,7 @@ class Pypline:
 
 
   #------------------------------------------------------------------------------
-  def script_console_run(self, view):
+  def script_console_run(self, view, node=None):
     """
     Executes text in the current view as a Jenkins script console script.
     Content should be scripts one would execute in the Jenkins Script Console
@@ -560,7 +566,11 @@ class Pypline:
     self.get_auth_crumb()
     content = view.substr(sublime.Region(0, view.size()))
 
-    url = "{}/scriptText".format(self.jenkins_uri)
+    if node is not None:
+      url = "{}/computer/{}/scriptText".format(self.jenkins_uri, node)
+    else:
+      url = "{}/scriptText".format(self.jenkins_uri)
+
     payload = {'script':content}
     self.info("POST: {}".format(url))
     r = requests.post(

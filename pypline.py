@@ -50,10 +50,10 @@ class PyplineCommand(sublime_plugin.TextCommand):
 
   #------------------------------------------------------------------------------
   def extract_option_names(self, data):
-    sorted(data, key=lambda i: len(i['children']) if 'children' in i else 0) 
+    sorted(data, key=lambda i: len(i['children']) if 'children' in i else 0)
     return [
-      '<{}>:  {}'.format(x['caption'], x['description']) if ('children' in x and len(x['children'])) <= 0 
-      else '{} {}'.format(self.OPTIONS_PREFIX, x['caption']) 
+      '<{}>:  {}'.format(x['caption'], x['description']) if ('children' in x and len(x['children'])) <= 0
+      else '{} {}'.format(self.OPTIONS_PREFIX, x['caption'])
       for x in data
     ]
 
@@ -90,9 +90,9 @@ class PyplineCommand(sublime_plugin.TextCommand):
 
   #------------------------------------------------------------------------------
   def jenkins_run_console_groovy_script(self):
-    pypline.script_console_run(self.view)
+    pypline.ask_node_name(self.view, True)
 
-  #------------------------------------------------------------------------------    
+  #------------------------------------------------------------------------------
   def jenkins_job_download_build_log(self):
     pypline.ask_job_name(self.view)
 
