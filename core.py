@@ -453,11 +453,14 @@ class Pypline:
     Retrieves list of nodes from Jenkins and displays a selection list.
     """
     nodes = self.get_nodes()
-    node_names = ['[{}] {}'.format('Offline' if n['offline'] else 'Online', n['displayName']) for n in nodes]
+    node_names = ['System']
+    node_names.extend(['[{}] {}'.format('Offline' if n['offline'] else 'Online', n['displayName']) for n in nodes])
     if run_script:
       view.window().show_quick_panel(
           node_names,
-          lambda idx: self.script_console_run(view, nodes[idx]['displayName'])
+          lambda idx: self.script_console_run(
+            view, 
+            nodes[idx-1]['displayName'] if idx != 0 else None)
         )
     else:
       view.window().show_quick_panel(
@@ -580,7 +583,11 @@ class Pypline:
 
     if r.status_code == requests.codes.ok or r.status_code == 201 or r.status_code == 200:
       print(r)
+      self.out_line('-' * 80)
+      self.out_line('Executing on {}...'.format(node))
+      self.out_line('-' * 80)
       self.out_line(r.text.replace("\r\n", "\n"))
+      self.out_line('-' * 80)
       return
 
     self.error("POST: {} - Could not run script - Status code {}".format(url, r.status_code))
