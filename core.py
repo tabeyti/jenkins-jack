@@ -756,9 +756,9 @@ class Pypline:
           # Job is still running
           check_job_status = 0
 
-    view_outline(view, "-------------------------------------------------------------------------------")
+    view_outline(view, barrier_line)
     view_outline(view, "Console stream ended.")
-    view_outline(view, "-------------------------------------------------------------------------------")
+    view_outline(view, barrier_line)
 
   #------------------------------------------------------------------------------
   def validate(self, view):
