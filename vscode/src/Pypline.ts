@@ -16,7 +16,7 @@ export class Pypline {
     username: string;
     password: string;
     jobPrefix: string;
-    timeoutSecs: string;
+    timeoutSecs: number;
     openBrowserBuildOutput: string;
     openBrowserStepsApi: string;
     snippets: string;
@@ -32,7 +32,7 @@ export class Pypline {
         this.username = vscode.workspace.getConfiguration('pypline.jenkins')['username'];
         this.password = vscode.workspace.getConfiguration('pypline.jenkins')['password'];
         this.jobPrefix = vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
-        this.timeoutSecs = '';
+        this.timeoutSecs = 10;
         this.openBrowserBuildOutput = vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
         this.openBrowserStepsApi = vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
         this.snippets = vscode.workspace.getConfiguration('pypline')['snippets'];
@@ -135,6 +135,38 @@ export class Pypline {
         await lock();
         if (undefined !== error) { throw error; }
         return;
+    }
+
+    public async buildReady(jobname: string, buildnumber: number) {
+        let timeout = this.timeoutSecs;
+        let exists = false;
+        while (timeout > 0) {
+            let flag = true;
+            const lock = async () => {
+                while(flag) {
+                    await sleep(this.pollms);
+                }
+                return;
+            };
+
+            let error: any;
+            this.jenkins.build.get(jobname, buildnumber, async (err: any, data: any) => {
+                if (err) {
+                    this.outputPanel.appendLine(err);
+                    error = err;
+                    flag = false;
+                    return;
+                }
+                exists = true;
+                flag = false;
+            });
+            await lock();
+            if (undefined !== error) { throw error; }
+            if (exists) { break; }
+        }
+        if (!exists) {
+            throw new Error(`Timeout waiting waiting for build: ${jobname}`);
+        }
     }
 
     /**
@@ -267,6 +299,7 @@ export class Pypline {
         let jobname = await this.createUpdatePipeline(source, job);
         let nextBuildNumber = await this.nextBuildNumber(jobname);
         await this.buildJob(jobname);
+        await this.buildReady(jobname, nextBuildNumber);
         await this.streamOutput(jobname, nextBuildNumber);
     }
 }
