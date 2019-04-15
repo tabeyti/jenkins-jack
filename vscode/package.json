@@ -14,17 +14,60 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		"keybindings": [{
-			"command": "extension.pypline",
-			"title": "Pypline",
-			"key": "ctrl+alt+j",
-        	"mac": "ctrl+alt+j",
-        	"when": "editorTextFocus"
-		}],
-		"commands": [{
-			"command": "extension.pypline",
-			"title": "Pypline"
-		}]
+		"configuration": [
+			{
+				"title": "Pypline configuration",
+				"properties": {
+					"pypline.jenkins.uri": {
+						"type": "string",
+						"default": "127.0.0.1:8080"
+					},
+					"pypline.jenkins.username": {
+						"type": "string",
+						"default": ""
+					},
+					"pypline.jenkins.password": {
+						"type": "string",
+						"default": ""
+					},
+					"pypline.jenkins.jobPrefix": {
+						"type": "string",
+						"default": ""
+					},
+					"pypline.browser.buildOutput": {
+						"type": "boolean",
+						"default": false
+					},
+					"pypline.browser.stepsApi": {
+						"type": "boolean",
+						"default": false
+					},
+					"pypline.browser.globalVarsApi": {
+						"type": "boolean",
+						"default": false
+					},
+					"pypline.snippets": {
+						"type": "boolean",
+						"default": false
+					}
+				}
+			}
+		],
+		"keybindings": [
+			{
+				"command": "extension.pypline",
+				"title": "Pypline",
+				"key": "ctrl+alt+j",
+				"mac": "ctrl+alt+j",
+				"when": "editorTextFocus"
+			}
+		],
+		"commands": [
+			{
+				"command": "extension.pypline",
+				"title": "Pypline"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
@@ -39,5 +82,12 @@
 		"tslint": "^5.8.0",
 		"@types/node": "^8.10.25",
 		"@types/mocha": "^2.2.42"
+	},
+	"dependencies": {
+		"@types/jenkins": "^0.23.1",
+		"@types/request-promise-native": "^1.0.15",
+		"jenkins": "^0.25.0",
+		"request": "^2.88.0",
+		"request-promise-native": "^1.0.7"
 	}
 }
