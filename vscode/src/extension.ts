@@ -3,9 +3,9 @@
 
 import * as vscode from 'vscode';
 import { Pypline } from './Pypline';
-import * as Config from './Config';
+import * as Config from './Util';
 import { Logger } from './Logger';
-var path = require('path');
+import * as path from 'path';
 
 class PyplineCommand {
     private context: vscode.ExtensionContext;
@@ -16,9 +16,21 @@ class PyplineCommand {
         this.context = context;
         this.logger = new Logger();
         this.pypline = new Pypline();
-		// this_window = window;
     }
 
+    /**
+     * Displays the Pypline command list in quick pick.
+     */
+    public async displayCommands() {
+        let result = await vscode.window.showQuickPick(Config.getCommands());
+        if (undefined === result) { return; }
+        await this.evalOption(result);
+    }
+
+    /**
+     * Recursive decent option evaluator.
+     * @param option The current option being evaluated.
+     */
     private async evalOption(option: any) {
         if (null !== option.children && option.children.length > 0) {
             let result = await vscode.window.showQuickPick(option.children);
@@ -45,22 +57,39 @@ class PyplineCommand {
         }
 
         // Grab filename to use as the Jenkins job name.
-        var jobname = path.parse(path.basename(editor.document.fileName)).name;
+        var jobName = path.parse(path.basename(editor.document.fileName)).name;
 
         // Grab source from active editor.
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.pypline.buildPipeline(source, jobname);
+        await this.pypline.buildPipeline(source, jobName);
     }
 
-    /**
-     * Displays the Pypline command list in quick pick.
-     */
-    public async displayCommands() {
-        let result = await vscode.window.showQuickPick(Config.getCommands());
-        if (undefined === result) { return; }
-        await this.evalOption(result);
+    private async pyplineAbortCommand() {
+        await this.pypline.abortPipeline();
+    }
+
+    private async pyplineUpdateCommand() {
+        // Validate it's valid groovy source.
+        var editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        if ("groovy" !== editor.document.languageId) {
+            return;
+        }
+
+        // Grab filename to use as the Jenkins job name.
+        var jobName = path.parse(path.basename(editor.document.fileName)).name;
+
+        // Grab source from active editor.
+        let source = editor.document.getText();
+        if ("" === source) { return; }
+
+        await this.pypline.createUpdatePipeline(source, jobName);
+    }
+
+    private async pyplineOpenOutputPanelCommand() {
+        this.pypline.outputPanel.show();
     }
 }
 
