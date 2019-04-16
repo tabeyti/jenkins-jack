@@ -14,7 +14,7 @@ class PipelineBuild {
 }
 
 export class Pypline {
-    
+
     // Pypline configuration settings
     jenkinsUri: string;
     username: string;
@@ -94,13 +94,11 @@ export class Pypline {
      * @param jobName The name of the job.
      */
     public async nextBuildNumber(jobName: string) {
-
         let flag = true;
         const lock = async () => {
             while(flag) {
                 await sleep(this.pollMs);
             }
-            return;
         };
 
         let info: any;
@@ -130,7 +128,6 @@ export class Pypline {
             while(flag) {
                 await sleep(this.pollMs);
             }
-            return;
         };
 
         let error: any;
@@ -158,12 +155,11 @@ export class Pypline {
             while(flag) {
                 await sleep(this.pollMs);
             }
-            return;
         };
 
         this.jenkins.build.stop(jobName, buildNumber, async (err: any, data: any) => {
             flag = false;
-            if (err) throw err
+            if (err) { throw err; }
         });
         await lock();
     }
