@@ -1,93 +1,97 @@
 {
-	"name": "pypline",
-	"displayName": "Pypline",
-	"description": "Jenkins Pipeline development plugin.",
-	"version": "0.0.1",
-	"engines": {
-		"vscode": "^1.30.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onCommand:extension.pypline"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"configuration": [
-			{
-				"title": "Pypline configuration",
-				"properties": {
-					"pypline.jenkins.uri": {
-						"type": "string",
-						"default": "127.0.0.1:8080"
-					},
-					"pypline.jenkins.username": {
-						"type": "string",
-						"default": ""
-					},
-					"pypline.jenkins.password": {
-						"type": "string",
-						"default": ""
-					},
-					"pypline.jenkins.jobPrefix": {
-						"type": "string",
-						"default": ""
-					},
-					"pypline.browser.buildOutput": {
-						"type": "boolean",
-						"default": false
-					},
-					"pypline.browser.stepsApi": {
-						"type": "boolean",
-						"default": false
-					},
-					"pypline.browser.globalVarsApi": {
-						"type": "boolean",
-						"default": false
-					},
-					"pypline.snippets": {
-						"type": "boolean",
-						"default": false
-					}
-				}
-			}
-		],
-		"keybindings": [
-			{
-				"command": "extension.pypline",
-				"title": "Pypline",
-				"key": "ctrl+alt+j",
-				"mac": "ctrl+alt+j",
-				"when": "editorTextFocus"
-			}
-		],
-		"commands": [
-			{
-				"command": "extension.pypline",
-				"title": "Pypline"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"postinstall": "node ./node_modules/vscode/bin/install",
-		"test": "npm run compile && node ./node_modules/vscode/bin/test"
-	},
-	"devDependencies": {
-		"typescript": "^3.1.4",
-		"vscode": "^1.1.25",
-		"tslint": "^5.8.0",
-		"@types/node": "^8.10.25",
-		"@types/mocha": "^2.2.42"
-	},
-	"dependencies": {
-		"@types/jenkins": "^0.23.1",
-		"@types/request-promise-native": "^1.0.15",
-		"jenkins": "^0.25.0",
-		"request": "^2.88.0",
-		"request-promise-native": "^1.0.7"
-	}
+  "name": "pypline",
+  "displayName": "Pypline",
+  "description": "Jenkins Pipeline development plugin.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.30.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:extension.pypline"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": [
+      {
+        "title": "Pypline configuration",
+        "properties": {
+          "pypline.jenkins.uri": {
+            "type": "string",
+            "default": "127.0.0.1:8080"
+          },
+          "pypline.jenkins.username": {
+            "type": "string",
+            "default": ""
+          },
+          "pypline.jenkins.password": {
+            "type": "string",
+            "default": ""
+          },
+          "pypline.jenkins.jobPrefix": {
+            "type": "string",
+            "default": ""
+          },
+          "pypline.browser.buildOutput": {
+            "type": "boolean",
+            "default": false
+          },
+          "pypline.browser.stepsApi": {
+            "type": "boolean",
+            "default": false
+          },
+          "pypline.browser.globalVarsApi": {
+            "type": "boolean",
+            "default": false
+          },
+          "pypline.snippets": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "extension.pypline",
+        "title": "Pypline",
+        "key": "ctrl+alt+j",
+        "mac": "ctrl+alt+j",
+        "when": "editorTextFocus"
+      }
+    ],
+    "commands": [
+      {
+        "command": "extension.pypline",
+        "title": "Pypline"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "typescript": "^3.1.4",
+    "vscode": "^1.1.25",
+    "tslint": "^5.8.0",
+    "xml2js": "0.4.3",
+    "jenkins": "^0.250",
+    "@types/node": "^8.10.25",
+    "@types/mocha": "^2.2.42"
+  },
+  "dependencies": {
+    "@types/jenkins": "^0.23.1",
+    "@types/request-promise-native": "^1.0.15",
+    "@types/xml2js": "0.4.3",
+    "jenkins": "^0.25.0",
+    "node-html-parser": "^1.1.15",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.7"
+  }
 }

@@ -2,10 +2,10 @@
 // Then (Promise) Usage: https://medium.com/patrickleenyc/things-to-keep-in-mind-while-writing-a-vs-code-extension-9f2a3369b799
 
 import * as vscode from 'vscode';
-import { Pypline } from './Pypline';
-import * as Config from './Util';
-import { Logger } from './Logger';
 import * as path from 'path';
+import { Pypline } from './Pypline';
+import { getCommands } from './utils';
+import { Logger } from './Logger';
 
 class PyplineCommand {
     private context: vscode.ExtensionContext;
@@ -22,7 +22,7 @@ class PyplineCommand {
      * Displays the Pypline command list in quick pick.
      */
     public async displayCommands() {
-        let result = await vscode.window.showQuickPick(Config.getCommands());
+        let result = await vscode.window.showQuickPick(getCommands());
         if (undefined === result) { return; }
         await this.evalOption(result);
     }
@@ -48,6 +48,7 @@ class PyplineCommand {
         await this[`${option.target}`]();
     }
 
+    // @ts-ignore
     private async pyplineExecuteCommand() {
         // Validate it's valid groovy source.
         var editor = vscode.window.activeTextEditor;
@@ -66,10 +67,12 @@ class PyplineCommand {
         await this.pypline.buildPipeline(source, jobName);
     }
 
+    // @ts-ignore
     private async pyplineAbortCommand() {
         await this.pypline.abortPipeline();
     }
 
+    // @ts-ignore
     private async pyplineUpdateCommand() {
         // Validate it's valid groovy source.
         var editor = vscode.window.activeTextEditor;
@@ -78,16 +81,17 @@ class PyplineCommand {
             return;
         }
 
-        // Grab filename to use as the Jenkins job name.
+        // Grab filename to use as (part of) the Jenkins job name.
         var jobName = path.parse(path.basename(editor.document.fileName)).name;
 
         // Grab source from active editor.
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.pypline.createUpdatePipeline(source, jobName);
+        await this.pypline.updatePipeline(source, jobName);
     }
 
+    // @ts-ignore
     private async pyplineOpenOutputPanelCommand() {
         this.pypline.outputPanel.show();
     }
@@ -99,7 +103,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     var pypline = new PyplineCommand(context);
 	let disposable = vscode.commands.registerCommand('extension.pypline', async () => {
-		await pypline.displayCommands();
+		try {
+            await pypline.displayCommands();
+        } catch (err) {
+            let ham = 9;
+        }
 	});
     context.subscriptions.push(disposable);
 }

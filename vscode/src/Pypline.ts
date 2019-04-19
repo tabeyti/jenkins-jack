@@ -1,39 +1,52 @@
 import * as vscode from 'vscode';
 import * as jenkins from "jenkins";
-import * as Util from './Util';
-import { sleep } from './Util';
+import * as util from "util";
+import * as xml2js from "xml2js";
+import { sleep, getPipelineJobConfig } from './utils';
+// import * as request from 'request';
+// import { parse } from 'node-html-parser';
+
+const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
 class PipelineBuild {
     job: string;
-    build: number;
+    nextBuildNumber: number;
+    source: string;
+    hasParams: boolean;
 
-    constructor(jobName: string, buildNumber: number) {
+    constructor(
+        jobName: string, 
+        source: string = '', 
+        buildNumber: number = -1, 
+        hasParams: boolean = false) {
         this.job = jobName;
-        this.build = buildNumber;
+        this.source = source;
+        this.nextBuildNumber = buildNumber;
+        this.hasParams = hasParams;
     }
 }
 
 export class Pypline {
 
-    // Pypline configuration settings
-    jenkinsUri: string;
+    // Settings
+    jenkinsHost: string;
     username: string;
     password: string;
     jobPrefix: string;
     timeoutSecs: number;
     browserBuildOutput: boolean;
     browserStepsApi: string;
-    snippets: string;
+    snippets: boolean;
     outputPanel: vscode.OutputChannel;
 
     activeBuild?: PipelineBuild;
-    currentJob: any;
-    jenkins: any;
-    pollMs: number;
-    barrierLine: string;
+    readonly jenkinsUri: string;
+    readonly jenkins: any;
+    readonly pollMs: number;
+    readonly barrierLine: string;
 
     constructor() {
-        this.jenkinsUri =           vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
+        this.jenkinsHost =          vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
         this.username =             vscode.workspace.getConfiguration('pypline.jenkins')['username'];
         this.password =             vscode.workspace.getConfiguration('pypline.jenkins')['password'];
         this.jobPrefix =            vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
@@ -49,8 +62,9 @@ export class Pypline {
         this.outputPanel.show();
 
         // Jenkins client
+        this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`
         this.jenkins = jenkins({
-            baseUrl: `http://${this.username}:${this.password}@${this.jenkinsUri}`,
+            baseUrl: this.jenkinsUri,
             crumbIssuer: false,
             promisify: true
         });
@@ -62,9 +76,9 @@ export class Pypline {
      * @param jobName The name of the job.
      * @param buildNumber The build number.
      */
-    public async streamOutput(jobName: string, buildNumber: number) {
+    public streamOutput(jobName: string, buildNumber: number) {
         this.outputPanel.appendLine(this.barrierLine);
-        this.outputPanel.appendLine(`Getting console ouptput for ${jobName} #${buildNumber}`);
+        this.outputPanel.appendLine(`Getting console ouptput for ${this.jenkinsUri}`);
         this.outputPanel.appendLine(this.barrierLine);
 
         var log = this.jenkins.build.logStream({
@@ -94,74 +108,10 @@ export class Pypline {
      * @param jobName The name of the job.
      */
     public async nextBuildNumber(jobName: string) {
-        let flag = true;
-        const lock = async () => {
-            while(flag) {
-                await sleep(this.pollMs);
-            }
-        };
-
-        let info: any;
-        this.jenkins.job.get(jobName, async (err: any, data: any) => {
-            if (err) {
-                this.outputPanel.appendLine(err);
-                flag = false;
-                return;
-            }
-            info = data;
-            flag = false;
+        let info = await this.jenkins.job.get(jobName).then((data: any) => {
+            return data;
         });
-        await lock();
-        if (null === info) {
-            throw new Error(`Could not locate job: ${jobName}`);
-        }
         return info.nextBuildNumber;
-    }
-
-    /**
-     * Builds the provided job name.
-     * @param jobName Name of the job.
-     */
-    public async buildJob(jobName: string) {
-        let flag = true;
-        const lock = async () => {
-            while(flag) {
-                await sleep(this.pollMs);
-            }
-        };
-
-        let error: any;
-        this.jenkins.job.build(jobName, async (err: any, number: any) => {
-            if (err) {
-                this.outputPanel.appendLine(err);
-                error = err;
-                flag = false;
-                return;
-            }
-            flag = false;
-        });
-        await lock();
-        if (undefined !== error) { throw error; }
-    }
-
-    /**
-     * Aborts the build on Jenkins.
-     * @param jobName The name of the job to abort.
-     * @param buildNumber The build number to abort.
-     */
-    public async abortBuild(jobName: string, buildNumber: number) {
-        let flag = true;
-        const lock = async () => {
-            while(flag) {
-                await sleep(this.pollMs);
-            }
-        };
-
-        this.jenkins.build.stop(jobName, buildNumber, async (err: any, data: any) => {
-            flag = false;
-            if (err) { throw err; }
-        });
-        await lock();
     }
 
     /**
@@ -172,115 +122,20 @@ export class Pypline {
     public async buildReady(jobName: string, buildNumber: number) {
         let timeout = this.timeoutSecs;
         let exists = false;
-        while (timeout > 0) {
-            let flag = true;
-            const lock = async () => {
-                while(flag) {
-                    await sleep(this.pollMs);
-                }
-                return;
-            };
-
-            this.jenkins.build.get(jobName, buildNumber, async (err: any, data: any) => {
-                if (!err) {
-                    exists = true;
-                }
-                flag = false;
+        console.log('Waiting for build to start...');
+        while (timeout-- > 0) {
+            exists = await this.jenkins.build.get(jobName, buildNumber).then((data: any) => {
+                return true;
+            }).catch((err: any) => {
+                return false;
             });
-            await lock();
             if (exists) { break; }
-            await sleep(100);
-            timeout--;
+            await sleep(1000);
         }
         if (!exists) {
-            throw new Error(`Timeout waiting waiting for build: ${jobName}`);
+            throw new Error(`Timed out waiting waiting for build after ${this.timeoutSecs} seconds: ${jobName}`);
         }
-    }
-
-    /**
-     * Verifies if a job exists.
-     * @param jobName The job to verify.
-     */
-    public async jobExists(jobName: string) {
-        let flag = true;
-        const lock = async () => {
-            while(flag) {
-                await sleep(this.pollMs);
-            }
-            return;
-        };
-
-        let error: any;
-        let jobExists = false;
-        this.jenkins.job.exists(jobName, async (err: any, exists: boolean) => {
-            if (err) {
-                this.outputPanel.appendLine(err);
-                error = err;
-                flag = false;
-                return;
-            }
-            jobExists = exists;
-            flag = false;
-        });
-        await lock();
-        if (undefined !== error) { throw error; }
-        return jobExists;
-    }
-
-    /**
-     * Creates a job with the given name and xml config.
-     * @param jobName The job to create.
-     * @param config The xml job configuration.
-     */
-    public async createJob(jobName: string, config: string) {
-        let flag = true;
-        const lock = async () => {
-            while(flag) {
-                await sleep(this.pollMs);
-            }
-            return;
-        };
-
-        let error: any;
-        this.jenkins.job.create(jobName, config, async (err: any, exists: boolean) => {
-            if (err) {
-                this.outputPanel.appendLine(err);
-                error = err;
-                flag = false;
-                return;
-            }
-            flag = false;
-        });
-        await lock();
-        if (undefined !== error) { throw error; }
-    }
-
-    /**
-     * Updates the given job with the passed xml config.
-     * @param jobName The job to update.
-     * @param config The xml job configuration.
-     */
-    public async updateJob(jobName: string, config: string) {
-        let flag = true;
-        const lock = async () => {
-            while(flag) {
-                await sleep(this.pollMs);
-            }
-            return;
-        };
-
-        let error: any;
-        this.jenkins.job.config(jobName, config, async (err: any, exists: boolean) => {
-            if (err) {
-                this.outputPanel.appendLine(err);
-                error = err;
-                flag = false;
-                return;
-            }
-            flag = false;
-        });
-        await lock();
-        if (undefined !== error) { throw error; }
+        console.log('Build ready!');
     }
 
     /**
@@ -289,53 +144,139 @@ export class Pypline {
      * @param job The Jenkins Pipeline job name.
      */
     public async createUpdatePipeline(source: string, job: string) {
-        let xmlConfig = Util.getPipelineJobConfig();
-
-        // Take into account special characters for XML. XML is sh&;
-        xmlConfig = xmlConfig.replace("++CONTENT++", "<![CDATA[" + source + "]]>");
-
-        // Format job name based on extension config.
         let jobName = job;
+        let xml = getPipelineJobConfig();
+
+        // Format job name based on configuration setting.
         if (this.jobPrefix.trim().length > 0) {
-            jobName = `${this.jobPrefix}-${job}`;
+            jobName = `${this.jobPrefix}-${jobName}`;
         }
 
-        // If job exists, update. If not, create.
-        if(!await this.jobExists(jobName)) {
-            this.outputPanel.appendLine(`${jobName} doesn't exist. Creating...`);
-            await this.createJob(jobName, xmlConfig);
+        let build = new PipelineBuild(jobName, source);
+
+        // If job already exists, grab the job config from Jenkins.
+        let data = await this.jenkins.job.get(jobName).then((data: any) => { 
+            return data;
+        }).catch((err: any) => {
+            return undefined;
+        });
+        if (data) {
+            // Evaluated if this job has build parameters
+            let param = data.property.find((p: any) => p._class.includes("ParametersDefinitionProperty"));
+            build.hasParams = param != undefined;
+
+            build.nextBuildNumber = data.nextBuildNumber;
+
+            // Grab job's xml configuration.
+            xml = await this.jenkins.job.config(jobName).then((data: any) => {
+                console.log(data)
+                return data;
+            }).catch((err: any) => {
+                return undefined;
+            });
+        }
+        
+        // Inject the provided script/source into the job configuration.
+        let parsed = await parseXmlString(xml);
+        let root = parsed['flow-definition'];
+        root.definition[0].script = source;
+        root.quietPeriod = 0;
+        xml = new xml2js.Builder().buildObject(parsed);
+        
+        if(!data) {
+            console.log(`${jobName} doesn't exist. Creating...`);
+            await this.jenkins.job.create(jobName, xml);
         }
         else {
-            this.outputPanel.appendLine(`${jobName} already exists. Reconfiguring...`);
-            await this.updateJob(jobName, xmlConfig);
+            console.log(`${jobName} already exists. Updating...`);
+            await this.jenkins.job.config(jobName, xml);
         }
-        this.outputPanel.appendLine(this.barrierLine);
-        this.outputPanel.appendLine(`Successfully updated Pipeline: ${jobName}`);
-        return jobName;
+        console.log(`Successfully updated Pipeline: ${jobName}`);
+        return build;
     }
 
     /**
-     * Builds the targeted job with the provided Pipeline source.
-     * @param source Scripted Pipeline source.
-     * @param jobName The name of the job.
+     * Updates the targeted Pipeline job with the given script/source.
+     * @param source The pipeline script source to update to.
+     * @param job The name of the job to update.
      */
-    public async buildPipeline(source: string, job: string) {
-
+    public async updatePipeline(source: string, job: string) {        
         if (undefined !== this.activeBuild) {
-            vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.build}`);
+            vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
             return;
         }
 
         this.outputPanel.show();
         this.outputPanel.clear();
-        let jobName = await this.createUpdatePipeline(source, job);
-        let nextBuildNumber = await this.nextBuildNumber(jobName);
 
-        this.activeBuild = new PipelineBuild(jobName, nextBuildNumber);
-        await this.buildJob(jobName);
-        await this.buildReady(jobName, nextBuildNumber);
-        await this.streamOutput(jobName, nextBuildNumber);
-        // TODO: need to move streamOutput's this.activeBuild...over here
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Updating ${job}`,
+            cancellable: true
+        }, async (progress, token) => {
+			token.onCancellationRequested(() => {
+				vscode.window.showWarningMessage(`User canceled pipeline update.`);
+			});
+            progress.report({ increment: 50});
+            return new Promise(async resolve => {
+                await this.createUpdatePipeline(source, job);
+                resolve();
+            });
+        });
+    }
+
+    /**
+     * Builds the targeted job with the provided Pipeline script/source.
+     * @param source Scripted Pipeline source.
+     * @param jobName The name of the job.
+     */
+    public async buildPipeline(source: string, job: string) {
+        if (undefined !== this.activeBuild) {
+            vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
+            return;
+        }
+        this.outputPanel.show();
+        this.outputPanel.clear();
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Running ${job}`,
+            cancellable: true
+        }, async (progress, token) => {
+
+			token.onCancellationRequested(() => {
+				vscode.window.showWarningMessage(`User canceled pipeline build.`);
+			});
+
+            progress.report({ increment: 0, message: `Creating/updating Pipeline job.`});
+            this.activeBuild = await this.createUpdatePipeline(source, job);
+
+            // progress.report({ increment: 20, message: `Retrieving next build number`});
+            // let nextBuildNumber = await this.nextBuildNumber(jobName);
+
+            progress.report({ increment: 30, message: `Building "${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}`});
+
+            // TODO: figure out a nice, user friendly, way that allows devs to input parameters
+            // for their pipeline builds. For now, we pass empty params to ensure it builds.
+            await this.jenkins.job.build({ name: this.activeBuild.job, parameters: {} }).catch((err: any) => {
+                console.log(err);
+                throw err;
+            });
+            progress.report({ increment: 20, message: `Waiting for build to be ready...`});
+
+            await this.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
+            progress.report({ increment: 50, message: `Build is ready! Streaming output...`});
+
+            return new Promise(resolve => {
+                if (undefined === this.activeBuild) {
+                    resolve();
+                    return;
+                }
+                this.streamOutput(this.activeBuild.job, this.activeBuild.nextBuildNumber);
+                // TODO: need to move streamOutput's this.activeBuild = undefined...over here
+                resolve();
+            });            
+        });        
     }
 
     /**
@@ -343,7 +284,7 @@ export class Pypline {
      */
     public async abortPipeline() {
         if (undefined == this.activeBuild) { return; }
-        await this.abortBuild(this.activeBuild.job, this.activeBuild.build);
+        await this.jenkins.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => {});
         this.activeBuild = undefined;
     }
 }
