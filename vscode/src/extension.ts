@@ -95,6 +95,11 @@ class PyplineCommand {
     private async pyplineOpenOutputPanelCommand() {
         this.pypline.outputPanel.show();
     }
+
+    // @ts-ignore
+    private async pyplineSharedLibraryReference() {
+        await this.pypline.refreshSharedLibraryApi();
+    }
 }
 
 export function activate(context: vscode.ExtensionContext) {

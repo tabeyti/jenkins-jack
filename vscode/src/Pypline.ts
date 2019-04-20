@@ -3,8 +3,8 @@ import * as jenkins from "jenkins";
 import * as util from "util";
 import * as xml2js from "xml2js";
 import { sleep, getPipelineJobConfig } from './utils';
-// import * as request from 'request';
-// import { parse } from 'node-html-parser';
+import * as request from 'request-promise-native';
+import * as htmlParser from 'cheerio';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -39,6 +39,7 @@ export class Pypline {
     snippets: boolean;
     outputPanel: vscode.OutputChannel;
 
+    lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
     readonly jenkinsUri: string;
     readonly jenkins: any;
@@ -70,6 +71,39 @@ export class Pypline {
         });
     }
 
+    public async refreshSharedLibraryApi() {
+        let html = await this.getPipelineSharedLibHtml();
+        const root = htmlParser.load(html);
+
+        let doc = root('.steps.variables.root').first();
+
+        let child = doc.find('dt').first();
+        while (undefined !== child) {
+            let name = child.attr('id');
+            let description = child.next('dd').closest('div').html();
+            let ham = 0;
+        }
+
+        let ham = 0;
+
+        // const panel = vscode.window.createWebviewPanel(
+        //     'pipeline shared lib',
+        //     'Pipeline Shared Library',0
+        //     vscode.ViewColumn.One,
+        //     {}
+        // );
+
+        // panel.webview.html = `<html>${doc}</html>`;
+    }
+
+    public async getPipelineSharedLibHtml() {
+        let url = `${this.jenkinsUri}/pipeline-syntax/globals`
+        if (undefined != this.lastBuild) {
+            url = `${this.jenkinsUri}/job/${this.lastBuild.job}/pipeline-syntax/globals`;
+        }
+        return await request.get(url);
+    }
+
     /**
      * Streams the log output of the provided build to
      * the output panel.
@@ -77,8 +111,10 @@ export class Pypline {
      * @param buildNumber The build number.
      */
     public streamOutput(jobName: string, buildNumber: number) {
+        this.outputPanel.show();
+        this.outputPanel.clear();
         this.outputPanel.appendLine(this.barrierLine);
-        this.outputPanel.appendLine(`Getting console ouptput for ${this.jenkinsUri}`);
+        this.outputPanel.appendLine(`Streaming console ouptput for ${this.jenkinsUri}`);
         this.outputPanel.appendLine(this.barrierLine);
 
         var log = this.jenkins.build.logStream({
@@ -99,19 +135,9 @@ export class Pypline {
             this.outputPanel.appendLine(this.barrierLine);
             this.outputPanel.appendLine('Console stream ended.');
             this.outputPanel.appendLine(this.barrierLine);
+            this.lastBuild = this.activeBuild;
             this.activeBuild = undefined;
         });
-    }
-
-    /**
-     * Returns the next build number of the provided job.
-     * @param jobName The name of the job.
-     */
-    public async nextBuildNumber(jobName: string) {
-        let info = await this.jenkins.job.get(jobName).then((data: any) => {
-            return data;
-        });
-        return info.nextBuildNumber;
     }
 
     /**
@@ -161,15 +187,13 @@ export class Pypline {
             return undefined;
         });
         if (data) {
-            // Evaluated if this job has build parameters
+            // Evaluated if this job has build parameters and set the next build number.
             let param = data.property.find((p: any) => p._class.includes("ParametersDefinitionProperty"));
             build.hasParams = param != undefined;
-
             build.nextBuildNumber = data.nextBuildNumber;
 
             // Grab job's xml configuration.
             xml = await this.jenkins.job.config(jobName).then((data: any) => {
-                console.log(data)
                 return data;
             }).catch((err: any) => {
                 return undefined;
@@ -235,15 +259,12 @@ export class Pypline {
             vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
             return;
         }
-        this.outputPanel.show();
-        this.outputPanel.clear();
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: `Running ${job}`,
             cancellable: true
         }, async (progress, token) => {
-
 			token.onCancellationRequested(() => {
 				vscode.window.showWarningMessage(`User canceled pipeline build.`);
 			});
@@ -251,19 +272,16 @@ export class Pypline {
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.`});
             this.activeBuild = await this.createUpdatePipeline(source, job);
 
-            // progress.report({ increment: 20, message: `Retrieving next build number`});
-            // let nextBuildNumber = await this.nextBuildNumber(jobName);
-
-            progress.report({ increment: 30, message: `Building "${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}`});
-
-            // TODO: figure out a nice, user friendly, way that allows devs to input parameters
+            // TODO: figure out a nice, user friendly, way that allows users to input build parameters
             // for their pipeline builds. For now, we pass empty params to ensure it builds.
-            await this.jenkins.job.build({ name: this.activeBuild.job, parameters: {} }).catch((err: any) => {
+            progress.report({ increment: 30, message: `Building "${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}`});
+            let buildOptions = this.activeBuild.hasParams ? { name: this.activeBuild.job, parameters: {} } : { name: this.activeBuild.job };
+            await this.jenkins.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
-            progress.report({ increment: 20, message: `Waiting for build to be ready...`});
 
+            progress.report({ increment: 20, message: `Waiting for build to be ready...`});
             await this.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
             progress.report({ increment: 50, message: `Build is ready! Streaming output...`});
 

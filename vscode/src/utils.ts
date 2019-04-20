@@ -17,7 +17,7 @@ export async function sleep(ms: number) {
 export function getCommands() {
     return [
         {
-            "label": "Execute",
+            "label": "$(triangle-right)  Execute",
             "command": "pypline",
             "description": "Executes the current view as a pipeline job.",
             "target": "pyplineExecuteCommand",
@@ -25,7 +25,7 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "Abort",
+            "label": "$(primitive-square)  Abort",
             "command": "pypline",
             "description": "Aborts the active pipeline job initiated by Execute.",
             "target": "pyplineAbortCommand",
@@ -33,7 +33,7 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "Update",
+            "label": "$(sync)  Update",
             "command": "pypline",
             "description": "Updates the current view's associated pipeline job configuration.",
             "target": "pyplineUpdateCommand",
@@ -56,14 +56,14 @@ export function getCommands() {
         //     "args": null,
         //     "children": []
         // },
-        // {
-        //     "label": "Global Variables Reference",
-        //     "command": "pypline",
-        //     "description": "Provides a list of steps from the Shares Library and global variables.",
-        //     "target": "pypline_global_vars_reference",
-        //     "args": null,
-        //     "children": []
-        // },
+        {
+            "label": "Global Variables Reference",
+            "command": "pypline",
+            "description": "Provides a list of steps from the Shares Library and global variables.",
+            "target": "pyplineSharedLibraryReference",
+            "args": null,
+            "children": []
+        },
         // {
         //     "label": "Validate Declarative Pipeline",
         //     "command": "pypline",

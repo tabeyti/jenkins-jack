@@ -86,11 +86,12 @@
     "@types/mocha": "^2.2.42"
   },
   "dependencies": {
+    "@types/cheerio": "^0.22.11",
     "@types/jenkins": "^0.23.1",
     "@types/request-promise-native": "^1.0.15",
     "@types/xml2js": "0.4.3",
+    "cheerio": "^1.0.0-rc.3",
     "jenkins": "^0.25.0",
-    "node-html-parser": "^1.1.15",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7"
   }
