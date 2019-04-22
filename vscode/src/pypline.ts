@@ -8,6 +8,18 @@ import * as htmlParser from 'cheerio';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
+class PipelineSharedLibVar {
+    label: string;
+    description?: string;
+    descriptionHtml?: string;
+
+    constructor(name: string, description: string, descriptionHtml: string) {
+        this.label = name;
+        this.description = description;
+        this.descriptionHtml = descriptionHtml;
+    }
+}
+
 class PipelineBuild {
     job: string;
     nextBuildNumber: number;
@@ -15,9 +27,9 @@ class PipelineBuild {
     hasParams: boolean;
 
     constructor(
-        jobName: string, 
-        source: string = '', 
-        buildNumber: number = -1, 
+        jobName: string,
+        source: string = '',
+        buildNumber: number = -1,
         hasParams: boolean = false) {
         this.job = jobName;
         this.source = source;
@@ -41,6 +53,7 @@ export class Pypline {
 
     lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
+    sharedLibVars: PipelineSharedLibVar[];
     readonly jenkinsUri: string;
     readonly jenkins: any;
     readonly pollMs: number;
@@ -58,12 +71,13 @@ export class Pypline {
         this.timeoutSecs = 10;
         this.pollMs = 100;
         this.barrierLine = '-'.repeat(80);
+        this.sharedLibVars = [];
 
         this.outputPanel = vscode.window.createOutputChannel("Pypeline");
         this.outputPanel.show();
 
         // Jenkins client
-        this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`
+        this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
         this.jenkins = jenkins({
             baseUrl: this.jenkinsUri,
             crumbIssuer: false,
@@ -71,37 +85,50 @@ export class Pypline {
         });
     }
 
-    public async refreshSharedLibraryApi() {
-        let html = await this.getPipelineSharedLibHtml();
+    public async showSharedLibVars() {
+        await this.refreshSharedLibraryApi();
+        let result = await vscode.window.showQuickPick(this.sharedLibVars);
+        if (undefined === result) { return; }
+        const panel = vscode.window.createWebviewPanel(
+            'pipeline shared lib',
+            result.label,
+            vscode.ViewColumn.Beside,
+            {}
+        );
+
+        panel.webview.html = `<html>${result.descriptionHtml}</html>`;
+    }
+
+    private async refreshSharedLibraryApi() {
+        this.sharedLibVars = [];
+
+        let url = `${this.jenkinsUri}/pipeline-syntax/globals`;
+        if (undefined !== this.lastBuild) {
+            url = `${this.jenkinsUri}/job/${this.lastBuild.job}/pipeline-syntax/globals`;
+        }
+        let html = await request.get(url);
+
         const root = htmlParser.load(html);
 
         let doc = root('.steps.variables.root').first();
 
         let child = doc.find('dt').first();
-        while (undefined !== child) {
+        while (0 < child.length) {
+            // Grab name, description, and html for the shared var.
             let name = child.attr('id');
-            let description = child.next('dd').closest('div').html();
-            let ham = 0;
+            let descr = child.next('dd').find('div').first().text().trim();
+            let html = child.next('dd').find('div').first().html();
+            if (null === descr || null === html) { continue; }
+
+            // Add shared var name as title to the content.
+            html = `<div id='outer' markdown='1'><h2>${name}</h2>${html}</div>`;
+            if (!this.sharedLibVars.some((slv: PipelineSharedLibVar) => slv.label === name)) {
+                this.sharedLibVars.push(new PipelineSharedLibVar(name, descr, html));
+            }
+
+            // Get the next shared var.
+            child = child.next('dd').next('dt');
         }
-
-        let ham = 0;
-
-        // const panel = vscode.window.createWebviewPanel(
-        //     'pipeline shared lib',
-        //     'Pipeline Shared Library',0
-        //     vscode.ViewColumn.One,
-        //     {}
-        // );
-
-        // panel.webview.html = `<html>${doc}</html>`;
-    }
-
-    public async getPipelineSharedLibHtml() {
-        let url = `${this.jenkinsUri}/pipeline-syntax/globals`
-        if (undefined != this.lastBuild) {
-            url = `${this.jenkinsUri}/job/${this.lastBuild.job}/pipeline-syntax/globals`;
-        }
-        return await request.get(url);
     }
 
     /**
@@ -181,7 +208,7 @@ export class Pypline {
         let build = new PipelineBuild(jobName, source);
 
         // If job already exists, grab the job config from Jenkins.
-        let data = await this.jenkins.job.get(jobName).then((data: any) => { 
+        let data = await this.jenkins.job.get(jobName).then((data: any) => {
             return data;
         }).catch((err: any) => {
             return undefined;
@@ -199,14 +226,14 @@ export class Pypline {
                 return undefined;
             });
         }
-        
+
         // Inject the provided script/source into the job configuration.
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
         root.definition[0].script = source;
         root.quietPeriod = 0;
         xml = new xml2js.Builder().buildObject(parsed);
-        
+
         if(!data) {
             console.log(`${jobName} doesn't exist. Creating...`);
             await this.jenkins.job.create(jobName, xml);
@@ -224,7 +251,7 @@ export class Pypline {
      * @param source The pipeline script source to update to.
      * @param job The name of the job to update.
      */
-    public async updatePipeline(source: string, job: string) {        
+    public async updatePipeline(source: string, job: string) {
         if (undefined !== this.activeBuild) {
             vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
             return;
@@ -293,15 +320,15 @@ export class Pypline {
                 this.streamOutput(this.activeBuild.job, this.activeBuild.nextBuildNumber);
                 // TODO: need to move streamOutput's this.activeBuild = undefined...over here
                 resolve();
-            });            
-        });        
+            });
+        });
     }
 
     /**
      * Aborts the active pipeline build.
      */
     public async abortPipeline() {
-        if (undefined == this.activeBuild) { return; }
+        if (undefined === this.activeBuild) { return; }
         await this.jenkins.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => {});
         this.activeBuild = undefined;
     }

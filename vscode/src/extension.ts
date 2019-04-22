@@ -3,9 +3,10 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Pypline } from './Pypline';
+import { Pypline } from './pypline';
+import { PipelineSnippets } from './snippets';
 import { getCommands } from './utils';
-import { Logger } from './Logger';
+import { Logger } from './logger';
 
 class PyplineCommand {
     private context: vscode.ExtensionContext;
@@ -98,23 +99,31 @@ class PyplineCommand {
 
     // @ts-ignore
     private async pyplineSharedLibraryReference() {
-        await this.pypline.refreshSharedLibraryApi();
+        await this.pypline.showSharedLibVars();
     }
 }
 
 export function activate(context: vscode.ExtensionContext) {
 
-	console.log('Extension Pypline now active!');
-
     var pypline = new PyplineCommand(context);
-	let disposable = vscode.commands.registerCommand('extension.pypline', async () => {
+    var pyplineSnippets = new PipelineSnippets(context);
+    console.log('Extension Pypline now active!');
+
+    let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
+        provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext) {
+            return pyplineSnippets.completionItems;
+        }
+    });
+    context.subscriptions.push(snippetsDisposable);
+
+	let pyplineDisposable = vscode.commands.registerCommand('extension.pypline', async () => {
 		try {
             await pypline.displayCommands();
         } catch (err) {
-            let ham = 9;
+            vscode.window.showWarningMessage('Could not display Pypline commands.');
         }
 	});
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(pyplineDisposable);
 }
 
 export function deactivate() {}
