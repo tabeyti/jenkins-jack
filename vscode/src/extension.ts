@@ -15,6 +15,7 @@ class PyplineCommand {
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
+        console.log(this.context);
         this.logger = new Logger();
         this.pypline = new Pypline();
     }
