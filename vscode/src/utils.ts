@@ -64,6 +64,14 @@ export function getCommands() {
             "args": null,
             "children": []
         },
+        {
+            "label": "Download Build Log",
+            "command": "pypline",
+            "description": "Select a job and build to download the log.",
+            "target": "pyplineDownloadBuildLog",
+            "args": null,
+            "children": []
+        }
         // {
         //     "label": "Validate Declarative Pipeline",
         //     "command": "pypline",

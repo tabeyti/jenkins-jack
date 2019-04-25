@@ -73,16 +73,122 @@ export class Pypline {
         this.barrierLine = '-'.repeat(80);
         this.sharedLibVars = [];
 
-        this.outputPanel = vscode.window.createOutputChannel("Pypeline");
+        this.outputPanel = vscode.window.createOutputChannel("Pypline");
         this.outputPanel.show();
 
-        // Jenkins client
+        // Jenkins client   
         this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
         this.jenkins = jenkins({
             baseUrl: this.jenkinsUri,
             crumbIssuer: false,
             promisify: true
         });
+    }    
+    
+    /**
+     * Replace base Jenkins URI with the one defined in the config.
+     * We do this since Jenkins will provide the URI with a base which may be
+     * different from the one specified in the configuration.
+     * @param url The url to format.
+     */
+    private fromUrlFormat(url: string) {
+        url = url.charAt(url.length - 1) === '/' ? url.slice(0, -1) : url;
+        let match = url.match('.*?/(job/.*)');
+        if (null !== match && match.length >= 0) {
+            url = `${this.jenkinsUri}/${match[1]}`;
+        }
+        return url;
+    }
+
+    /**
+     * Retrieves build numbers for the job url provided.
+     * @param rootUrl Base 'job' url for the request.
+     */
+    private async getBuildNumbersFromUrl(rootUrl: string) {
+        rootUrl = this.fromUrlFormat(rootUrl);
+        let url = `${rootUrl}/api/json?tree=builds[number]`;
+        let r = await request.get(url);
+        let json = JSON.parse(r);
+        return json.builds.map((n: any) => String(n.number));
+    }
+
+    /**
+     * Retrieves a list of Jenkins 'job' objects.
+     * @param rootUrl Root jenkins url for the request.
+     */
+    private async getJobsFromUrl(rootUrl: string) {
+        rootUrl = this.fromUrlFormat(rootUrl);
+        let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
+        let r = await request.get(url);
+        let json = JSON.parse(r);
+        return json.jobs;
+    }
+
+    /**
+     * Recursive descent method for retrieving Jenkins jobs from
+     * various job types (e.g. Multi-branch, Github Org, etc.).
+     * @param job The current Jenkins 'job' object.
+     */
+    private async getJobs(job: any | undefined) {
+        let jobs = [];
+        if (undefined == job) {
+            jobs = await this.getJobsFromUrl(this.jenkinsUri);
+        }
+        else {
+            jobs = await this.getJobsFromUrl(job['url']);
+        }
+
+        // Not all jobs are top level. Need to grab child jobs from certain class
+        // types.
+        let jobList:any[] = [];
+        for (let job of jobs) {
+            if ('com.cloudbees.hudson.plugins.folder.Folder' === job._class) {
+                jobList = jobList.concat(await this.getJobs(job));
+            }
+
+            // If this is a multibranch parent, grab all it's immediate children.
+            if ('org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject' === job._class) {
+                for (let c of job.jobs) {
+                    jobList.push(c);
+                }                
+            }
+            // If this is a org folder parent, grab all second level children.
+            else if ('jenkins.branch.OrganizationFolder' === job._class) {
+                for (var pc of job.jobs) {
+                    for (let c of pc.jobs) {
+                         jobList.push(c);
+                    }
+                }                
+            }
+            else {
+                jobList.push(job);
+            }
+        }
+        return jobList;
+    }
+
+    /**
+     * Downloads a build log for the user by first presenting a list
+     * of jobs to select from, and then a list of build numbers for
+     * the selected job.
+     */
+    public async downloadBuildLog() {
+        let jobs = await this.getJobs(undefined);
+        for (let job of jobs) {
+            job.label = job.fullName;
+        }
+
+        // Ask which job they want to target.
+        let job = await vscode.window.showQuickPick(jobs)
+        if (undefined === job) return;
+
+        // Ask what build they want to download.
+        let buildNumbers = await this.getBuildNumbersFromUrl(job.url);
+        let buildNumber = await vscode.window.showQuickPick(buildNumbers);
+        if (undefined === buildNumber) return;
+
+        // Stream it. Stream it until the editor crashes.
+        await this.streamOutput(job.label, parseInt(buildNumber));
     }
 
     public async showSharedLibVars() {
@@ -289,7 +395,7 @@ export class Pypline {
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Running ${job}`,
+            title: `Pipeline ${job}`,
             cancellable: true
         }, async (progress, token) => {
 			token.onCancellationRequested(() => {
