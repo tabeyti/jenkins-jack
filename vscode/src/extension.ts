@@ -102,6 +102,11 @@ class PyplineCommand {
     private async pyplineSharedLibraryReference() {
         await this.pypline.showSharedLibVars();
     }
+
+    // @ts-ignore
+    private async pyplineDownloadBuildLog() {
+        await this.pypline.downloadBuildLog();
+    }
 }
 
 export function activate(context: vscode.ExtensionContext) {
