@@ -41,26 +41,10 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "Open Output Panel",
-            "command": "pypline",
-            "description": "Opens the active pipleine job's output panel.",
-            "target": "pyplineOpenOutputPanelCommand",
-            "args": null,
-            "children": []
-        },
-        // {
-        //     "label": "Step Reference",
-        //     "command": "pypline",
-        //     "description": "Provides a list of pipelines steps from the targted Jenkins.",
-        //     "target": "pypline_step_reference",
-        //     "args": null,
-        //     "children": []
-        // },
-        {
             "label": "Global Variables Reference",
             "command": "pypline",
             "description": "Provides a list of steps from the Shares Library and global variables.",
-            "target": "pyplineSharedLibraryReference",
+            "target": "pyplineSharedLibraryReferenceCommand",
             "args": null,
             "children": []
         },
@@ -68,18 +52,10 @@ export function getCommands() {
             "label": "Download Build Log",
             "command": "pypline",
             "description": "Select a job and build to download the log.",
-            "target": "pyplineDownloadBuildLog",
+            "target": "pyplineDownloadBuildLogCommand",
             "args": null,
             "children": []
         }
-        // {
-        //     "label": "Validate Declarative Pipeline",
-        //     "command": "pypline",
-        //     "description": "Validates the current view's declarative pipeline syntax.",
-        //     "target": "pypline_validate_dec_pipeline",
-        //     "args": null,
-        //     "children": []
-        // },
         // {
         //     "label": "Jenkins",
         //     "command": "pypline",
@@ -111,14 +87,6 @@ export function getCommands() {
         //             "args": null,
         //             "children": []
         //         },
-        //         {
-        //             "label": "Download Build Log",
-        //             "command": "pypline",
-        //             "description": "Select a job and build to download the log.",
-        //             "target": "jenkins_job_download_build_log",
-        //             "args": null,
-        //             "children": []
-        //         }
         //     ]
         // }
     ];
@@ -126,7 +94,7 @@ export function getCommands() {
 
 /**
  * TODO: HACK
- * Returns some nasty hard-coded Jenkins Pipeline 
+ * Returns some nasty hard-coded Jenkins Pipeline
  * XML as a Pipeline job config template.
  */
 export function getPipelineJobConfig() {

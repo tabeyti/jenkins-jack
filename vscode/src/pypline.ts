@@ -20,6 +20,9 @@ class PipelineSharedLibVar {
     }
 }
 
+/**
+ * Data structure for storing a Pipeline's build information.
+ */
 class PipelineBuild {
     job: string;
     nextBuildNumber: number;
@@ -39,7 +42,6 @@ class PipelineBuild {
 }
 
 export class Pypline {
-
     // Settings
     jenkinsHost: string;
     username: string;
@@ -76,15 +78,15 @@ export class Pypline {
         this.outputPanel = vscode.window.createOutputChannel("Pypline");
         this.outputPanel.show();
 
-        // Jenkins client   
+        // Jenkins client
         this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
         this.jenkins = jenkins({
             baseUrl: this.jenkinsUri,
             crumbIssuer: false,
             promisify: true
         });
-    }    
-    
+    }
+
     /**
      * Replace base Jenkins URI with the one defined in the config.
      * We do this since Jenkins will provide the URI with a base which may be
@@ -150,7 +152,7 @@ export class Pypline {
             if ('org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject' === job._class) {
                 for (let c of job.jobs) {
                     jobList.push(c);
-                }                
+                }
             }
             // If this is a org folder parent, grab all second level children.
             else if ('jenkins.branch.OrganizationFolder' === job._class) {
@@ -158,7 +160,7 @@ export class Pypline {
                     for (let c of pc.jobs) {
                          jobList.push(c);
                     }
-                }                
+                }
             }
             else {
                 jobList.push(job);
@@ -180,17 +182,21 @@ export class Pypline {
 
         // Ask which job they want to target.
         let job = await vscode.window.showQuickPick(jobs)
-        if (undefined === job) return;
+        if (undefined === job) { return; }
 
         // Ask what build they want to download.
         let buildNumbers = await this.getBuildNumbersFromUrl(job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers);
-        if (undefined === buildNumber) return;
+        if (undefined === buildNumber) { return; }
 
         // Stream it. Stream it until the editor crashes.
         await this.streamOutput(job.label, parseInt(buildNumber));
     }
 
+    /**
+     * Displays a list of Shared Libarary steps/vars for the user to select.
+     * On selection, will display a web-view of the step's documenation.
+     */
     public async showSharedLibVars() {
         await this.refreshSharedLibraryApi();
         let result = await vscode.window.showQuickPick(this.sharedLibVars);

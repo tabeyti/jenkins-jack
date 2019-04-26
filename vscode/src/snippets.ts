@@ -29,7 +29,7 @@ export class PipelineSnippets {
     }
 
     /**
-     * Parses a Pipeline step "method(...)" line from the GDSL
+     * Parses a Pipeline step "method(...)" line from the GDSL.
      * @param line The method line.
      */
     public parseMethodLine(line: string): PipelineStepDoc {
