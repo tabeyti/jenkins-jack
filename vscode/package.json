@@ -15,6 +15,10 @@
     "onCommand:extension.pypline"
   ],
   "main": "./out/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tabeyti/pypline.git"
+  },
   "contributes": {
     "configuration": [
       {

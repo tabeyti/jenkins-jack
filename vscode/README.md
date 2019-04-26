@@ -1,65 +1,46 @@
-# pypline README
+# Pypline
 
-This is the README for your extension "pypline". After writing up a brief description, we recommend including the following sections.
+VSCode extension for developing and running Jenkins Pipeline scripts locally.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Remote pipeline builds**: Remotely build a Jenkins pipeline scripts from an open `groovy` file and stream the output to the output console.
+- **Pipeline step auto-completion**: Auto-completion of pipeline steps for snippet generation of the step call and parameters.
+- And much more!
 
-For example if there is an image subfolder under your extension project workspace:
+## Packaging and Installation
+Currently not on the marketplace. To create a standalone `vsix`, run the following commands:
+```bash
+# From the root of the extension.
+npm install
+vsce package
+code --install-extension .\pypline-0.0.1.vsix # or whatever version was built
+```
 
-\!\[feature X\]\(images/feature-x.png\)
+## Setup
+Pypline works by hooking into the user's running Jenkins instance via the Jenkins Remote API. Before you can use the plugin, you must fill in the extension settings to point to your remote Jenkins host/server.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Use
 
-## Requirements
+To access the invokable commands:
+- (Windows/Linux): `ctrl+alt+j`
+- (OSX): `super+alt+j`
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Snippet generation activates on viewing a `groovy` file.
 
-## Extension Settings
+## Primary Commands
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+Navigate [here](./commands.md) for a list of primary commands this tool supports.
 
-For example:
+## Support
+Do you have a feature request or would like to report a bug? Super duper! Create an issue via github's [issue tracker](https://github.com/tabeyti/pypline/issues).
 
-This extension contributes the following settings:
+Currently, there are no hard guidelines defined for feature requests, bugs, or questions since the project is relatively new. These will become more defined as interest in the project increases.
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+## Authors
 
-## Known Issues
+* **Travis Abeyti** - *Initial work*
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## License
 
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details. Do what you will with this.
