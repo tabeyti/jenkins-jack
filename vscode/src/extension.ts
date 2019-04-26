@@ -9,13 +9,10 @@ import { getCommands } from './utils';
 import { Logger } from './logger';
 
 class PyplineCommand {
-    private context: vscode.ExtensionContext;
     private pypline: Pypline;
     [key:string]: any;
 
     constructor(context: vscode.ExtensionContext) {
-        this.context = context;
-        console.log(this.context);
         this.logger = new Logger();
         this.pypline = new Pypline();
     }
@@ -99,12 +96,12 @@ class PyplineCommand {
     }
 
     // @ts-ignore
-    private async pyplineSharedLibraryReference() {
+    private async pyplineSharedLibraryReferenceCommand() {
         await this.pypline.showSharedLibVars();
     }
 
     // @ts-ignore
-    private async pyplineDownloadBuildLog() {
+    private async pyplineDownloadBuildLogCommand() {
         await this.pypline.downloadBuildLog();
     }
 }

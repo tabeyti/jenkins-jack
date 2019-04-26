@@ -9,12 +9,13 @@ VSCode extension for developing and running Jenkins Pipeline scripts locally.
 - And much more!
 
 ## Packaging and Installation
-Currently not on the marketplace. To create a standalone `vsix`, run the following commands:
+Currently not on the marketplace. To create a standalone `vsix` for installation locally, run the following commands:
 ```bash
 # From the root of the extension.
-npm install
-vsce package
-code --install-extension .\pypline-0.0.1.vsix # or whatever version was built
+npm install -g vsce # For packaging
+npm install # Install dependencies.
+vsce package # Bake some bread.
+code --install-extension .\pypline-0.0.1.vsix # ...or whatever version was built
 ```
 
 ## Setup
