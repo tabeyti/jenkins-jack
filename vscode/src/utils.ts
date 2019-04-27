@@ -55,7 +55,15 @@ export function getCommands() {
             "target": "pyplineDownloadBuildLogCommand",
             "args": null,
             "children": []
-        }
+        },
+        {
+            "label": "$(triangle-right)  Console Groovy Script",
+            "command": "pypline",
+            "description": "Executes the current view's groovy script as a system/node console script (script console).",
+            "target": "pyplineConsoleScriptCommand",
+            "args": null,
+            "children": []
+        },
         // {
         //     "label": "Jenkins",
         //     "command": "pypline",
