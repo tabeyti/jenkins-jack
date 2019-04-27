@@ -235,8 +235,8 @@ export class Pypline {
     }
 
     /**
-     * Displays a list of Shared Libarary steps/vars for the user to select.
-     * On selection, will display a web-view of the step's documenation.
+     * Displays a list of Shared Library steps/vars for the user to select.
+     * On selection, will display a web-view of the step's documentation.
      */
     public async showSharedLibVars() {
         await this.refreshSharedLibraryApi();
@@ -256,6 +256,9 @@ export class Pypline {
         this.sharedLibVars = [];
 
         let url = `${this.jenkinsUri}/pipeline-syntax/globals`;
+
+        // If we have a cached job, use it to retrieve the Global Shared Vars as it will
+        // include any var/steps that the job is importing.
         if (undefined !== this.lastBuild) {
             url = `${this.jenkinsUri}/job/${this.lastBuild.job}/pipeline-syntax/globals`;
         }
