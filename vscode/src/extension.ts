@@ -91,11 +91,6 @@ class PyplineCommand {
     }
 
     // @ts-ignore
-    private async pyplineOpenOutputPanelCommand() {
-        this.pypline.outputPanel.show();
-    }
-
-    // @ts-ignore
     private async pyplineSharedLibraryReferenceCommand() {
         await this.pypline.showSharedLibVars();
     }
@@ -103,6 +98,22 @@ class PyplineCommand {
     // @ts-ignore
     private async pyplineDownloadBuildLogCommand() {
         await this.pypline.downloadBuildLog();
+    }
+
+    // @ts-ignore
+    private async pyplineConsoleScriptCommand() {
+        // Validate it's valid groovy source.
+        var editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        if ("groovy" !== editor.document.languageId) {
+            return;
+        }
+
+        // Grab source from active editor.
+        let source = editor.document.getText();
+        if ("" === source) { return; }
+
+        await this.pypline.executeConsoleScript(source);
     }
 }
 

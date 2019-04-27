@@ -69,6 +69,7 @@ export class Pypline {
         this.browserBuildOutput =   vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
         this.browserStepsApi =      vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
         this.snippets =             vscode.workspace.getConfiguration('pypline')['snippets'];
+        vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings() });
 
         this.timeoutSecs = 10;
         this.pollMs = 100;
@@ -76,7 +77,7 @@ export class Pypline {
         this.sharedLibVars = [];
 
         this.outputPanel = vscode.window.createOutputChannel("Pypline");
-        this.outputPanel.show();
+
 
         // Jenkins client
         this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
@@ -85,6 +86,36 @@ export class Pypline {
             crumbIssuer: false,
             promisify: true
         });
+    }
+
+    private updateSettings() {
+        this.jenkinsHost =          vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
+        this.username =             vscode.workspace.getConfiguration('pypline.jenkins')['username'];
+        this.password =             vscode.workspace.getConfiguration('pypline.jenkins')['password'];
+        this.jobPrefix =            vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
+        this.browserBuildOutput =   vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
+        this.browserStepsApi =      vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
+        this.snippets =             vscode.workspace.getConfiguration('pypline')['snippets'];
+    }
+
+    public async executeConsoleScript(source: string) {
+        let nodes = await this.getNodes();
+        let nodeNames = nodes.map((n: any) => String(n.displayName));
+        nodeNames.unshift('System');
+
+        let node = await vscode.window.showQuickPick(nodeNames);
+        if (undefined === node) { return; }
+
+        this.outputPanel.clear();
+        this.outputPanel.show();
+
+        let url = `${this.jenkinsUri}/scriptText`;
+        if ('System' !== node) {
+            url = `${this.jenkinsUri}/computer/${node}/scriptText`;
+        }
+
+        let r = await request.post({url:url, form:{script:source}});
+        this.outputPanel.appendLine(r);      
     }
 
     /**
@@ -167,6 +198,16 @@ export class Pypline {
             }
         }
         return jobList;
+    }
+
+    /**
+     * Retrieves the list of machines/nodes from Jenkins.
+     */
+    private async getNodes() {
+        let url = `${this.jenkinsUri}/computer/api/json`;
+        let r = await request.get(url);
+        let json = JSON.parse(r);
+        return json.computer;
     }
 
     /**
@@ -430,7 +471,6 @@ export class Pypline {
                     return;
                 }
                 this.streamOutput(this.activeBuild.job, this.activeBuild.nextBuildNumber);
-                // TODO: need to move streamOutput's this.activeBuild = undefined...over here
                 resolve();
             });
         });
