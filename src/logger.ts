@@ -8,7 +8,7 @@ export class Logger {
 	private outputPanel: any;
 
 	constructor() {
-        this.outputPanel = vscode.window.createOutputChannel("Pypline Debug Output");
+        this.outputPanel = vscode.window.createOutputChannel("Pipeline Debug Output");
         this.outputPanel.show();
 	}
 

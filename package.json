@@ -1,8 +1,8 @@
 {
   "publisher": "tabeyti",
-  "name": "pypline",
-  "displayName": "Pypline",
-  "description": "Jenkins Pipeline development plugin.",
+  "name": "jenkins-jack",
+  "displayName": "Jenkins Jack",
+  "description": "Jack into your Jenkins to excute pipeline scripts, pull Shared Library step documenation, provide Pipeline step autocompletions, run console groovy scripts, and more!",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.30.0"
@@ -12,47 +12,47 @@
   ],
   "activationEvents": [
     "onLanguage:groovy",
-    "onCommand:extension.pypline"
+    "onCommand:extension.jenkins-jack"
   ],
   "main": "./out/extension.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tabeyti/pypline.git"
+    "url": "https://github.com/tabeyti/jenkins-jack.git"
   },
   "contributes": {
     "configuration": [
       {
-        "title": "Pypline configuration",
+        "title": "Jenkins Jack configuration",
         "properties": {
-          "pypline.jenkins.uri": {
+          "jenkins-jack.jenkins.uri": {
             "type": "string",
             "default": "127.0.0.1:8080"
           },
-          "pypline.jenkins.username": {
+          "jenkins-jack.jenkins.username": {
             "type": "string",
             "default": ""
           },
-          "pypline.jenkins.password": {
+          "jenkins-jack.jenkins.password": {
             "type": "string",
             "default": ""
           },
-          "pypline.jenkins.jobPrefix": {
+          "jenkins-jack.jenkins.jobPrefix": {
             "type": "string",
             "default": ""
           },
-          "pypline.browser.buildOutput": {
+          "jenkins-jack.browser.buildOutput": {
             "type": "boolean",
             "default": false
           },
-          "pypline.browser.stepsApi": {
+          "jenkins-jack.browser.stepsApi": {
             "type": "boolean",
             "default": false
           },
-          "pypline.browser.globalVarsApi": {
+          "jenkins-jack.browser.globalVarsApi": {
             "type": "boolean",
             "default": false
           },
-          "pypline.snippets": {
+          "jenkins-jack.snippets": {
             "type": "boolean",
             "default": false
           }
@@ -61,8 +61,8 @@
     ],
     "keybindings": [
       {
-        "command": "extension.pypline",
-        "title": "Pypline",
+        "command": "extension.jenkins-jack",
+        "title": "jenkins-jack",
         "key": "ctrl+alt+j",
         "mac": "ctrl+alt+j",
         "when": "editorTextFocus"
@@ -70,8 +70,8 @@
     ],
     "commands": [
       {
-        "command": "extension.pypline",
-        "title": "Pypline"
+        "command": "extension.jenkins-jack",
+        "title": "Jenkins Jack"
       }
     ]
   },

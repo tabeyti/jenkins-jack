@@ -18,9 +18,9 @@ export class PipelineSnippets {
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
 
-        this.jenkinsHost =          vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
-        this.username =             vscode.workspace.getConfiguration('pypline.jenkins')['username'];
-        this.password =             vscode.workspace.getConfiguration('pypline.jenkins')['password'];
+        this.jenkinsHost =          vscode.workspace.getConfiguration('jenkins-jack.jenkins')['uri'];
+        this.username =             vscode.workspace.getConfiguration('jenkins-jack.jenkins')['username'];
+        this.password =             vscode.workspace.getConfiguration('jenkins-jack.jenkins')['password'];
 
         this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
         this.completionItems = new Array<vscode.CompletionItem>();
@@ -82,7 +82,12 @@ export class PipelineSnippets {
         this.completionItems =[];
         this.stepDocs = new Array<PipelineStepDoc>();
         let url = `${this.jenkinsUri}/pipeline-syntax/gdsl`;
-        var content = String(await request.get(url));
+        try {
+            var content = String(await request.get(url));
+        } catch (err) {
+            console.log('Could not connect to pipeline-syntax/gdsl.');
+            return;
+        }
 
         // Parse each GDSL line for a 'method' signature.
         // This is a Pipeline Sep.

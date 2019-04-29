@@ -3,22 +3,22 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Pypline } from './pypline';
+import { Pipeline } from './pipeline';
 import { PipelineSnippets } from './snippets';
 import { getCommands } from './utils';
 import { Logger } from './logger';
 
-class PyplineCommand {
-    private pypline: Pypline;
+class PipelineCommand {
+    private pipeline: Pipeline;
     [key:string]: any;
 
     constructor(context: vscode.ExtensionContext) {
         this.logger = new Logger();
-        this.pypline = new Pypline();
+        this.pipeline = new Pipeline();
     }
 
     /**
-     * Displays the Pypline command list in quick pick.
+     * Displays the Pipeline command list in quick pick.
      */
     public async displayCommands() {
         let result = await vscode.window.showQuickPick(getCommands());
@@ -48,7 +48,7 @@ class PyplineCommand {
     }
 
     // @ts-ignore
-    private async pyplineExecuteCommand() {
+    private async pipelineExecuteCommand() {
         // Validate it's valid groovy source.
         var editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
@@ -63,16 +63,16 @@ class PyplineCommand {
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.pypline.buildPipeline(source, jobName);
+        await this.pipeline.buildPipeline(source, jobName);
     }
 
     // @ts-ignore
-    private async pyplineAbortCommand() {
-        await this.pypline.abortPipeline();
+    private async pipelineAbortCommand() {
+        await this.pipeline.abortPipeline();
     }
 
     // @ts-ignore
-    private async pyplineUpdateCommand() {
+    private async pipelineUpdateCommand() {
         // Validate it's valid groovy source.
         var editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
@@ -87,21 +87,21 @@ class PyplineCommand {
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.pypline.updatePipeline(source, jobName);
+        await this.pipeline.updatePipeline(source, jobName);
     }
 
     // @ts-ignore
-    private async pyplineSharedLibraryReferenceCommand() {
-        await this.pypline.showSharedLibVars();
+    private async pipelineSharedLibraryReferenceCommand() {
+        await this.pipeline.showSharedLibVars();
     }
 
     // @ts-ignore
-    private async pyplineDownloadBuildLogCommand() {
-        await this.pypline.downloadBuildLog();
+    private async pipelineDownloadBuildLogCommand() {
+        await this.pipeline.downloadBuildLog();
     }
 
     // @ts-ignore
-    private async pyplineConsoleScriptCommand() {
+    private async pipelineConsoleScriptCommand() {
         // Validate it's valid groovy source.
         var editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
@@ -113,31 +113,31 @@ class PyplineCommand {
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.pypline.executeConsoleScript(source);
+        await this.pipeline.executeConsoleScript(source);
     }
 }
 
 export function activate(context: vscode.ExtensionContext) {
 
-    var pypline = new PyplineCommand(context);
-    var pyplineSnippets = new PipelineSnippets(context);
-    console.log('Extension Pypline now active!');
+    var pipeline = new PipelineCommand(context);
+    var pipelineSnippets = new PipelineSnippets(context);
+    console.log('Extension Pipeline now active!');
 
     let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
         provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext) {
-            return pyplineSnippets.completionItems;
+            return pipelineSnippets.completionItems;
         }
     });
     context.subscriptions.push(snippetsDisposable);
 
-	let pyplineDisposable = vscode.commands.registerCommand('extension.pypline', async () => {
+	let pipelineDisposable = vscode.commands.registerCommand('extension.jenkins-jack', async () => {
 		try {
-            await pypline.displayCommands();
+            await pipeline.displayCommands();
         } catch (err) {
-            vscode.window.showWarningMessage('Could not display Pypline commands.');
+            vscode.window.showWarningMessage('Could not display Pipeline commands.');
         }
 	});
-    context.subscriptions.push(pyplineDisposable);
+    context.subscriptions.push(pipelineDisposable);
 }
 
 export function deactivate() {}

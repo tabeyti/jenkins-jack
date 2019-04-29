@@ -21,7 +21,7 @@ class PipelineSharedLibVar {
 }
 
 /**
- * Data structure for storing a Pipeline's build information.
+ * Struct for storing a Pipeline's build information.
  */
 class PipelineBuild {
     job: string;
@@ -41,7 +41,7 @@ class PipelineBuild {
     }
 }
 
-export class Pypline {
+export class Pipeline {
     // Settings
     jenkinsHost: string;
     username: string;
@@ -62,13 +62,13 @@ export class Pypline {
     readonly barrierLine: string;
 
     constructor() {
-        this.jenkinsHost = vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
-        this.username = vscode.workspace.getConfiguration('pypline.jenkins')['username'];
-        this.password = vscode.workspace.getConfiguration('pypline.jenkins')['password'];
-        this.jobPrefix = vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
-        this.browserBuildOutput = vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
-        this.browserStepsApi = vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
-        this.snippets = vscode.workspace.getConfiguration('pypline')['snippets'];
+        this.jenkinsHost = vscode.workspace.getConfiguration('pipeline.jenkins')['uri'];
+        this.username = vscode.workspace.getConfiguration('pipeline.jenkins')['username'];
+        this.password = vscode.workspace.getConfiguration('pipeline.jenkins')['password'];
+        this.jobPrefix = vscode.workspace.getConfiguration('pipeline.jenkins')['jobPrefix'];
+        this.browserBuildOutput = vscode.workspace.getConfiguration('pipeline.browser')['buildOutput'];
+        this.browserStepsApi = vscode.workspace.getConfiguration('pipeline.browser')['stepsApi'];
+        this.snippets = vscode.workspace.getConfiguration('pipeline')['snippets'];
         vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings(); });
 
         this.timeoutSecs = 10;
@@ -76,26 +76,31 @@ export class Pypline {
         this.barrierLine = '-'.repeat(80);
         this.sharedLibVars = [];
 
-        this.outputPanel = vscode.window.createOutputChannel("Pypline");
+        this.outputPanel = vscode.window.createOutputChannel("Pipeline");
 
 
         // Jenkins client
         this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
-        this.jenkins = jenkins({
-            baseUrl: this.jenkinsUri,
-            crumbIssuer: false,
-            promisify: true
-        });
+        try {
+            this.jenkins = jenkins({
+                baseUrl: this.jenkinsUri,
+                crumbIssuer: false,
+                promisify: true
+            });
+        } catch (err) {
+            console.log(err);
+        }
+
     }
 
     private updateSettings() {
-        this.jenkinsHost = vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
-        this.username = vscode.workspace.getConfiguration('pypline.jenkins')['username'];
-        this.password = vscode.workspace.getConfiguration('pypline.jenkins')['password'];
-        this.jobPrefix = vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
-        this.browserBuildOutput = vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
-        this.browserStepsApi = vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
-        this.snippets = vscode.workspace.getConfiguration('pypline')['snippets'];
+        this.jenkinsHost = vscode.workspace.getConfiguration('pipeline.jenkins')['uri'];
+        this.username = vscode.workspace.getConfiguration('pipeline.jenkins')['username'];
+        this.password = vscode.workspace.getConfiguration('pipeline.jenkins')['password'];
+        this.jobPrefix = vscode.workspace.getConfiguration('pipeline.jenkins')['jobPrefix'];
+        this.browserBuildOutput = vscode.workspace.getConfiguration('pipeline.browser')['buildOutput'];
+        this.browserStepsApi = vscode.workspace.getConfiguration('pipeline.browser')['stepsApi'];
+        this.snippets = vscode.workspace.getConfiguration('pipeline')['snippets'];
     }
 
     public async executeConsoleScript(source: string) {
