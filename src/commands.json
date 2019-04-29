@@ -56,14 +56,14 @@
         "args": { "target": "children" },
         "children": [
             {
-                "caption": "Console Groovy Script",
+                "caption": "Run Console Groovy Script",
                 "command": "pypline",
-                "description": "Runs the current view's script as a system/node console script (script console).",
+                "description": "Runs the current view's system groovy script (script console).",
                 "args": { "target": "jenkins_run_console_groovy_script" },
                 "children": []
-            },
+            },            
             {
-                "caption": "Node Storage",
+                "caption": "Storage",
                 "command": "pypline",
                 "description": "Displays storage stats for all nodes.",
                 "args": { "target": "jenkins_node_storage" }
