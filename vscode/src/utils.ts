@@ -41,7 +41,7 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "Global Variables Reference",
+            "label": "$(markdown)  Global Variables Reference",
             "command": "pypline",
             "description": "Provides a list of steps from the Shares Library and global variables.",
             "target": "pyplineSharedLibraryReferenceCommand",
@@ -49,7 +49,7 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "Download Build Log",
+            "label": "$(cloud-download)  Download Build Log",
             "command": "pypline",
             "description": "Select a job and build to download the log.",
             "target": "pyplineDownloadBuildLogCommand",

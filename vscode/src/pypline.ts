@@ -62,14 +62,14 @@ export class Pypline {
     readonly barrierLine: string;
 
     constructor() {
-        this.jenkinsHost =          vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
-        this.username =             vscode.workspace.getConfiguration('pypline.jenkins')['username'];
-        this.password =             vscode.workspace.getConfiguration('pypline.jenkins')['password'];
-        this.jobPrefix =            vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
-        this.browserBuildOutput =   vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
-        this.browserStepsApi =      vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
-        this.snippets =             vscode.workspace.getConfiguration('pypline')['snippets'];
-        vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings() });
+        this.jenkinsHost = vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
+        this.username = vscode.workspace.getConfiguration('pypline.jenkins')['username'];
+        this.password = vscode.workspace.getConfiguration('pypline.jenkins')['password'];
+        this.jobPrefix = vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
+        this.browserBuildOutput = vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
+        this.browserStepsApi = vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
+        this.snippets = vscode.workspace.getConfiguration('pypline')['snippets'];
+        vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings(); });
 
         this.timeoutSecs = 10;
         this.pollMs = 100;
@@ -89,13 +89,13 @@ export class Pypline {
     }
 
     private updateSettings() {
-        this.jenkinsHost =          vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
-        this.username =             vscode.workspace.getConfiguration('pypline.jenkins')['username'];
-        this.password =             vscode.workspace.getConfiguration('pypline.jenkins')['password'];
-        this.jobPrefix =            vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
-        this.browserBuildOutput =   vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
-        this.browserStepsApi =      vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
-        this.snippets =             vscode.workspace.getConfiguration('pypline')['snippets'];
+        this.jenkinsHost = vscode.workspace.getConfiguration('pypline.jenkins')['uri'];
+        this.username = vscode.workspace.getConfiguration('pypline.jenkins')['username'];
+        this.password = vscode.workspace.getConfiguration('pypline.jenkins')['password'];
+        this.jobPrefix = vscode.workspace.getConfiguration('pypline.jenkins')['jobPrefix'];
+        this.browserBuildOutput = vscode.workspace.getConfiguration('pypline.browser')['buildOutput'];
+        this.browserStepsApi = vscode.workspace.getConfiguration('pypline.browser')['stepsApi'];
+        this.snippets = vscode.workspace.getConfiguration('pypline')['snippets'];
     }
 
     public async executeConsoleScript(source: string) {
@@ -114,8 +114,8 @@ export class Pypline {
             url = `${this.jenkinsUri}/computer/${node}/scriptText`;
         }
 
-        let r = await request.post({url:url, form:{script:source}});
-        this.outputPanel.appendLine(r);      
+        let r = await request.post({ url: url, form: { script: source } });
+        this.outputPanel.appendLine(r);
     }
 
     /**
@@ -164,7 +164,7 @@ export class Pypline {
      */
     private async getJobs(job: any | undefined) {
         let jobs = [];
-        if (undefined == job) {
+        if (undefined === job) {
             jobs = await this.getJobsFromUrl(this.jenkinsUri);
         }
         else {
@@ -173,7 +173,7 @@ export class Pypline {
 
         // Not all jobs are top level. Need to grab child jobs from certain class
         // types.
-        let jobList:any[] = [];
+        let jobList: any[] = [];
         for (let job of jobs) {
             if ('com.cloudbees.hudson.plugins.folder.Folder' === job._class) {
                 jobList = jobList.concat(await this.getJobs(job));
@@ -189,7 +189,7 @@ export class Pypline {
             else if ('jenkins.branch.OrganizationFolder' === job._class) {
                 for (var pc of job.jobs) {
                     for (let c of pc.jobs) {
-                         jobList.push(c);
+                        jobList.push(c);
                     }
                 }
             }
@@ -252,6 +252,9 @@ export class Pypline {
         panel.webview.html = `<html>${result.descriptionHtml}</html>`;
     }
 
+    /**
+     * Refreshes/updates the Pipeline Shared Library definitions.
+     */
     private async refreshSharedLibraryApi() {
         this.sharedLibVars = [];
 
@@ -324,7 +327,8 @@ export class Pypline {
     }
 
     /**
-     * Blocks until a build is ready.
+     * Blocks until a build is ready. Will timeout after a seconds
+     * defined in this.timeoutSecs.
      * @param jobName The name of the job.
      * @param buildNumber The build number to wait on.
      */
@@ -372,7 +376,7 @@ export class Pypline {
         if (data) {
             // Evaluated if this job has build parameters and set the next build number.
             let param = data.property.find((p: any) => p._class.includes("ParametersDefinitionProperty"));
-            build.hasParams = param != undefined;
+            build.hasParams = param !== undefined;
             build.nextBuildNumber = data.nextBuildNumber;
 
             // Grab job's xml configuration.
@@ -390,7 +394,7 @@ export class Pypline {
         root.quietPeriod = 0;
         xml = new xml2js.Builder().buildObject(parsed);
 
-        if(!data) {
+        if (!data) {
             console.log(`${jobName} doesn't exist. Creating...`);
             await this.jenkins.job.create(jobName, xml);
         }
@@ -421,10 +425,10 @@ export class Pypline {
             title: `Updating ${job}`,
             cancellable: true
         }, async (progress, token) => {
-			token.onCancellationRequested(() => {
-				vscode.window.showWarningMessage(`User canceled pipeline update.`);
-			});
-            progress.report({ increment: 50});
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled pipeline update.`);
+            });
+            progress.report({ increment: 50 });
             return new Promise(async resolve => {
                 await this.createUpdatePipeline(source, job);
                 resolve();
@@ -448,25 +452,25 @@ export class Pypline {
             title: `Pipeline ${job}`,
             cancellable: true
         }, async (progress, token) => {
-			token.onCancellationRequested(() => {
-				vscode.window.showWarningMessage(`User canceled pipeline build.`);
-			});
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled pipeline build.`);
+            });
 
-            progress.report({ increment: 0, message: `Creating/updating Pipeline job.`});
+            progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
             this.activeBuild = await this.createUpdatePipeline(source, job);
 
             // TODO: figure out a nice, user friendly, way that allows users to input build parameters
             // for their pipeline builds. For now, we pass empty params to ensure it builds.
-            progress.report({ increment: 30, message: `Building "${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}`});
+            progress.report({ increment: 30, message: `Building "${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}` });
             let buildOptions = this.activeBuild.hasParams ? { name: this.activeBuild.job, parameters: {} } : { name: this.activeBuild.job };
             await this.jenkins.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
 
-            progress.report({ increment: 20, message: `Waiting for build to be ready...`});
+            progress.report({ increment: 20, message: `Waiting for build to be ready...` });
             await this.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
-            progress.report({ increment: 50, message: `Build is ready! Streaming output...`});
+            progress.report({ increment: 50, message: `Build is ready! Streaming output...` });
 
             return new Promise(resolve => {
                 if (undefined === this.activeBuild) {
@@ -484,7 +488,7 @@ export class Pypline {
      */
     public async abortPipeline() {
         if (undefined === this.activeBuild) { return; }
-        await this.jenkins.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => {});
+        await this.jenkins.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => { });
         this.activeBuild = undefined;
     }
 }
