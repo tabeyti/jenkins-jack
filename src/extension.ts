@@ -14,7 +14,12 @@ class PipelineCommand {
 
     constructor(context: vscode.ExtensionContext) {
         this.logger = new Logger();
-        this.pipeline = new Pipeline();
+        let displayConfig = vscode.workspace.getConfiguration('jenkins-jack.browser');
+        this.pipeline = new Pipeline(displayConfig);
+        vscode.workspace.onDidChangeConfiguration(event => { 
+            let displayConfig = vscode.workspace.getConfiguration('jenkins-jack.browser');
+            this.pipeline.updateSettings(displayConfig); 
+        });
     }
 
     /**

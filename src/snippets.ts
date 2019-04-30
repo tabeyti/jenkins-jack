@@ -1,15 +1,12 @@
 import * as vscode from 'vscode';
-import * as request from 'request-promise-native';
 import { PipelineStepDoc } from './stepdoc';
+import { JenkinsService } from './JenkinsService';
 
 export class PipelineSnippets {
     context: vscode.ExtensionContext;
     completionItems: Array<vscode.CompletionItem>;
     stepDocs: Array<PipelineStepDoc>;
-    readonly username: string;
-    readonly password: string;
-    readonly jenkinsHost: string;
-    readonly jenkinsUri: string;
+    jenkins: any;
 
     /**
      * Constructor.
@@ -17,12 +14,7 @@ export class PipelineSnippets {
      */
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
-
-        this.jenkinsHost =          vscode.workspace.getConfiguration('jenkins-jack.jenkins')['uri'];
-        this.username =             vscode.workspace.getConfiguration('jenkins-jack.jenkins')['username'];
-        this.password =             vscode.workspace.getConfiguration('jenkins-jack.jenkins')['password'];
-
-        this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
+        this.jenkins = JenkinsService.instance();
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
         this.refresh();
@@ -80,18 +72,11 @@ export class PipelineSnippets {
      */
     public async refresh() {
         this.completionItems =[];
-        this.stepDocs = new Array<PipelineStepDoc>();
-        let url = `${this.jenkinsUri}/pipeline-syntax/gdsl`;
-        try {
-            var content = String(await request.get(url));
-        } catch (err) {
-            console.log('Could not connect to pipeline-syntax/gdsl.');
-            return;
-        }
+        this.stepDocs = new Array<PipelineStepDoc>();        
 
         // Parse each GDSL line for a 'method' signature.
         // This is a Pipeline Sep.
-        let lines = content.split(/\r?\n/);
+        let lines = String(await this.jenkins.get('pipeline-syntax/gdsl')).split(/\r?\n/);
         lines.forEach(line => {
             var match = line.match(/method\((.*?)\)/);
             if (null === match || match.length <= 0) {

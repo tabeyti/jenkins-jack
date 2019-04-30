@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import * as jenkins from "jenkins";
 import * as util from "util";
 import * as xml2js from "xml2js";
-import { sleep, getPipelineJobConfig } from './utils';
-import * as request from 'request-promise-native';
 import * as htmlParser from 'cheerio';
+
+import { sleep, getPipelineJobConfig } from './utils';
+import { JenkinsService } from './JenkinsService';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -43,33 +43,24 @@ class PipelineBuild {
 
 export class Pipeline {
     // Settings
-    jenkinsHost: string;
-    username: string;
-    password: string;
-    jobPrefix: string;
+    jobPrefix: string | undefined;
     timeoutSecs: number;
     browserBuildOutput: boolean;
     browserStepsApi: string;
-    snippets: boolean;
     outputPanel: vscode.OutputChannel;
 
     lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
     sharedLibVars: PipelineSharedLibVar[];
-    readonly jenkinsUri: string;
-    readonly jenkins: any;
     readonly pollMs: number;
     readonly barrierLine: string;
 
-    constructor() {
-        this.jenkinsHost = vscode.workspace.getConfiguration('pipeline.jenkins')['uri'];
-        this.username = vscode.workspace.getConfiguration('pipeline.jenkins')['username'];
-        this.password = vscode.workspace.getConfiguration('pipeline.jenkins')['password'];
-        this.jobPrefix = vscode.workspace.getConfiguration('pipeline.jenkins')['jobPrefix'];
-        this.browserBuildOutput = vscode.workspace.getConfiguration('pipeline.browser')['buildOutput'];
-        this.browserStepsApi = vscode.workspace.getConfiguration('pipeline.browser')['stepsApi'];
-        this.snippets = vscode.workspace.getConfiguration('pipeline')['snippets'];
-        vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings(); });
+    readonly jenkins: JenkinsService;
+
+    constructor(displayConfig: any) {
+        this.jobPrefix = undefined;// TODO: jenkinsConfig['jobPrefix'];
+        this.browserBuildOutput = displayConfig['buildOutput'];
+        this.browserStepsApi = displayConfig['stepsApi'];
 
         this.timeoutSecs = 10;
         this.pollMs = 100;
@@ -78,33 +69,16 @@ export class Pipeline {
 
         this.outputPanel = vscode.window.createOutputChannel("Pipeline");
 
-
-        // Jenkins client
-        this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
-        try {
-            this.jenkins = jenkins({
-                baseUrl: this.jenkinsUri,
-                crumbIssuer: false,
-                promisify: true
-            });
-        } catch (err) {
-            console.log(err);
-        }
-
+        this.jenkins = JenkinsService.instance();
     }
 
-    private updateSettings() {
-        this.jenkinsHost = vscode.workspace.getConfiguration('pipeline.jenkins')['uri'];
-        this.username = vscode.workspace.getConfiguration('pipeline.jenkins')['username'];
-        this.password = vscode.workspace.getConfiguration('pipeline.jenkins')['password'];
-        this.jobPrefix = vscode.workspace.getConfiguration('pipeline.jenkins')['jobPrefix'];
-        this.browserBuildOutput = vscode.workspace.getConfiguration('pipeline.browser')['buildOutput'];
-        this.browserStepsApi = vscode.workspace.getConfiguration('pipeline.browser')['stepsApi'];
-        this.snippets = vscode.workspace.getConfiguration('pipeline')['snippets'];
+    public updateSettings(displayConfig: any) {
+        this.browserBuildOutput = displayConfig['buildOutput'];
+        this.browserStepsApi = displayConfig['stepsApi'];
     }
 
     public async executeConsoleScript(source: string) {
-        let nodes = await this.getNodes();
+        let nodes = await this.jenkins.getNodes();
         let nodeNames = nodes.map((n: any) => String(n.displayName));
         nodeNames.unshift('System');
 
@@ -114,105 +88,8 @@ export class Pipeline {
         this.outputPanel.clear();
         this.outputPanel.show();
 
-        let url = `${this.jenkinsUri}/scriptText`;
-        if ('System' !== node) {
-            url = `${this.jenkinsUri}/computer/${node}/scriptText`;
-        }
-
-        let r = await request.post({ url: url, form: { script: source } });
+        let r = await this.jenkins.runConsoleScript(source, node);
         this.outputPanel.appendLine(r);
-    }
-
-    /**
-     * Replace base Jenkins URI with the one defined in the config.
-     * We do this since Jenkins will provide the URI with a base which may be
-     * different from the one specified in the configuration.
-     * @param url The url to format.
-     */
-    private fromUrlFormat(url: string) {
-        url = url.charAt(url.length - 1) === '/' ? url.slice(0, -1) : url;
-        let match = url.match('.*?/(job/.*)');
-        if (null !== match && match.length >= 0) {
-            url = `${this.jenkinsUri}/${match[1]}`;
-        }
-        return url;
-    }
-
-    /**
-     * Retrieves build numbers for the job url provided.
-     * @param rootUrl Base 'job' url for the request.
-     */
-    private async getBuildNumbersFromUrl(rootUrl: string) {
-        rootUrl = this.fromUrlFormat(rootUrl);
-        let url = `${rootUrl}/api/json?tree=builds[number]`;
-        let r = await request.get(url);
-        let json = JSON.parse(r);
-        return json.builds.map((n: any) => String(n.number));
-    }
-
-    /**
-     * Retrieves a list of Jenkins 'job' objects.
-     * @param rootUrl Root jenkins url for the request.
-     */
-    private async getJobsFromUrl(rootUrl: string) {
-        rootUrl = this.fromUrlFormat(rootUrl);
-        let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
-        let r = await request.get(url);
-        let json = JSON.parse(r);
-        return json.jobs;
-    }
-
-    /**
-     * Recursive descent method for retrieving Jenkins jobs from
-     * various job types (e.g. Multi-branch, Github Org, etc.).
-     * @param job The current Jenkins 'job' object.
-     */
-    private async getJobs(job: any | undefined) {
-        let jobs = [];
-        if (undefined === job) {
-            jobs = await this.getJobsFromUrl(this.jenkinsUri);
-        }
-        else {
-            jobs = await this.getJobsFromUrl(job['url']);
-        }
-
-        // Not all jobs are top level. Need to grab child jobs from certain class
-        // types.
-        let jobList: any[] = [];
-        for (let job of jobs) {
-            if ('com.cloudbees.hudson.plugins.folder.Folder' === job._class) {
-                jobList = jobList.concat(await this.getJobs(job));
-            }
-
-            // If this is a multibranch parent, grab all it's immediate children.
-            if ('org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject' === job._class) {
-                for (let c of job.jobs) {
-                    jobList.push(c);
-                }
-            }
-            // If this is a org folder parent, grab all second level children.
-            else if ('jenkins.branch.OrganizationFolder' === job._class) {
-                for (var pc of job.jobs) {
-                    for (let c of pc.jobs) {
-                        jobList.push(c);
-                    }
-                }
-            }
-            else {
-                jobList.push(job);
-            }
-        }
-        return jobList;
-    }
-
-    /**
-     * Retrieves the list of machines/nodes from Jenkins.
-     */
-    private async getNodes() {
-        let url = `${this.jenkinsUri}/computer/api/json`;
-        let r = await request.get(url);
-        let json = JSON.parse(r);
-        return json.computer;
     }
 
     /**
@@ -221,7 +98,7 @@ export class Pipeline {
      * the selected job.
      */
     public async downloadBuildLog() {
-        let jobs = await this.getJobs(undefined);
+        let jobs = await this.jenkins.getJobs(undefined);
         for (let job of jobs) {
             job.label = job.fullName;
         }
@@ -231,7 +108,7 @@ export class Pipeline {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await this.getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await this.jenkins.getBuildNumbersFromUrl(job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers);
         if (undefined === buildNumber) { return; }
 
@@ -263,17 +140,12 @@ export class Pipeline {
     private async refreshSharedLibraryApi() {
         this.sharedLibVars = [];
 
-        let url = `${this.jenkinsUri}/pipeline-syntax/globals`;
-
-        // If we have a cached job, use it to retrieve the Global Shared Vars as it will
-        // include any var/steps that the job is importing.
-        if (undefined !== this.lastBuild) {
-            url = `${this.jenkinsUri}/job/${this.lastBuild.job}/pipeline-syntax/globals`;
-        }
-        let html = await request.get(url);
+        let url = undefined !== this.lastBuild ? 
+                                `job/${this.lastBuild.job}/pipeline-syntax/globals` : 
+                                'pipeline-syntax/globals';
+        let html = await this.jenkins.get(url);
 
         const root = htmlParser.load(html);
-
         let doc = root('.steps.variables.root').first();
 
         let child = doc.find('dt').first();
@@ -305,10 +177,10 @@ export class Pipeline {
         this.outputPanel.show();
         this.outputPanel.clear();
         this.outputPanel.appendLine(this.barrierLine);
-        this.outputPanel.appendLine(`Streaming console ouptput for ${this.jenkinsUri}`);
+        this.outputPanel.appendLine(`Streaming console ouptput...`);
         this.outputPanel.appendLine(this.barrierLine);
 
-        var log = this.jenkins.build.logStream({
+        var log = this.jenkins.client.build.logStream({
             name: jobName,
             number: buildNumber,
             delay: 500
@@ -342,7 +214,7 @@ export class Pipeline {
         let exists = false;
         console.log('Waiting for build to start...');
         while (timeout-- > 0) {
-            exists = await this.jenkins.build.get(jobName, buildNumber).then((data: any) => {
+            exists = await this.jenkins.client.build.get(jobName, buildNumber).then((data: any) => {
                 return true;
             }).catch((err: any) => {
                 return false;
@@ -366,14 +238,14 @@ export class Pipeline {
         let xml = getPipelineJobConfig();
 
         // Format job name based on configuration setting.
-        if (this.jobPrefix.trim().length > 0) {
+        if (undefined !== this.jobPrefix && this.jobPrefix.trim().length > 0) {
             jobName = `${this.jobPrefix}-${jobName}`;
         }
 
         let build = new PipelineBuild(jobName, source);
 
         // If job already exists, grab the job config from Jenkins.
-        let data = await this.jenkins.job.get(jobName).then((data: any) => {
+        let data = await this.jenkins.client.job.get(jobName).then((data: any) => {
             return data;
         }).catch((err: any) => {
             return undefined;
@@ -385,7 +257,7 @@ export class Pipeline {
             build.nextBuildNumber = data.nextBuildNumber;
 
             // Grab job's xml configuration.
-            xml = await this.jenkins.job.config(jobName).then((data: any) => {
+            xml = await this.jenkins.client.job.config(jobName).then((data: any) => {
                 return data;
             }).catch((err: any) => {
                 return undefined;
@@ -401,11 +273,11 @@ export class Pipeline {
 
         if (!data) {
             console.log(`${jobName} doesn't exist. Creating...`);
-            await this.jenkins.job.create(jobName, xml);
+            await this.jenkins.client.job.create(jobName, xml);
         }
         else {
             console.log(`${jobName} already exists. Updating...`);
-            await this.jenkins.job.config(jobName, xml);
+            await this.jenkins.client.job.config(jobName, xml);
         }
         console.log(`Successfully updated Pipeline: ${jobName}`);
         return build;
@@ -468,7 +340,7 @@ export class Pipeline {
             // for their pipeline builds. For now, we pass empty params to ensure it builds.
             progress.report({ increment: 30, message: `Building "${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}` });
             let buildOptions = this.activeBuild.hasParams ? { name: this.activeBuild.job, parameters: {} } : { name: this.activeBuild.job };
-            await this.jenkins.job.build(buildOptions).catch((err: any) => {
+            await this.jenkins.client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
@@ -493,7 +365,7 @@ export class Pipeline {
      */
     public async abortPipeline() {
         if (undefined === this.activeBuild) { return; }
-        await this.jenkins.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => { });
+        await this.jenkins.client.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => { });
         this.activeBuild = undefined;
     }
 }
