@@ -18,7 +18,6 @@ export function getCommands() {
     return [
         {
             "label": "$(triangle-right)  Execute",
-            "command": "pipeline",
             "description": "Executes the current view as a pipeline job.",
             "target": "pipelineExecuteCommand",
             "args": null,
@@ -26,67 +25,48 @@ export function getCommands() {
         },
         {
             "label": "$(primitive-square)  Abort",
-            "command": "pipeline",
             "description": "Aborts the active pipeline job initiated by Execute.",
             "target": "pipelineAbortCommand",
             "args": null,
             "children": []
         },
         {
-            "label": "$(sync)  Update",
-            "command": "pipeline",
+            "label": "$(cloud-upload)  Update",
             "description": "Updates the current view's associated pipeline job configuration.",
             "target": "pipelineUpdateCommand",
             "args": null,
             "children": []
         },
         {
-            "label": "$(markdown)  Global Variables Reference",
-            "command": "pipeline",
+            "label": "$(markdown)  Shared Library Reference",
             "description": "Provides a list of steps from the Shares Library and global variables.",
             "target": "pipelineSharedLibraryReferenceCommand",
             "args": null,
             "children": []
         },
         {
-            "label": "$(cloud-download)  Download Build Log",
+            "label": "$(file-add )  Jenkins",
             "command": "pipeline",
-            "description": "Select a job and build to download the log.",
-            "target": "pipelineDownloadBuildLogCommand",
+            "description": "A list of Jenkins system commands.",
+            "target": null,
             "args": null,
-            "children": []
-        },
-        {
-            "label": "$(triangle-right)  Console Groovy Script",
-            "command": "pipeline",
-            "description": "Executes the current view's groovy script as a system/node console script (script console).",
-            "target": "pipelineConsoleScriptCommand",
-            "args": null,
-            "children": []
-        },
-        // {
-        //     "label": "Jenkins",
-        //     "command": "pipeline",
-        //     "description": "A list of Jenkins system commands.",
-        //     "target": null,
-        //     "args": null,
-        //     "children": [
-        //         {
-        //             "label": "Console Groovy Script",
-        //             "command": "pipeline",
-        //             "description": "Runs the current view's script as a system/node console script (script console).",
-        //             "target": "jenkins_run_console_groovy_script",
-        //             "args": null,
-        //             "children": []
-        //         },
-        //         {
-        //             "label": "Node Storage",
-        //             "command": "pipeline",
-        //             "description": "Displays storage stats for all nodes.",
-        //             "target": "jenkins_node_storage",
-        //             "args": null,
-        //             "children": []
-        //         },
+            "children": [
+                {
+                    "label": "$(triangle-right)  Console Groovy Script",
+                    "description": "Executes the current view's groovy script as a system/node console script (script console).",
+                    "target": "pipelineConsoleScriptCommand",
+                    "args": null,
+                    "children": []
+                },
+                {
+                    "label": "$(cloud-download)  Download Build Log",
+                    "description": "Select a job and build to download the log.",
+                    "target": "pipelineDownloadBuildLogCommand",
+                    "args": null,
+                    "children": []
+                },
+            ]
+        }
         //         {
         //             "label": "Display",
         //             "command": "pipeline",
