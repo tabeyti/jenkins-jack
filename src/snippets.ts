@@ -21,6 +21,38 @@ export class PipelineSnippets {
     }
 
     /**
+     * Refreshes the remote Jenkins' Pipeline Steps documentation,
+     * parsed from the GDSL.
+     */
+    public async refresh() {
+        this.completionItems =[];
+        this.stepDocs = new Array<PipelineStepDoc>();
+
+        // Parse each GDSL line for a 'method' signature.
+        // This is a Pipeline Sep.
+        let gdsl = await this.jenkins.get('pipeline-syntax/gdsl');
+        if (undefined === gdsl) { return; }
+
+        let lines = String(gdsl).split(/\r?\n/);
+        lines.forEach(line => {
+            var match = line.match(/method\((.*?)\)/);
+            if (null === match || match.length <= 0) {
+                return;
+            }
+            this.stepDocs.push(this.parseMethodLine(line));
+        });
+
+        // Populate completion items.
+        for (let step of this.stepDocs) {
+            let item = new vscode.CompletionItem(step.name, vscode.CompletionItemKind.Snippet);
+            item.detail = step.getSignature();
+            item.documentation = step.doc;
+            item.insertText = step.getSnippet();
+            this.completionItems.push(item);
+        }
+    }
+
+    /**
      * Parses a Pipeline step "method(...)" line from the GDSL.
      * @param line The method line.
      */
@@ -64,34 +96,5 @@ export class PipelineSnippets {
             }
         }
         return new PipelineStepDoc(name, doc, params);
-    }
-
-    /**
-     * Refreshes the remote Jenkins' Pipeline Steps documentation,
-     * parsed from the GDSL.
-     */
-    public async refresh() {
-        this.completionItems =[];
-        this.stepDocs = new Array<PipelineStepDoc>();        
-
-        // Parse each GDSL line for a 'method' signature.
-        // This is a Pipeline Sep.
-        let lines = String(await this.jenkins.get('pipeline-syntax/gdsl')).split(/\r?\n/);
-        lines.forEach(line => {
-            var match = line.match(/method\((.*?)\)/);
-            if (null === match || match.length <= 0) {
-                return;
-            }
-            this.stepDocs.push(this.parseMethodLine(line));
-        });
-
-        // Populate completion items.
-        this.stepDocs.forEach((step: PipelineStepDoc) => {
-            let item = new vscode.CompletionItem(step.name, vscode.CompletionItemKind.Snippet);
-            item.detail = step.getSignature();
-            item.documentation = step.doc;
-            item.insertText = step.getSnippet();
-            this.completionItems.push(item);
-        });
     }
 }
