@@ -47,7 +47,8 @@ export class JenkinsService {
 
     /**
      * TODO: Duplicate code of the constructor, for updating settings.
-     * Need a nicer way of doing this.
+     * Need a nicer way of doing this while still providing the necessary
+     * assignments for global vars in the constructor.
      * @param jenkinsConfig 
      */
     public updateSettings(jenkinsConfig: any) {
@@ -128,12 +129,13 @@ export class JenkinsService {
     }
 
     /**
-     * Retrieves build numbers for the job url provided.
+     * Retrieves build numbers for the job url provided.6
      * @param rootUrl Base 'job' url for the request.
      */
     public async getBuildNumbersFromUrl(rootUrl: string) {
         rootUrl = this.fromUrlFormat(rootUrl);
-        let r = await this.get('api/json?tree=builds[number]');
+        let url = `${rootUrl}/api/json?tree=builds[number]`
+        let r = await request.get(url);
         let json = JSON.parse(r);
         return json.builds.map((n: any) => String(n.number));
     }
@@ -150,9 +152,15 @@ export class JenkinsService {
         return json.jobs;
     }
 
-    public async runConsoleScript(source: string, node: string = 'System') {
+    /**
+     * Uses the /scriptText api to execute groovy console script on
+     * the remote Jenkins.
+     * @param source Groovy source.
+     * @param node Optional targeted machine.
+     */
+    public async runConsoleScript(source: string, node: string | undefined = undefined) {
         let url = `${this.jenkinsUri}/scriptText`;
-        if ('System' !== node) {
+        if (undefined !== node) {
             url = `${this.jenkinsUri}/computer/${node}/scriptText`;
         }
         return request.post({ url: url, form: { script: source } });

@@ -6,14 +6,12 @@ import * as path from 'path';
 import { Pipeline } from './pipeline';
 import { PipelineSnippets } from './snippets';
 import { getCommands } from './utils';
-import { Logger } from './logger';
 
 class PipelineCommand {
     private pipeline: Pipeline;
     [key:string]: any;
 
     constructor(context: vscode.ExtensionContext) {
-        this.logger = new Logger();
         let displayConfig = vscode.workspace.getConfiguration('jenkins-jack.browser');
         this.pipeline = new Pipeline(displayConfig);
         vscode.workspace.onDidChangeConfiguration(event => { 
@@ -36,11 +34,14 @@ class PipelineCommand {
      * @param option The current option being evaluated.
      */
     private async evalOption(option: any) {
+        if (undefined === option) { return; }
         if (null !== option.children && option.children.length > 0) {
             let result = await vscode.window.showQuickPick(option.children);
+            if (undefined === result) { return; }
             await this.evalOption(result);
 
             vscode.window.showQuickPick(option.children).then ((val: any) => {
+                if (undefined === val) { return; }
                 this.evalOption(val);
             });
             return;
@@ -49,7 +50,7 @@ class PipelineCommand {
         if (null === option.target) { return; }
 
         // We have a command to execute. Use magic to do so.
-        await this[`${option.target}`]();
+        this[`${option.target}`]();
     }
 
     // @ts-ignore
@@ -126,10 +127,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     var pipeline = new PipelineCommand(context);
     var pipelineSnippets = new PipelineSnippets(context);
-    console.log('Extension Pipeline now active!');
+    console.log('Extension Jenkins Jack now active!');
 
     let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
-        provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext) {
+        provideCompletionItems(
+            document: vscode.TextDocument, 
+            position: vscode.Position, 
+            token: vscode.CancellationToken, 
+            context: vscode.CompletionContext) {
             return pipelineSnippets.completionItems;
         }
     });
