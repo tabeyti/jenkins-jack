@@ -80,10 +80,12 @@ export class Pipeline {
     public async executeConsoleScript(source: string) {
 
         let nodes = await this.jenkins.getNodes();
+        if (undefined === nodes) { return; }
+
         let options = Object.assign([], nodes);
         options.map((n: any) => {
             n.label = n.displayName;
-            n.description = n.offline ? "$(alert)" : ""
+            n.description = n.offline ? "$(alert)" : "";
         });
         options.unshift({
             label: "System",
@@ -97,7 +99,7 @@ export class Pipeline {
         let selection = await vscode.window.showQuickPick(options) as any;
         if (undefined === selection) { return; }
 
-        let targetMachines: any[] = []
+        let targetMachines: any[] = [];
         if ('System' === selection.label) {
             targetMachines.push('System');
         }
@@ -139,12 +141,11 @@ export class Pipeline {
                 this.outputPanel.appendLine(this.barrierLine);
             }
             return;
-            
+
         }
 
         this.outputPanel.clear();
         this.outputPanel.show();
-        let node = selection.label;
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -162,7 +163,7 @@ export class Pipeline {
             let tasks = [];
             for (let m of targetMachines) {
                 if ('System' === m) {
-                    tasks.push(this.jenkins.runConsoleScript(source));    
+                    tasks.push(this.jenkins.runConsoleScript(source));
                 }
                 else {
                     tasks.push(this.jenkins.runConsoleScript(source, m));
@@ -170,7 +171,7 @@ export class Pipeline {
             }
             let results = await Promise.all(tasks);
 
-            // Iterate over the result list, printing the name of the 
+            // Iterate over the result list, printing the name of the
             // machine and it's output.
             this.outputPanel.clear();
             this.outputPanel.show();
@@ -184,7 +185,7 @@ export class Pipeline {
                 this.outputPanel.appendLine(this.barrierLine);
             }
             progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
-        });        
+        });
     }
 
     /**
@@ -194,6 +195,7 @@ export class Pipeline {
      */
     public async downloadBuildLog() {
         let jobs = await this.jenkins.getJobs(undefined);
+        if (undefined === jobs) { return; }
         for (let job of jobs) {
             job.label = job.fullName;
         }
@@ -235,8 +237,8 @@ export class Pipeline {
     private async refreshSharedLibraryApi() {
         this.sharedLibVars = [];
 
-        let url = undefined !== this.lastBuild ? 
-                                `job/${this.lastBuild.job}/pipeline-syntax/globals` : 
+        let url = undefined !== this.lastBuild ?
+                                `job/${this.lastBuild.job}/pipeline-syntax/globals` :
                                 'pipeline-syntax/globals';
         let html = await this.jenkins.get(url);
 
@@ -300,7 +302,7 @@ export class Pipeline {
 
     /**
      * Blocks until a build is ready. Will timeout after a seconds
-     * defined in this.timeoutSecs.
+     * defined in global timeoutSecs.
      * @param jobName The name of the job.
      * @param buildNumber The build number to wait on.
      */
@@ -338,13 +340,10 @@ export class Pipeline {
         }
 
         let build = new PipelineBuild(jobName, source);
+        let data = await this.jenkins.getJob(jobName);
+        if (undefined === data) { return undefined; }
 
-        // If job already exists, grab the job config from Jenkins.
-        let data = await this.jenkins.client.job.get(jobName).then((data: any) => {
-            return data;
-        }).catch((err: any) => {
-            return undefined;
-        });
+        // If job already exists, grab the job config xml from Jenkins.
         if (data) {
             // Evaluated if this job has build parameters and set the next build number.
             let param = data.property.find((p: any) => p._class.includes("ParametersDefinitionProperty"));
@@ -358,6 +357,9 @@ export class Pipeline {
                 return undefined;
             });
         }
+
+        // TODO: should probably handle this somehow.
+        if (undefined === xml) { return; }
 
         // Inject the provided script/source into the job configuration.
         let parsed = await parseXmlString(xml);
@@ -430,6 +432,7 @@ export class Pipeline {
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
             this.activeBuild = await this.createUpdatePipeline(source, job);
+            if (undefined === this.activeBuild) { return; }
 
             // TODO: figure out a nice, user friendly, way that allows users to input build parameters
             // for their pipeline builds. For now, we pass empty params to ensure it builds.

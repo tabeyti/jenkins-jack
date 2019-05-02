@@ -10,6 +10,7 @@ export class JenkinsService {
     private password: string;
 
     public client: any;
+    private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
 
     private static jsInstance: any;
 
@@ -18,9 +19,9 @@ export class JenkinsService {
         this.jenkinsHost = this.jenkinsConfig['uri'];
         this.username = this.jenkinsConfig['username'];
         this.password = this.jenkinsConfig['password'];
-        vscode.workspace.onDidChangeConfiguration(event => { 
+        vscode.workspace.onDidChangeConfiguration(event => {
             this.jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-            this.updateSettings(this.jenkinsConfig); 
+            this.updateSettings(this.jenkinsConfig);
         });
 
          // Remove protocol identifier to properly format the Jenkins request URI.
@@ -34,7 +35,7 @@ export class JenkinsService {
                  promisify: true
              });
          } catch (err) {
-             console.log(err);
+             vscode.window.showWarningMessage(err);
          }
     }
 
@@ -49,7 +50,7 @@ export class JenkinsService {
      * TODO: Duplicate code of the constructor, for updating settings.
      * Need a nicer way of doing this while still providing the necessary
      * assignments for global vars in the constructor.
-     * @param jenkinsConfig 
+     * @param jenkinsConfig
      */
     public updateSettings(jenkinsConfig: any) {
         this.jenkinsConfig = jenkinsConfig;
@@ -68,7 +69,7 @@ export class JenkinsService {
                 promisify: true
             });
         } catch (err) {
-            console.log(err);
+            vscode.window.showWarningMessage(this.cantConnectMessage);
         }
     }
 
@@ -79,7 +80,23 @@ export class JenkinsService {
      */
     public async get(endpoint: string) {
         let url = `${this.jenkinsUri}/${endpoint}`;
-        return request.get(url);
+        return request.get(url).catch(err => {
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+            return undefined;
+        });
+    }
+
+    /**
+     * Uses the jenkins client to retrieve a job.
+     * @param job The job JSON object.
+     */
+    public async getJob(job: string) {
+        return this.client.job.get(job).then((data: any) => {
+            return data;
+        }).catch((err: any) => {
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+            return undefined;
+        });
     }
 
     /**
@@ -89,6 +106,8 @@ export class JenkinsService {
      */
     public async getJobs(job: any | undefined) {
         let jobs = (undefined === job) ? await this.getJobsFromUrl(this.jenkinsUri) : await this.getJobsFromUrl(job['url']);
+
+        if (undefined === jobs) { return; }
 
         // Not all jobs are top level. Need to grab child jobs from certain class
         // types.
@@ -123,21 +142,27 @@ export class JenkinsService {
      * Retrieves the list of machines/nodes from Jenkins.
      */
     public async getNodes() {
-        let r = await this.get('computer/api/json')
+        let r = await this.get('computer/api/json');
+        if (undefined === r) { return undefined; }
         let json = JSON.parse(r);
         return json.computer;
     }
 
     /**
-     * Retrieves build numbers for the job url provided.6
+     * Retrieves build numbers for the job url provided.
      * @param rootUrl Base 'job' url for the request.
      */
     public async getBuildNumbersFromUrl(rootUrl: string) {
-        rootUrl = this.fromUrlFormat(rootUrl);
-        let url = `${rootUrl}/api/json?tree=builds[number]`
-        let r = await request.get(url);
-        let json = JSON.parse(r);
-        return json.builds.map((n: any) => String(n.number));
+        try {
+            rootUrl = this.fromUrlFormat(rootUrl);
+            let url = `${rootUrl}/api/json?tree=builds[number]`;
+            let r = await request.get(url);
+            let json = JSON.parse(r);
+            return json.builds.map((n: any) => String(n.number));
+        } catch (err) {
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+            return undefined;
+        }
     }
 
     /**
@@ -145,11 +170,16 @@ export class JenkinsService {
      * @param rootUrl Root jenkins url for the request.
      */
     public async getJobsFromUrl(rootUrl: string) {
-        rootUrl = this.fromUrlFormat(rootUrl);
-        let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
-        let r = await request.get(url);
-        let json = JSON.parse(r);
-        return json.jobs;
+        try {
+            rootUrl = this.fromUrlFormat(rootUrl);
+            let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
+            let r = await request.get(url);
+            let json = JSON.parse(r);
+            return json.jobs;
+        } catch (err) {
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+            return undefined;
+        }
     }
 
     /**
@@ -159,11 +189,15 @@ export class JenkinsService {
      * @param node Optional targeted machine.
      */
     public async runConsoleScript(source: string, node: string | undefined = undefined) {
-        let url = `${this.jenkinsUri}/scriptText`;
-        if (undefined !== node) {
-            url = `${this.jenkinsUri}/computer/${node}/scriptText`;
+        try {
+            let url = `${this.jenkinsUri}/scriptText`;
+            if (undefined !== node) {
+                url = `${this.jenkinsUri}/computer/${node}/scriptText`;
+            }
+            return request.post({ url: url, form: { script: source } });
+        } catch (err) {
+            vscode.window.showWarningMessage(this.cantConnectMessage);
         }
-        return request.post({ url: url, form: { script: source } });
     }
 
     /**
