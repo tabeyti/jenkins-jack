@@ -78,15 +78,14 @@ export class Pipeline {
     }
 
     public async executeConsoleScript(source: string) {
-
         let nodes = await this.jenkins.getNodes();
         if (undefined === nodes) { return; }
-
-        let options = Object.assign([], nodes);
-        options.map((n: any) => {
+        nodes.map((n: any) => {
             n.label = n.displayName;
             n.description = n.offline ? "$(alert)" : "";
         });
+
+        let options = Object.assign([], nodes);
         options.unshift({
             label: "System",
             description: "Executes from the System Script Console found in Manage Jenkins."
@@ -96,13 +95,11 @@ export class Pipeline {
             description: "Regex of the nodes you would like to target."
         });
 
+        // Grab initial selection from the user.
         let selection = await vscode.window.showQuickPick(options) as any;
         if (undefined === selection) { return; }
 
         let targetMachines: any[] = [];
-        if ('System' === selection.label) {
-            targetMachines.push('System');
-        }
 
         // If regex specified, grab a pattern from the user to
         // filter on the list of nodes.
@@ -117,35 +114,23 @@ export class Pipeline {
                 let name = n.displayName as string;
                 let match = name.match(pattern);
                 if (null !== match && match.length >= 0) {
-                    matches.push(name);
+                    matches.push(n);
                 }
             }
 
-            // Build a list of console script requests across the list of targeted machines.
-            let tasks = [];
-            for (let m of matches) {
-                tasks.push(this.jenkins.runConsoleScript(source, m));
-            }
-            let results = await Promise.all(tasks);
-            this.outputPanel.clear();
-            this.outputPanel.show();
+            // Allow the user to select nodes retrieved from regex.
+            let selections = await vscode.window.showQuickPick(matches, { canPickMany: true } );
+            if (undefined === selections) { return; }
 
-            for (let i = 0; i < results.length; ++i) {
-                let r = results[i];
-                let n = nodes[i].displayName;
-
-                this.outputPanel.appendLine(this.barrierLine);
-                this.outputPanel.appendLine(n);
-                this.outputPanel.appendLine('');
-                this.outputPanel.appendLine(r);
-                this.outputPanel.appendLine(this.barrierLine);
-            }
-            return;
-
+            targetMachines = targetMachines.concat(selections.map(s => s.label));
+            let ham = 0;
         }
-
-        this.outputPanel.clear();
-        this.outputPanel.show();
+        else if ('System' === selection.label) {
+            targetMachines.push('System');
+        }
+        else {
+            targetMachines.push(selection.label);
+        }
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -156,18 +141,25 @@ export class Pipeline {
                 vscode.window.showWarningMessage(`User canceled pipeline build.`);
             });
 
-            progress.report({ increment: 50 });
-
             // Build a list of console script requests across the list of targeted machines
             // and await across all.
             let tasks = [];
+            progress.report({ increment: 50, message: "Executing on target machine(s)" });
             for (let m of targetMachines) {
+                let promise = undefined;
                 if ('System' === m) {
-                    tasks.push(this.jenkins.runConsoleScript(source));
+                    promise = new Promise(async (resolve) => {
+                        let result = await this.jenkins.runConsoleScript(source);
+                        return resolve({ node: 'System', output: result });
+                    })
                 }
                 else {
-                    tasks.push(this.jenkins.runConsoleScript(source, m));
+                    promise = new Promise(async (resolve) => {
+                        let result = await this.jenkins.runConsoleScript(source, m);
+                        return resolve({ node: m, output: result });
+                    })
                 }
+                tasks.push(promise);
             }
             let results = await Promise.all(tasks);
 
@@ -175,15 +167,14 @@ export class Pipeline {
             // machine and it's output.
             this.outputPanel.clear();
             this.outputPanel.show();
-            for (let i = 0; i < results.length; ++i) {
-                let r = results[i];
-                let n = nodes[i].displayName;
+            for (let r of results as any[]) {
                 this.outputPanel.appendLine(this.barrierLine);
-                this.outputPanel.appendLine(n);
+                this.outputPanel.appendLine(r.node);
                 this.outputPanel.appendLine('');
-                this.outputPanel.appendLine(r);
+                this.outputPanel.appendLine(r.output);
                 this.outputPanel.appendLine(this.barrierLine);
             }
+
             progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
         });
     }

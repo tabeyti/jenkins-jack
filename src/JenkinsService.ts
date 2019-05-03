@@ -194,9 +194,11 @@ export class JenkinsService {
             if (undefined !== node) {
                 url = `${this.jenkinsUri}/computer/${node}/scriptText`;
             }
-            return request.post({ url: url, form: { script: source } });
+            let result = await request.post({ url: url, form: { script: source } });
+            return result;
         } catch (err) {
             vscode.window.showWarningMessage(this.cantConnectMessage);
+            return err.error;
         }
     }
 
