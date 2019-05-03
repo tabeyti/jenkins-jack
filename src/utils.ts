@@ -38,14 +38,14 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "$(markdown)  Shared Library Reference",
+            "label": "$(file-text)  Shared Library Reference",
             "description": "Provides a list of steps from the Shares Library and global variables.",
             "target": "pipelineSharedLibraryReferenceCommand",
             "args": null,
             "children": []
         },
         {
-            "label": "$(file-add )  Jenkins",
+            "label": "Jenkins",
             "command": "pipeline",
             "description": "A list of Jenkins system commands.",
             "target": null,
