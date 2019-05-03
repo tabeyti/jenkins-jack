@@ -26,35 +26,38 @@
         "properties": {
           "jenkins-jack.jenkins.uri": {
             "type": "string",
-            "default": "127.0.0.1:8080"
+            "default": "127.0.0.1:8080",
+            "description": "Your Jenkins root uri"
           },
           "jenkins-jack.jenkins.username": {
             "type": "string",
-            "default": ""
+            "default": "",
+            "description": "Username for authentication with Jenkins"
           },
           "jenkins-jack.jenkins.password": {
             "type": "string",
-            "default": ""
+            "default": "",
+            "description": "Password or API token to login to jenkins. Token can be found here: [jenkins_url]/user/[username]/configure"
           },
-          "jenkins-jack.jenkins.jobPrefix": {
+          "jenkins-jack.pipeline.jobPrefix": {
             "type": "string",
-            "default": ""
+            "default": "",
+            "description": "Optional prefix for created Pipeline jobs"
           },
-          "jenkins-jack.browser.buildOutput": {
+          "jenkins-jack.pipeline.browserBuildOutput": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Show build output via browser instead of the `OUTPUT` channel"
           },
-          "jenkins-jack.browser.stepsApi": {
+          "jenkins-jack.pipeline.browserSharedLibraryRef": {
             "type": "boolean",
-            "default": false
-          },
-          "jenkins-jack.browser.globalVarsApi": {
-            "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Show Pipeline Shared Library documentation via browser instead of within vscode as markdown."
           },
           "jenkins-jack.snippets": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Flag indicating whether to enable Jenkins Pipeline snippets for `.groovy` files."
           }
         }
       }
@@ -88,18 +91,21 @@
     "tslint": "^5.8.0",
     "xml2js": "0.4.3",
     "jenkins": "^0.25.0",
+    "open": "^6.2.0",
     "@types/node": "^8.10.25",
     "@types/mocha": "^2.2.42",
     "@types/cheerio": "^0.22.11",
     "@types/jenkins": "^0.23.1",
     "@types/request-promise-native": "^1.0.15",
-    "@types/xml2js": "0.4.3"
+    "@types/xml2js": "0.4.3",
+    "@types/open": "^6.1.0"
   },
   "dependencies": {
-    "xml2js": "0.4.3",
     "cheerio": "^1.0.0-rc.3",
     "jenkins": "^0.25.0",
+    "open": "^6.2.0",
     "request": "^2.88.0",
-    "request-promise-native": "^1.0.7"
+    "request-promise-native": "^1.0.7",
+    "xml2js": "0.4.3"
   }
 }

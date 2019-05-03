@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import * as jenkins from "jenkins";
+import * as jenkins from 'jenkins';
 import * as request from 'request-promise-native';
+import * as opn from 'open';
 
 export class JenkinsService {
     private jenkinsConfig: any;
@@ -54,9 +55,9 @@ export class JenkinsService {
      */
     public updateSettings(jenkinsConfig: any) {
         this.jenkinsConfig = jenkinsConfig;
-        this.jenkinsHost = this.jenkinsConfig['uri'];
-        this.username = this.jenkinsConfig['username'];
-        this.password = this.jenkinsConfig['password'];
+        this.jenkinsHost = this.jenkinsConfig.uri;
+        this.username = this.jenkinsConfig.username;
+        this.password = this.jenkinsConfig.password;
 
         // Remove protocol identifier to properly format the Jenkins request URI.
         this.jenkinsHost = this.jenkinsHost.replace('http://', '');
@@ -74,9 +75,8 @@ export class JenkinsService {
     }
 
     /**
-     * Initiates a 'get' request using the base jenkins uri and the provided
-     * relative endpoint/uri path.
-     * @param endpoint The point of no return. Just kidding. It's a piece of a uri.
+     * Initiates a 'get' request at the desired path from the Jenkins host.
+     * @param path The targeted path from the Jenkins host.
      */
     public async get(endpoint: string) {
         let url = `${this.jenkinsUri}/${endpoint}`;
@@ -113,26 +113,28 @@ export class JenkinsService {
         // types.
         let jobList: any[] = [];
         for (let job of jobs) {
-            if ('com.cloudbees.hudson.plugins.folder.Folder' === job._class) {
-                jobList = jobList.concat(await this.getJobs(job));
-            }
-
-            // If this is a multibranch parent, grab all it's immediate children.
-            if ('org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject' === job._class) {
-                for (let c of job.jobs) {
-                    jobList.push(c);
+            switch(job._class) {
+                case 'com.cloudbees.hudson.plugins.folder.Folder': {
+                    jobList = jobList.concat(await this.getJobs(job));
+                    break;
                 }
-            }
-            // If this is a org folder parent, grab all second level children.
-            else if ('jenkins.branch.OrganizationFolder' === job._class) {
-                for (var pc of job.jobs) {
-                    for (let c of pc.jobs) {
+                case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
+                    for (let c of job.jobs) {
                         jobList.push(c);
                     }
+                    break;
                 }
-            }
-            else {
-                jobList.push(job);
+                case 'jenkins.branch.OrganizationFolder': {
+                    for (var pc of job.jobs) {
+                        for (let c of pc.jobs) {
+                            jobList.push(c);
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    jobList.push(job);
+                }
             }
         }
         return jobList;
@@ -200,6 +202,14 @@ export class JenkinsService {
             vscode.window.showWarningMessage(this.cantConnectMessage);
             return err.error;
         }
+    }
+
+    /**
+     * Opens the browser at the targeted path using the Jenkins host.
+     * @param path The desired path from the Jenkins host. Example: /job/someJob
+     */
+    public openBrowserAt(path: string) {
+        opn(`${this.jenkinsUri}/${path}`);
     }
 
     /**
