@@ -44,10 +44,10 @@ class PipelineBuild {
 export class Pipeline {
     // Settings
     jobPrefix: string | undefined;
-    timeoutSecs: number;
+    browserSharedLibraryRef: string;
     browserBuildOutput: boolean;
-    browserStepsApi: string;
     outputPanel: vscode.OutputChannel;
+    timeoutSecs: number;
 
     lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
@@ -57,24 +57,23 @@ export class Pipeline {
 
     readonly jenkins: JenkinsService;
 
-    constructor(displayConfig: any) {
-        this.jobPrefix = undefined;// TODO: jenkinsConfig['jobPrefix'];
-        this.browserBuildOutput = displayConfig['buildOutput'];
-        this.browserStepsApi = displayConfig['stepsApi'];
+    constructor(pipelineConfig: any) {
+        this.jobPrefix = pipelineConfig.jobPrefix;
+        this.browserBuildOutput = pipelineConfig.buildOutput;
+        this.browserSharedLibraryRef = pipelineConfig.browserSharedLibraryRef;
 
         this.timeoutSecs = 10;
         this.pollMs = 100;
         this.barrierLine = '-'.repeat(80);
         this.sharedLibVars = [];
 
-        this.outputPanel = vscode.window.createOutputChannel("Pipeline");
-
+        this.outputPanel = vscode.window.createOutputChannel("Jenkins-Jack");
         this.jenkins = JenkinsService.instance();
     }
 
-    public updateSettings(displayConfig: any) {
-        this.browserBuildOutput = displayConfig['buildOutput'];
-        this.browserStepsApi = displayConfig['stepsApi'];
+    public updateSettings(pipelineConfig: any) {
+        this.browserBuildOutput = pipelineConfig.buildOutput;
+        this.browserSharedLibraryRef = pipelineConfig.browserSharedLibraryRef;
     }
 
     public async executeConsoleScript(source: string) {
@@ -88,7 +87,7 @@ export class Pipeline {
         let options = Object.assign([], nodes);
         options.unshift({
             label: "System",
-            description: "Executes from the System Script Console found in Manage Jenkins."
+            description: "Executes from the System Script Console found in 'Manage Jenkins'."
         });
         options.unshift({
             label: ".*",
@@ -121,9 +120,7 @@ export class Pipeline {
             // Allow the user to select nodes retrieved from regex.
             let selections = await vscode.window.showQuickPick(matches, { canPickMany: true } );
             if (undefined === selections) { return; }
-
             targetMachines = targetMachines.concat(selections.map(s => s.label));
-            let ham = 0;
         }
         else if ('System' === selection.label) {
             targetMachines.push('System');
@@ -212,14 +209,23 @@ export class Pipeline {
         await this.refreshSharedLibraryApi();
         let result = await vscode.window.showQuickPick(this.sharedLibVars);
         if (undefined === result) { return; }
-        const panel = vscode.window.createWebviewPanel(
-            'pipeline shared lib',
-            result.label,
-            vscode.ViewColumn.Beside,
-            {}
-        );
-
-        panel.webview.html = `<html>${result.descriptionHtml}</html>`;
+        if (this.browserSharedLibraryRef) {
+            if (undefined === this.lastBuild) {
+                this.jenkins.openBrowserAt(`pipeline-syntax/globals#${result.label}`);
+            }
+            else {
+                this.jenkins.openBrowserAt(`job/${this.lastBuild.job}/pipeline-syntax/globals#${result.label}`);
+            }
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel(
+                'pipeline shared lib',
+                result.label,
+                vscode.ViewColumn.Beside,
+                {}
+            );
+            panel.webview.html = `<html>${result.descriptionHtml}</html>`;
+        }
     }
 
     /**

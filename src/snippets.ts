@@ -3,17 +3,14 @@ import { PipelineStepDoc } from './stepdoc';
 import { JenkinsService } from './JenkinsService';
 
 export class PipelineSnippets {
-    context: vscode.ExtensionContext;
     completionItems: Array<vscode.CompletionItem>;
     stepDocs: Array<PipelineStepDoc>;
     jenkins: any;
 
     /**
      * Constructor.
-     * @param context Extension context.
      */
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
+    constructor() {
         this.jenkins = JenkinsService.instance();
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
