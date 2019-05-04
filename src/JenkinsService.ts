@@ -3,6 +3,8 @@ import * as jenkins from 'jenkins';
 import * as request from 'request-promise-native';
 import * as opn from 'open';
 
+import { sleep } from './utils';
+
 export class JenkinsService {
     private jenkinsConfig: any;
     private jenkinsHost: string;
@@ -210,6 +212,32 @@ export class JenkinsService {
      */
     public openBrowserAt(path: string) {
         opn(`${this.jenkinsUri}/${path}`);
+    }
+
+    /**
+     * Blocks until a build is ready. Will timeout after a seconds
+     * defined in global timeoutSecs.
+     * @param jobName The name of the job.
+     * @param buildNumber The build number to wait on.
+     */
+    public async buildReady(jobName: string, buildNumber: number) {
+        let timeoutSecs = 10
+        let timeout = timeoutSecs;
+        let exists = false;
+        console.log('Waiting for build to start...');
+        while (timeout-- > 0) {
+            exists = await this.client.build.get(jobName, buildNumber).then((data: any) => {
+                return true;
+            }).catch((err: any) => {
+                return false;
+            });
+            if (exists) { break; }
+            await sleep(1000);
+        }
+        if (!exists) {
+            throw new Error(`Timed out waiting waiting for build after ${timeoutSecs} seconds: ${jobName}`);
+        }
+        console.log('Build ready!');
     }
 
     /**

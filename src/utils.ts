@@ -17,21 +17,21 @@ export async function sleep(ms: number) {
 export function getCommands() {
     return [
         {
-            "label": "$(triangle-right)  Execute",
+            "label": "$(triangle-right)  Execute Pipeline",
             "description": "Executes the current view as a pipeline job.",
             "target": "pipelineExecuteCommand",
             "args": null,
             "children": []
         },
         {
-            "label": "$(primitive-square)  Abort",
+            "label": "$(primitive-square)  Abort Pipeline",
             "description": "Aborts the active pipeline job initiated by Execute.",
             "target": "pipelineAbortCommand",
             "args": null,
             "children": []
         },
         {
-            "label": "$(cloud-upload)  Update",
+            "label": "$(cloud-upload)  Update Pipeline",
             "description": "Updates the current view's associated pipeline job configuration.",
             "target": "pipelineUpdateCommand",
             "args": null,
@@ -45,8 +45,7 @@ export function getCommands() {
             "children": []
         },
         {
-            "label": "Jenkins",
-            "command": "pipeline",
+            "label": "$(chevron-right)  Jenkins",
             "description": "A list of Jenkins system commands.",
             "target": null,
             "args": null,
