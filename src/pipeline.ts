@@ -80,6 +80,8 @@ export class Pipeline {
 
     public async executeConsoleScript(source: string) {
         let nodes = await this.jenkins.getNodes();
+        nodes = nodes.filter((n: any) => n.displayName !== 'master');
+
         if (undefined === nodes) { return; }
         nodes.map((n: any) => {
             n.label = n.displayName;
