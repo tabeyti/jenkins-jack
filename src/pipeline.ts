@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import * as util from "util";
 import * as xml2js from "xml2js";
-import * as htmlParser from 'cheerio';
+import * as util from 'util';
 
-import { sleep, getPipelineJobConfig } from './utils';
+import { getPipelineJobConfig } from './utils';
 import { JenkinsService } from './JenkinsService';
+import { SharedLibApiManager, SharedLibVar } from './SharedLibApiManager';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -52,6 +52,7 @@ export class Pipeline {
     lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
     sharedLibVars: PipelineSharedLibVar[];
+    readonly sharedLib: SharedLibApiManager;
     readonly pollMs: number;
     readonly barrierLine: string;
 
@@ -69,6 +70,7 @@ export class Pipeline {
 
         this.outputPanel = vscode.window.createOutputChannel("Jenkins-Jack");
         this.jenkins = JenkinsService.instance();
+        this.sharedLib = SharedLibApiManager.instance();
     }
 
     public updateSettings(pipelineConfig: any) {
@@ -206,8 +208,8 @@ export class Pipeline {
      * On selection, will display a web-view of the step's documentation.
      */
     public async showSharedLibVars() {
-        await this.refreshSharedLibraryApi();
-        let result = await vscode.window.showQuickPick(this.sharedLibVars);
+        let lib = await this.sharedLib.refresh() as SharedLibVar[];
+        let result = await vscode.window.showQuickPick(lib);
         if (undefined === result) { return; }
         if (this.browserSharedLibraryRef) {
             if (undefined === this.lastBuild) {
@@ -225,39 +227,6 @@ export class Pipeline {
                 {}
             );
             panel.webview.html = `<html>${result.descriptionHtml}</html>`;
-        }
-    }
-
-    /**
-     * Refreshes/updates the Pipeline Shared Library definitions.
-     */
-    private async refreshSharedLibraryApi() {
-        this.sharedLibVars = [];
-
-        let url = undefined !== this.lastBuild ?
-                                `job/${this.lastBuild.job}/pipeline-syntax/globals` :
-                                'pipeline-syntax/globals';
-        let html = await this.jenkins.get(url);
-
-        const root = htmlParser.load(html);
-        let doc = root('.steps.variables.root').first();
-
-        let child = doc.find('dt').first();
-        while (0 < child.length) {
-            // Grab name, description, and html for the shared var.
-            let name = child.attr('id');
-            let descr = child.next('dd').find('div').first().text().trim();
-            let html = child.next('dd').find('div').first().html();
-            if (null === descr || null === html) { continue; }
-
-            // Add shared var name as title to the content.
-            html = `<div id='outer' markdown='1'><h2>${name}</h2>${html}</div>`;
-            if (!this.sharedLibVars.some((slv: PipelineSharedLibVar) => slv.label === name)) {
-                this.sharedLibVars.push(new PipelineSharedLibVar(name, descr, html));
-            }
-
-            // Get the next shared var.
-            child = child.next('dd').next('dt');
         }
     }
 
@@ -295,31 +264,6 @@ export class Pipeline {
             this.lastBuild = this.activeBuild;
             this.activeBuild = undefined;
         });
-    }
-
-    /**
-     * Blocks until a build is ready. Will timeout after a seconds
-     * defined in global timeoutSecs.
-     * @param jobName The name of the job.
-     * @param buildNumber The build number to wait on.
-     */
-    public async buildReady(jobName: string, buildNumber: number) {
-        let timeout = this.timeoutSecs;
-        let exists = false;
-        console.log('Waiting for build to start...');
-        while (timeout-- > 0) {
-            exists = await this.jenkins.client.build.get(jobName, buildNumber).then((data: any) => {
-                return true;
-            }).catch((err: any) => {
-                return false;
-            });
-            if (exists) { break; }
-            await sleep(1000);
-        }
-        if (!exists) {
-            throw new Error(`Timed out waiting waiting for build after ${this.timeoutSecs} seconds: ${jobName}`);
-        }
-        console.log('Build ready!');
     }
 
     /**
@@ -441,7 +385,7 @@ export class Pipeline {
             });
 
             progress.report({ increment: 20, message: `Waiting for build to be ready...` });
-            await this.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
+            await this.jenkins.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
             progress.report({ increment: 50, message: `Build is ready! Streaming output...` });
 
             return new Promise(resolve => {
