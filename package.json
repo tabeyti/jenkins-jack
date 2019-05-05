@@ -64,17 +64,50 @@
     ],
     "keybindings": [
       {
-        "command": "extension.jenkins-jack",
+        "command": "extension.jenkins-jack.jacks",
         "title": "jenkins-jack",
-        "key": "ctrl+alt+j",
-        "mac": "ctrl+alt+j",
+        "key": "ctrl+shift+j j",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.jenkins-jack.pipeline",
+        "title": "jenkins-jack",
+        "key": "ctrl+shift+j p",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.jenkins-jack.scriptConsole",
+        "title": "jenkins-jack",
+        "key": "ctrl+shift+j s",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.jenkins-jack.buildLog",
+        "title": "jenkins-jack",
+        "key": "ctrl+shift+j b",
         "when": "editorTextFocus"
       }
     ],
     "commands": [
       {
-        "command": "extension.jenkins-jack",
-        "title": "Jenkins Jack"
+        "command": "extension.jenkins-jack.jacks",
+        "title": "Jacks",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.pipline",
+        "title": "Pipeline Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.scriptConsole",
+        "title": "Script Console Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.buildLog",
+        "title": "Build Log Jack",
+        "category": "Jenkins Jack"
       }
     ]
   },

@@ -1,24 +1,14 @@
 import * as vscode from 'vscode';
 import * as xml2js from "xml2js";
 import * as util from 'util';
+import * as path from 'path';
 
 import { getPipelineJobConfig } from './utils';
 import { JenkinsService } from './JenkinsService';
 import { SharedLibApiManager, SharedLibVar } from './SharedLibApiManager';
+import { Jack } from './Jack';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
-
-class PipelineSharedLibVar {
-    label: string;
-    description?: string;
-    descriptionHtml?: string;
-
-    constructor(name: string, description: string, descriptionHtml: string) {
-        this.label = name;
-        this.description = description;
-        this.descriptionHtml = descriptionHtml;
-    }
-}
 
 /**
  * Struct for storing a Pipeline's build information.
@@ -41,175 +31,138 @@ class PipelineBuild {
     }
 }
 
-export class Pipeline {
-    // Settings
+export class PipelineJack implements Jack {
     jobPrefix: string | undefined;
     browserSharedLibraryRef: string;
     browserBuildOutput: boolean;
+
     outputPanel: vscode.OutputChannel;
     timeoutSecs: number;
-
     lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
-    sharedLibVars: PipelineSharedLibVar[];
     readonly sharedLib: SharedLibApiManager;
     readonly pollMs: number;
     readonly barrierLine: string;
 
     readonly jenkins: JenkinsService;
 
-    constructor(pipelineConfig: any) {
+    constructor() {
+        let pipelineConfig = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
         this.jobPrefix = pipelineConfig.jobPrefix;
-        this.browserBuildOutput = pipelineConfig.buildOutput;
+        this.browserBuildOutput = pipelineConfig.browserBuildOutput;
         this.browserSharedLibraryRef = pipelineConfig.browserSharedLibraryRef;
+        vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings(); });
 
         this.timeoutSecs = 10;
         this.pollMs = 100;
         this.barrierLine = '-'.repeat(80);
-        this.sharedLibVars = [];
 
-        this.outputPanel = vscode.window.createOutputChannel("Jenkins-Jack");
+        this.outputPanel = vscode.window.createOutputChannel("Pipeline-Jack");
         this.jenkins = JenkinsService.instance();
         this.sharedLib = SharedLibApiManager.instance();
     }
 
-    public updateSettings(pipelineConfig: any) {
-        this.browserBuildOutput = pipelineConfig.buildOutput;
+    public getCommands() {
+        let commands: any[] = [];
+
+        // Displayed commands altered by active pipeline build.
+        if (undefined === this.activeBuild) {
+            commands.push({
+                label: "$(triangle-right)  Pipeline: Execute",
+                description: "Executes the current groovy file as a pipeline job.",
+                target: async () => await this.executePipeline(),
+            });
+            commands.push ({
+                label: "$(cloud-upload)  Pipeline: Update",
+                description: "Updates the current view's associated pipeline job configuration.",
+                target: async () => await this.updatePipeline(),
+            });
+        }
+        else {
+            commands.push({
+                label: "$(primitive-square)  Pipeline: Abort",
+                description: "Aborts the active pipeline job initiated by Execute.",
+                alwaysShow: false,
+                target: async () => await this.abortPipeline(),
+            });
+        }
+
+        commands = commands.concat([
+            {
+                label: "$(file-text)  Shared Library Reference",
+                description: "Provides a list of steps from the Shares Library and global variables.",
+                target: async () => await this.showSharedLibraryReference(),
+            }
+        ]);
+        return commands;
+    }
+
+    public async displayCommands() {
+        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Pipeline Jack' });
+
+        if (undefined === result) { return; }
+        await result.target();
+    }
+
+    public updateSettings() {
+        let pipelineConfig = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
+        this.jobPrefix = pipelineConfig.jobPrefix;
+        this.browserBuildOutput = pipelineConfig.browserBuildOutput;
         this.browserSharedLibraryRef = pipelineConfig.browserSharedLibraryRef;
     }
 
-    public async executeConsoleScript(source: string) {
-        let nodes = await this.jenkins.getNodes();
-        nodes = nodes.filter((n: any) => n.displayName !== 'master');
-
-        if (undefined === nodes) { return; }
-        nodes.map((n: any) => {
-            n.label = n.displayName;
-            n.description = n.offline ? "$(alert)" : "";
-        });
-
-        let options = Object.assign([], nodes);
-        options.unshift({
-            label: "System",
-            description: "Executes from the System Script Console found in 'Manage Jenkins'."
-        });
-        options.unshift({
-            label: ".*",
-            description: "Regex of the nodes you would like to target."
-        });
-
-        // Grab initial selection from the user.
-        let selection = await vscode.window.showQuickPick(options) as any;
-        if (undefined === selection) { return; }
-
-        let targetMachines: any[] = [];
-
-        // If regex specified, grab a pattern from the user to
-        // filter on the list of nodes.
-        if ('.*' === selection.label) {
-            // Grab regex pattern from user.
-            let pattern = await vscode.window.showInputBox();
-            if (undefined === pattern) { return; }
-
-            // Match against list of nodes.
-            let matches = [];
-            for (let n of nodes) {
-                let name = n.displayName as string;
-                let match = name.match(pattern);
-                if (null !== match && match.length >= 0) {
-                    matches.push(n);
-                }
-            }
-
-            // Allow the user to select nodes retrieved from regex.
-            let selections = await vscode.window.showQuickPick(matches, { canPickMany: true } );
-            if (undefined === selections) { return; }
-            targetMachines = targetMachines.concat(selections.map(s => s.label));
-        }
-        else if ('System' === selection.label) {
-            targetMachines.push('System');
-        }
-        else {
-            targetMachines.push(selection.label);
+    // @ts-ignore
+    private async executePipeline() {
+        // Validate it's valid groovy source.
+        var editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        if ("groovy" !== editor.document.languageId) {
+            return;
         }
 
-        vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: `Console Script(s)`,
-            cancellable: true
-        }, async (progress, token) => {
-            token.onCancellationRequested(() => {
-                vscode.window.showWarningMessage(`User canceled pipeline build.`);
-            });
+        // Grab filename to use as the Jenkins job name.
+        var jobName = path.parse(path.basename(editor.document.fileName)).name;
 
-            // Build a list of console script requests across the list of targeted machines
-            // and await across all.
-            let tasks = [];
-            progress.report({ increment: 50, message: "Executing on target machine(s)" });
-            for (let m of targetMachines) {
-                let promise = undefined;
-                if ('System' === m) {
-                    promise = new Promise(async (resolve) => {
-                        let result = await this.jenkins.runConsoleScript(source);
-                        return resolve({ node: 'System', output: result });
-                    })
-                }
-                else {
-                    promise = new Promise(async (resolve) => {
-                        let result = await this.jenkins.runConsoleScript(source, m);
-                        return resolve({ node: m, output: result });
-                    })
-                }
-                tasks.push(promise);
-            }
-            let results = await Promise.all(tasks);
+        // Grab source from active editor.
+        let source = editor.document.getText();
+        if ("" === source) { return; }
 
-            // Iterate over the result list, printing the name of the
-            // machine and it's output.
-            this.outputPanel.clear();
-            this.outputPanel.show();
-            for (let r of results as any[]) {
-                this.outputPanel.appendLine(this.barrierLine);
-                this.outputPanel.appendLine(r.node);
-                this.outputPanel.appendLine('');
-                this.outputPanel.appendLine(r.output);
-                this.outputPanel.appendLine(this.barrierLine);
-            }
-
-            progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
-        });
+        await this.build(source, jobName);
     }
 
     /**
-     * Downloads a build log for the user by first presenting a list
-     * of jobs to select from, and then a list of build numbers for
-     * the selected job.
+     * Aborts the active pipeline build.
      */
-    public async downloadBuildLog() {
-        let jobs = await this.jenkins.getJobs(undefined);
-        if (undefined === jobs) { return; }
-        for (let job of jobs) {
-            job.label = job.fullName;
+    public async abortPipeline() {
+        if (undefined === this.activeBuild) { return; }
+        await this.jenkins.client.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => { });
+        this.activeBuild = undefined;
+    }
+
+    // @ts-ignore
+    private async updatePipeline() {
+        // Validate it's valid groovy source.
+        var editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        if ("groovy" !== editor.document.languageId) {
+            return;
         }
 
-        // Ask which job they want to target.
-        let job = await vscode.window.showQuickPick(jobs)
-        if (undefined === job) { return; }
+        // Grab filename to use as (part of) the Jenkins job name.
+        var jobName = path.parse(path.basename(editor.document.fileName)).name;
 
-        // Ask what build they want to download.
-        let buildNumbers = await this.jenkins.getBuildNumbersFromUrl(job.url);
-        let buildNumber = await vscode.window.showQuickPick(buildNumbers);
-        if (undefined === buildNumber) { return; }
+        // Grab source from active editor.
+        let source = editor.document.getText();
+        if ("" === source) { return; }
 
-        // Stream it. Stream it until the editor crashes.
-        await this.streamOutput(job.label, parseInt(buildNumber));
+        await this.update(source, jobName);
     }
 
     /**
      * Displays a list of Shared Library steps/vars for the user to select.
      * On selection, will display a web-view of the step's documentation.
      */
-    public async showSharedLibVars() {
+    public async showSharedLibraryReference() {
         let lib = await this.sharedLib.refresh() as SharedLibVar[];
         let result = await vscode.window.showQuickPick(lib);
         if (undefined === result) { return; }
@@ -233,47 +186,11 @@ export class Pipeline {
     }
 
     /**
-     * Streams the log output of the provided build to
-     * the output panel.
-     * @param jobName The name of the job.
-     * @param buildNumber The build number.
-     */
-    public streamOutput(jobName: string, buildNumber: number) {
-        this.outputPanel.show();
-        this.outputPanel.clear();
-        this.outputPanel.appendLine(this.barrierLine);
-        this.outputPanel.appendLine(`Streaming console ouptput...`);
-        this.outputPanel.appendLine(this.barrierLine);
-
-        var log = this.jenkins.client.build.logStream({
-            name: jobName,
-            number: buildNumber,
-            delay: 500
-        });
-
-        log.on('data', (text: string) => {
-            this.outputPanel.appendLine(text);
-        });
-
-        log.on('error', (err: string) => {
-            this.outputPanel.appendLine(`[ERROR]: ${err}`);
-        });
-
-        log.on('end', () => {
-            this.outputPanel.appendLine(this.barrierLine);
-            this.outputPanel.appendLine('Console stream ended.');
-            this.outputPanel.appendLine(this.barrierLine);
-            this.lastBuild = this.activeBuild;
-            this.activeBuild = undefined;
-        });
-    }
-
-    /**
      * Creates or update the provides job with the passed Pipeline source.
      * @param source The scripted Pipeline source.
      * @param job The Jenkins Pipeline job name.
      */
-    public async createUpdatePipeline(source: string, job: string) {
+    public async createUpdate(source: string, job: string) {
         let jobName = job;
         let xml = getPipelineJobConfig();
 
@@ -328,7 +245,7 @@ export class Pipeline {
      * @param source The pipeline script source to update to.
      * @param job The name of the job to update.
      */
-    public async updatePipeline(source: string, job: string) {
+    public async update(source: string, job: string) {
         if (undefined !== this.activeBuild) {
             vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
             return;
@@ -347,7 +264,7 @@ export class Pipeline {
             });
             progress.report({ increment: 50 });
             return new Promise(async resolve => {
-                await this.createUpdatePipeline(source, job);
+                await this.createUpdate(source, job);
                 resolve();
             });
         });
@@ -358,7 +275,7 @@ export class Pipeline {
      * @param source Scripted Pipeline source.
      * @param jobName The name of the job.
      */
-    public async buildPipeline(source: string, job: string) {
+    public async build(source: string, job: string) {
         if (undefined !== this.activeBuild) {
             vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
             return;
@@ -374,7 +291,7 @@ export class Pipeline {
             });
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
-            this.activeBuild = await this.createUpdatePipeline(source, job);
+            this.activeBuild = await this.createUpdate(source, job);
             if (undefined === this.activeBuild) { return; }
 
             // TODO: figure out a nice, user friendly, way that allows users to input build parameters
@@ -395,18 +312,15 @@ export class Pipeline {
                     resolve();
                     return;
                 }
-                this.streamOutput(this.activeBuild.job, this.activeBuild.nextBuildNumber);
+                this.jenkins.streamOutput(
+                    this.activeBuild.job,
+                    this.activeBuild.nextBuildNumber,
+                    this.outputPanel, () => {
+                        this.lastBuild = this.activeBuild;
+                        this.activeBuild = undefined;
+                    });
                 resolve();
             });
         });
-    }
-
-    /**
-     * Aborts the active pipeline build.
-     */
-    public async abortPipeline() {
-        if (undefined === this.activeBuild) { return; }
-        await this.jenkins.client.build.stop(this.activeBuild.job, this.activeBuild.nextBuildNumber).then(() => { });
-        this.activeBuild = undefined;
     }
 }
