@@ -14,6 +14,7 @@ export class JenkinsService {
 
     public client: any;
     private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
+    private readonly barrierLine: string;
 
     private static jsInstance: any;
 
@@ -22,6 +23,7 @@ export class JenkinsService {
         this.jenkinsHost = this.jenkinsConfig['uri'];
         this.username = this.jenkinsConfig['username'];
         this.password = this.jenkinsConfig['password'];
+        this.barrierLine = '-'.repeat(80);
         vscode.workspace.onDidChangeConfiguration(event => {
             this.jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
             this.updateSettings(this.jenkinsConfig);
@@ -206,6 +208,49 @@ export class JenkinsService {
         }
     }
 
+     /**
+     * Streams the log output of the provided build to
+     * the given output channel.
+     * @param jobName The name of the job.
+     * @param buildNumber The build number.
+     * @param outpupPanel The output channel to write to.
+     */
+    public streamOutput(
+        jobName: string,
+        buildNumber: number,
+        outputPanel: vscode.OutputChannel,
+        callback: (() => (void)) | undefined = undefined) {
+        outputPanel.show();
+        outputPanel.clear();
+        outputPanel.appendLine(this.barrierLine);
+        outputPanel.appendLine(`Streaming console ouptput...`);
+        outputPanel.appendLine(this.barrierLine);
+
+        var log = this.client.build.logStream({
+            name: jobName,
+            number: buildNumber,
+            delay: 500
+        });
+
+        log.on('data', (text: string) => {
+            outputPanel.appendLine(text);
+        });
+
+        log.on('error', (err: string) => {
+            outputPanel.appendLine(`[ERROR]: ${err}`);
+            if (undefined === callback) { return; }
+            callback();
+        });
+
+        log.on('end', () => {
+            outputPanel.appendLine(this.barrierLine);
+            outputPanel.appendLine('Console stream ended.');
+            outputPanel.appendLine(this.barrierLine);
+            if (undefined === callback) { return; }
+            callback();
+        });
+    }
+
     /**
      * Opens the browser at the targeted path using the Jenkins host.
      * @param path The desired path from the Jenkins host. Example: /job/someJob
@@ -221,7 +266,7 @@ export class JenkinsService {
      * @param buildNumber The build number to wait on.
      */
     public async buildReady(jobName: string, buildNumber: number) {
-        let timeoutSecs = 10
+        let timeoutSecs = 10;
         let timeout = timeoutSecs;
         let exists = false;
         console.log('Waiting for build to start...');
