@@ -12,10 +12,10 @@
       "patterns": [{
         "name": "keyword.control.import.pipelinelog",
         "match": "(^\\d+\\) .+)|(^.+Exception: .+)|(^\\s+at .+)|(^\\s+... \\d+ more)|(^\\s*Caused by:.+)"
-      }]      
+      }]
     },
     "shell-command": {
-      "begin": "^\\s*[\\+>]+\\s+(\\w+)\\s+(.*)",
+      "begin": "^\\s*[\\+>]+\\s+(\\w+\\.?\\w*)\\s+(.*)",
       "end": "\n",
 			"captures": {
 				"1": {
@@ -26,7 +26,7 @@
 				}
 			}
     },
-    "link": {      
+    "link": {
       "patterns": [{
         "name": "entity.name.function.pipelinelog",
         "match": "https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)"
