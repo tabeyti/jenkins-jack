@@ -1,0 +1,44 @@
+{
+  "scopeName": "source.pipelinelog",
+	"name": "Pipeline Log",
+	"patterns": [
+    { "include": "#pipeline-comment" },
+    { "include": "#link" },
+    { "include": "#shell-command" },
+    { "include": "#groovy-exception" }
+  ],
+	"repository": {
+    "groovy-exception": {
+      "patterns": [{
+        "name": "keyword.control.import.pipelinelog",
+        "match": "(^\\d+\\) .+)|(^.+Exception: .+)|(^\\s+at .+)|(^\\s+... \\d+ more)|(^\\s*Caused by:.+)"
+      }]      
+    },
+    "shell-command": {
+      "begin": "^\\s*[\\+>]+\\s+(\\w+)\\s+(.*)",
+      "end": "\n",
+			"captures": {
+				"1": {
+					"name": "entity.name.function.pipelinelog"
+				},
+				"2": {
+					"name": "constant.language.pipelinelog"
+				}
+			}
+    },
+    "link": {      
+      "patterns": [{
+        "name": "entity.name.function.pipelinelog",
+        "match": "https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)"
+      }]
+    },
+    "pipeline-comment": {
+      "patterns": [
+				{
+					"name": "comment.line.double-slash.pipelinelog",
+					"match": "\\[Pipeline\\].*"
+        }
+      ]
+    }
+	}
+}

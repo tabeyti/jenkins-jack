@@ -109,6 +109,23 @@
         "title": "Build Log Jack",
         "category": "Jenkins Jack"
       }
+    ],
+    "languages": [
+      {
+        "id": "pipeline-log",
+        "extensions": [ ".pipelinelog" ],
+        "mimetypes": [
+          "text/x-code-output",
+          "x-code-output"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "pipeline-log",
+        "scopeName": "source.pipelinelog",
+        "path": "./syntaxes/pipelinelog.tmGrammer.json"
+      }
     ]
   },
   "scripts": {

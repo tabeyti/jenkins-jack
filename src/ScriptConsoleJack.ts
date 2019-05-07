@@ -10,7 +10,7 @@ export class ScriptConsoleJack implements Jack {
     constructor() {
         this.jenkins = JenkinsService.instance();
         this.barrierLine = '-'.repeat(80);
-        this.outputPanel = vscode.window.createOutputChannel("Script-Console-Jack");
+        this.outputPanel = vscode.window.createOutputChannel("Script Console Jack");
     }
 
     public getCommands() {

@@ -8,7 +8,7 @@ export class BuildLogJack implements Jack {
 
     constructor() {
         this.jenkins = JenkinsService.instance();
-        this.outputPanel = vscode.window.createOutputChannel("Build-Download-Jack");
+        this.outputPanel = vscode.window.createOutputChannel("Build Download Jack");
     }
 
     public getCommands() {
