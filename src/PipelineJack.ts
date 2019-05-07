@@ -201,7 +201,6 @@ export class PipelineJack implements Jack {
 
         let build = new PipelineBuild(jobName, source);
         let data = await this.jenkins.getJob(jobName);
-        if (undefined === data) { return undefined; }
 
         // If job already exists, grab the job config xml from Jenkins.
         if (data) {
@@ -229,6 +228,11 @@ export class PipelineJack implements Jack {
         xml = new xml2js.Builder().buildObject(parsed);
 
         if (!data) {
+            let userInput = await vscode.window.showInputBox({
+                placeHolder: "Job doesn't exist. Hit ENTER to create it or ESC to cancel."
+            });
+            if (undefined === userInput) { return; }
+
             console.log(`${jobName} doesn't exist. Creating...`);
             await this.jenkins.client.job.create(jobName, xml);
         }

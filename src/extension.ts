@@ -59,7 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
 	});
     context.subscriptions.push(buildLogDisposable);
 
-	let jenkinsJack = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
+	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
+
         // Build up command list from all the Jacks.
         let commands: any[] = [];
         for (let j of jacks) {
@@ -71,7 +72,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (undefined === result) { return; }
         await result.target();
 	});
-    context.subscriptions.push(jenkinsJack);
+    context.subscriptions.push(jacksCommands);
 }
 
 export function deactivate() {}

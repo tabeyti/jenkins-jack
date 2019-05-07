@@ -98,8 +98,11 @@ export class JenkinsService {
         return this.client.job.get(job).then((data: any) => {
             return data;
         }).catch((err: any) => {
+            if (err.notFound) {
+                return undefined;
+            }
             vscode.window.showWarningMessage(this.cantConnectMessage);
-            return undefined;
+            throw err;
         });
     }
 
