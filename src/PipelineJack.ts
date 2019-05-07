@@ -73,7 +73,7 @@ export class PipelineJack implements Jack {
                 target: async () => await this.executePipeline(),
             });
             commands.push ({
-                label: "$(cloud-upload)  Pipeline: Update",
+                label: "$(repo-sync)  Pipeline: Update",
                 description: "Updates the current view's associated pipeline job configuration.",
                 target: async () => await this.updatePipeline(),
             });
