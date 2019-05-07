@@ -57,7 +57,7 @@ export class PipelineJack implements Jack {
         this.pollMs = 100;
         this.barrierLine = '-'.repeat(80);
 
-        this.outputPanel = vscode.window.createOutputChannel("Pipeline-Jack");
+        this.outputPanel = vscode.window.createOutputChannel("Pipeline Jack");
         this.jenkins = JenkinsService.instance();
         this.sharedLib = SharedLibApiManager.instance();
     }
