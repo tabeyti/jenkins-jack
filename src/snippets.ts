@@ -1,16 +1,25 @@
 import * as vscode from 'vscode';
 import { PipelineStepDoc } from './stepdoc';
-import { JenkinsService } from './JenkinsService';
+import { JenkinsService } from './jenkinsService';
 
 export class PipelineSnippets {
-    completionItems: Array<vscode.CompletionItem>;
-    stepDocs: Array<PipelineStepDoc>;
-    jenkins: any;
+    public completionItems: Array<vscode.CompletionItem>;
+
+    private enabled: Boolean;
+    private stepDocs: Array<PipelineStepDoc>;
+    private readonly jenkins: any;
 
     /**
      * Constructor.
      */
     constructor() {
+        let config = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
+        this.enabled = config.enabled;
+        vscode.workspace.onDidChangeConfiguration(event => {
+            let config = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
+            this.enabled = config.enabled;
+        });
+
         this.jenkins = JenkinsService.instance();
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
@@ -22,7 +31,9 @@ export class PipelineSnippets {
      * parsed from the GDSL.
      */
     public async refresh() {
-        this.completionItems =[];
+        if (!this.enabled) { return; }
+
+        this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
 
         // Parse each GDSL line for a 'method' signature.

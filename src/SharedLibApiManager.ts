@@ -1,5 +1,5 @@
 import * as htmlParser from 'cheerio';
-import { JenkinsService } from './JenkinsService';
+import { JenkinsService } from './jenkinsService';
 
 export class SharedLibVar {
     label: string;
@@ -19,6 +19,11 @@ export class SharedLibVar {
     }
 }
 
+/**
+ * Hello everyone! I'm another singleton.
+ * Would you like another poor design choice to
+ * go with your laziness?
+ */
 export class SharedLibApiManager {
     public sharedLibVars: SharedLibVar[];
     private jenkins: JenkinsService;
@@ -45,16 +50,16 @@ export class SharedLibApiManager {
     public async refresh(job: string | undefined = undefined) {
         let url = undefined !== job ?   `job/${job}/pipeline-syntax/globals` :
                                         'pipeline-syntax/globals';
-        
+
         let html: string = await this.jenkins.get(url);
-        if (undefined === html) { return; }        
-        
+        if (undefined === html) { return; }
+
         this.sharedLibVars = this.parseHtml(html);
         return this.sharedLibVars;
     }
 
     /**
-     * Parses the html of the Global Variables/Shared Library page for 
+     * Parses the html of the Global Variables/Shared Library page for
      * definitions.
      * @param html The Shared Library/Global Variables html as a string.
      */

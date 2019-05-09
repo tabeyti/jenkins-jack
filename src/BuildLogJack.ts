@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { JenkinsService } from "./JenkinsService";
-import { Jack } from './Jack';
+import { JenkinsService } from "./jenkinsService";
+import { Jack } from './jack';
 
 export class BuildLogJack implements Jack {
     private readonly jenkins: JenkinsService;

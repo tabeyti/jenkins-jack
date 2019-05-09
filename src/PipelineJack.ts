@@ -4,9 +4,9 @@ import * as util from 'util';
 import * as path from 'path';
 
 import { getPipelineJobConfig } from './utils';
-import { JenkinsService } from './JenkinsService';
-import { SharedLibApiManager, SharedLibVar } from './SharedLibApiManager';
-import { Jack } from './Jack';
+import { JenkinsService } from './jenkinsService';
+import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
+import { Jack } from './jack';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -89,7 +89,7 @@ export class PipelineJack implements Jack {
 
         commands = commands.concat([
             {
-                label: "$(file-text)  Shared Library Reference",
+                label: "$(file-text)  Pipeline: Shared Library Reference",
                 description: "Provides a list of steps from the Shares Library and global variables.",
                 target: async () => await this.showSharedLibraryReference(),
             }
