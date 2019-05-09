@@ -1,16 +1,14 @@
 import * as vscode from 'vscode';
-import { PipelineJack } from './PipelineJack';
+import { PipelineJack } from './pipelineJack';
 import { PipelineSnippets } from './snippets';
-import { ScriptConsoleJack } from './ScriptConsoleJack';
-import { BuildLogJack } from './BuildLogJack';
-import { Jack } from './Jack';
+import { ScriptConsoleJack } from './scriptConsoleJack';
+import { BuildLogJack } from './buildLogJack';
+import { Jack } from './jack';
 import { isGroovy } from './utils';
 
 export function activate(context: vscode.ExtensionContext) {
 
     var pipelineSnippets = new PipelineSnippets();
-    console.log('Extension Jenkins Jack now active!');
-
     let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
         provideCompletionItems(
             document: vscode.TextDocument,
@@ -22,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    let jacks: Jack[] = []
+    let jacks: Jack[] = [];
 
     let pipelineJack = new PipelineJack();
     jacks.push(pipelineJack);
@@ -75,6 +73,8 @@ export function activate(context: vscode.ExtensionContext) {
         await result.target();
 	});
     context.subscriptions.push(jacksCommands);
+
+    console.log('Extension Jenkins Jack now active!');
 }
 
 export function deactivate() {}
