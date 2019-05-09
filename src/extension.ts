@@ -1,12 +1,10 @@
-// Extension Samples: https://github.com/Microsoft/vscode-extension-samples
-// Then (Promise) Usage: https://medium.com/patrickleenyc/things-to-keep-in-mind-while-writing-a-vs-code-extension-9f2a3369b799
-
 import * as vscode from 'vscode';
 import { PipelineJack } from './PipelineJack';
 import { PipelineSnippets } from './snippets';
 import { ScriptConsoleJack } from './ScriptConsoleJack';
 import { BuildLogJack } from './BuildLogJack';
 import { Jack } from './Jack';
+import { isGroovy } from './utils';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -29,6 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
     let pipelineJack = new PipelineJack();
     jacks.push(pipelineJack);
 	let pipelineDisposable = vscode.commands.registerCommand('extension.jenkins-jack.pipeline', async () => {
+        if (!isGroovy()) { return; }
 		try {
             await pipelineJack.displayCommands();
         } catch (err) {
@@ -40,6 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
     let scriptConsoleJack = new ScriptConsoleJack();
     jacks.push(scriptConsoleJack);
 	let scriptConsoleDisposable = vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole', async () => {
+        if (!isGroovy()) { return; }
+
 		try {
             await scriptConsoleJack.displayCommands();
         } catch (err) {
@@ -51,6 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
     let buildLogJack = new BuildLogJack();
     jacks.push(buildLogJack);
 	let buildLogDisposable = vscode.commands.registerCommand('extension.jenkins-jack.buildLog', async () => {
+        if (!isGroovy()) { return; }
 		try {
             await buildLogJack.displayCommands();
         } catch (err) {
@@ -60,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(buildLogDisposable);
 
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
-
+        if (!isGroovy()) { return; }
         // Build up command list from all the Jacks.
         let commands: any[] = [];
         for (let j of jacks) {
