@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 function _sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -8,6 +10,12 @@ function _sleep(ms: number) {
  */
 export async function sleep(ms: number) {
     await _sleep(ms);
+}
+
+export function isGroovy() {
+    var editor = vscode.window.activeTextEditor;
+    if (!editor) { return false; }
+    return "groovy" === editor.document.languageId;
 }
 
 /**
