@@ -3,7 +3,7 @@
 
 # Jenkins Jack
 
-Jack into your Jenkins to execute Pipeline scripts, provide Pipeline step auto-completions, pull Shared Library step documenation, run console groovy scripts across multiple nodes, and more!
+Jack into your remote Jenkins to execute Pipeline scripts, provide Pipeline step auto-completions, pull Shared Library step documenation, run console groovy scripts across multiple nodes, and more!
 
 Honestly, not that much more.
 

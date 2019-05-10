@@ -2,9 +2,15 @@
   "publisher": "tabeyti",
   "name": "jenkins-jack",
   "displayName": "Jenkins Jack",
-  "description": "Jack into your Jenkins to execute Pipeline scripts, provide Pipeline step auto-completions, pull Shared Library step documenation, run console groovy scripts across multiple nodes, and more! Honestly, not that much more.",
+  "description": "Jack into your remote Jenkins to execute Pipeline scripts, provide Pipeline step auto-completions, pull Shared Library step documenation, run console groovy scripts across multiple nodes, and more! Honestly, not that much more.",
   "icon": "images/logo.png",
-  "version": "0.1.0",
+  "homepage": "https://github.com/tabeyti/jenkins-jack/blob/master/README.md",
+  "version": "0.1.1",
+  "license": "See LICENSE.md",
+  "galleryBanner": {
+    "color": "#168bb9",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.30.0"
   },
