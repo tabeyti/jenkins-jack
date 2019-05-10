@@ -3,6 +3,7 @@
   "name": "jenkins-jack",
   "displayName": "Jenkins Jack",
   "description": "Jack into your Jenkins to execute Pipeline scripts, provide Pipeline step auto-completions, pull Shared Library step documenation, run console groovy scripts across multiple nodes, and more! Honestly, not that much more.",
+  "icon": "images/logo.png",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.30.0"
