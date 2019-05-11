@@ -1,5 +1,5 @@
 
-![logo](images/logo.png)
+![logo](images/neat.gif)
 
 # Jenkins Jack
 
