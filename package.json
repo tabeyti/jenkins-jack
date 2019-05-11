@@ -87,7 +87,7 @@
         "category": "Jenkins Jack"
       },
       {
-        "command": "extension.jenkins-jack.pipline",
+        "command": "extension.jenkins-jack.pipeline",
         "title": "Pipeline Jack",
         "category": "Jenkins Jack"
       },
