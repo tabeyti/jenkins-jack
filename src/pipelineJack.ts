@@ -22,7 +22,7 @@ class PipelineBuild {
     constructor(
         jobName: string,
         source: string = '',
-        buildNumber: number = -1,
+        buildNumber: number = 1,
         hasParams: boolean = false) {
         this.job = jobName;
         this.source = source;
@@ -308,7 +308,12 @@ export class PipelineJack implements Jack {
             });
 
             progress.report({ increment: 20, message: `Waiting for build to be ready...` });
-            await this.jenkins.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
+            try {
+                await this.jenkins.buildReady(this.activeBuild.job, this.activeBuild.nextBuildNumber);
+            } catch (err) {
+                vscode.window.showWarningMessage(`Timed out waiting for build: ${this.activeBuild.job} #${this.activeBuild.nextBuildNumber}`);
+                return;
+            }
             progress.report({ increment: 50, message: `Build is ready! Streaming output...` });
 
             return new Promise(resolve => {
