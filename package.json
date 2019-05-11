@@ -5,7 +5,7 @@
   "description": "Jack into your remote Jenkins to execute Pipeline scripts, provide Pipeline step auto-completions, pull Shared Library step documenation, run console groovy scripts across multiple nodes, and more! Honestly, not that much more.",
   "icon": "images/logo.png",
   "homepage": "https://github.com/tabeyti/jenkins-jack/blob/master/README.md",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "See LICENSE.md",
   "galleryBanner": {
     "color": "#168bb9",
