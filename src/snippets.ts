@@ -13,11 +13,12 @@ export class PipelineSnippets {
      * Constructor.
      */
     constructor() {
-        let config = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
+        let config = vscode.workspace.getConfiguration('jenkins-jack.snippets');
         this.enabled = config.enabled;
         vscode.workspace.onDidChangeConfiguration(event => {
-            let config = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
+            let config = vscode.workspace.getConfiguration('jenkins-jack.snippets');
             this.enabled = config.enabled;
+            this.refresh();
         });
 
         this.jenkins = JenkinsService.instance();
@@ -32,6 +33,7 @@ export class PipelineSnippets {
      */
     public async refresh() {
         if (!this.enabled) { return; }
+        console.log('Refreshing Pipeline step auto-completions.');
 
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
