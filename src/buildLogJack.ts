@@ -4,12 +4,10 @@ import { JackBase } from './jack';
 
 export class BuildLogJack extends JackBase {
     private readonly jenkins: JenkinsService;
-    private readonly outputPanel: vscode.OutputChannel;
 
     constructor() {
         super('Build Log Jack');
         this.jenkins = JenkinsService.instance();
-        this.outputPanel = vscode.window.createOutputChannel("Build Download Jack");
     }
 
     public getCommands(): any[] {
@@ -42,6 +40,6 @@ export class BuildLogJack extends JackBase {
         if (undefined === buildNumber) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await this.jenkins.streamOutput(job.label, parseInt(buildNumber), this.outputPanel);
+        await this.jenkins.streamBuildOutput(job.label, parseInt(buildNumber), this.outputChannel);
     }
 }

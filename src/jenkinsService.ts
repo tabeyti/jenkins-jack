@@ -216,41 +216,59 @@ export class JenkinsService {
      * the given output channel.
      * @param jobName The name of the job.
      * @param buildNumber The build number.
-     * @param outpupPanel The output channel to write to.
+     * @param outputChannel The output channel to write to.
      */
-    public streamOutput(
+    public async streamBuildOutput(
         jobName: string,
         buildNumber: number,
-        outputPanel: vscode.OutputChannel,
-        callback: (() => (void)) | undefined = undefined) {
-        outputPanel.show();
-        outputPanel.clear();
-        outputPanel.appendLine(this.barrierLine);
-        outputPanel.appendLine(`Streaming console ouptput...`);
-        outputPanel.appendLine(this.barrierLine);
+        outputChannel: vscode.OutputChannel) {
+        outputChannel.show();
+        outputChannel.clear();
+        outputChannel.appendLine(this.barrierLine);
+        outputChannel.appendLine(`Streaming console ouptput...`);
+        outputChannel.appendLine(this.barrierLine);
 
-        var log = this.client.build.logStream({
-            name: jobName,
-            number: buildNumber,
-            delay: 500
-        });
+        // Stream the output.
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Streaming output for ${jobName} #2${buildNumber}`,
+            cancellable: true
+        }, async (progress: any, token: any) => {
+            token.onCancellationRequested(() => {
+                vscode.window.showInformationMessage(`User canceled output stream.`);
+            });
+            var log = this.client.build.logStream({
+                name: jobName,
+                number: buildNumber,
+                delay: 500
+            });
 
-        log.on('data', (text: string) => {
-            outputPanel.appendLine(text);
-        });
+            return new Promise((resolve) => {
+                token.onCancellationRequested(() =>{
+                    log = undefined;
+                    resolve();
+                });
 
-        log.on('error', (err: string) => {
-            outputPanel.appendLine(`[ERROR]: ${err}`);
-            if (undefined === callback) { return; }
-            callback();
-        });
+                log.on('data', (text: string) => {
+                    if (token.isCancellationRequested) { return; }
+                    outputChannel.appendLine(text);
+                });
 
-        log.on('end', () => {
-            outputPanel.appendLine(this.barrierLine);
-            outputPanel.appendLine('Console stream ended.');
-            outputPanel.appendLine(this.barrierLine);
-            if (undefined === callback) { return; }
-            callback();
+                log.on('error', (err: string) => {
+                    if (token.isCancellationRequested) { return; }
+                    outputChannel.appendLine(`[ERROR]: ${err}`);
+                    resolve();
+                });
+
+                log.on('end', () => {
+                    if (token.isCancellationRequested) { return; }
+                    outputChannel.appendLine(this.barrierLine);
+                    outputChannel.appendLine('Console stream ended.');
+                    outputChannel.appendLine(this.barrierLine);
+                    resolve();
+                });
+            });
+
         });
     }
 
