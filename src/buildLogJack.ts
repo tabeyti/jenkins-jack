@@ -1,29 +1,23 @@
 import * as vscode from 'vscode';
 import { JenkinsService } from "./jenkinsService";
-import { Jack } from './jack';
+import { JackBase } from './jack';
 
-export class BuildLogJack implements Jack {
+export class BuildLogJack extends JackBase {
     private readonly jenkins: JenkinsService;
     private readonly outputPanel: vscode.OutputChannel;
 
     constructor() {
+        super('Build Log Jack');
         this.jenkins = JenkinsService.instance();
         this.outputPanel = vscode.window.createOutputChannel("Build Download Jack");
     }
 
-    public getCommands() {
+    public getCommands(): any[] {
         return [{
                 label: "$(cloud-download)  Build Log: Download",
                 description: "Select a job and build to download the log.",
                 target: async () => await this.download()
         }];
-    }
-
-    public async displayCommands() {
-        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Build Log Jack' });
-
-        if (undefined === result) { return; }
-        await result.target();
     }
 
     /**
