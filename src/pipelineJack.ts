@@ -6,7 +6,7 @@ import * as path from 'path';
 import { getPipelineJobConfig } from './utils';
 import { JenkinsService } from './jenkinsService';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
-import { Jack } from './jack';
+import { JackBase } from './jack';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -31,7 +31,7 @@ class PipelineBuild {
     }
 }
 
-export class PipelineJack implements Jack {
+export class PipelineJack extends JackBase {
     jobPrefix: string | undefined;
     browserSharedLibraryRef: string;
     browserBuildOutput: boolean;
@@ -47,6 +47,7 @@ export class PipelineJack implements Jack {
     readonly jenkins: JenkinsService;
 
     constructor() {
+        super('Pipeline Jack');
         let pipelineConfig = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
         this.jobPrefix = pipelineConfig.jobPrefix;
         this.browserBuildOutput = pipelineConfig.browserBuildOutput;
@@ -62,7 +63,7 @@ export class PipelineJack implements Jack {
         this.sharedLib = SharedLibApiManager.instance();
     }
 
-    public getCommands() {
+    public getCommands(): any[] {
         let commands: any[] = [];
 
         // Displayed commands altered by active pipeline build.
@@ -95,13 +96,6 @@ export class PipelineJack implements Jack {
             }
         ]);
         return commands;
-    }
-
-    public async displayCommands() {
-        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Pipeline Jack' });
-
-        if (undefined === result) { return; }
-        await result.target();
     }
 
     public updateSettings() {

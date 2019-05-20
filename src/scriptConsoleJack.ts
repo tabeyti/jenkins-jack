@@ -1,31 +1,25 @@
 import * as vscode from 'vscode';
 import { JenkinsService } from "./jenkinsService";
-import { Jack } from './jack';
+import { JackBase } from './jack';
 
-export class ScriptConsoleJack implements Jack {
+export class ScriptConsoleJack extends JackBase {
     private readonly jenkins: JenkinsService;
     private readonly outputPanel: vscode.OutputChannel;
     private readonly barrierLine: string;
 
     constructor() {
+        super('Scipt Console Jack');
         this.jenkins = JenkinsService.instance();
         this.barrierLine = '-'.repeat(80);
         this.outputPanel = vscode.window.createOutputChannel("Script Console Jack");
     }
 
-    public getCommands() {
+    public getCommands(): any[] {
         return [{
             label: "$(triangle-right)  Script Console: Execute",
             description: "Executes the current view's groovy script as a system/node console script (script console).",
             target: async () => await this.executeScriptConsole(),
         }];
-    }
-
-    public async displayCommands() {
-        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Script Console Jack' });
-
-        if (undefined === result) { return; }
-        await result.target();
     }
 
     // @ts-ignore
