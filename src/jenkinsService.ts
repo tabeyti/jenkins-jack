@@ -197,21 +197,30 @@ export class JenkinsService {
      * @param source Groovy source.
      * @param node Optional targeted machine.
      */
-    public async runConsoleScript(source: string, node: string | undefined = undefined) {
+    public async runConsoleScript(
+        source: string,
+        node: string | undefined = undefined,
+        token: vscode.CancellationToken | undefined = undefined) {
         try {
             let url = `${this.jenkinsUri}/scriptText`;
             if (undefined !== node) {
                 url = `${this.jenkinsUri}/computer/${node}/scriptText`;
             }
-            let result = await request.post({ url: url, form: { script: source } });
-            return result;
+            let r = request.post({ url: url, form: { script: source } });
+            if (undefined !== token) {
+                token.onCancellationRequested(() => {
+                    r.abort();
+                });
+            }
+            let output = await r;
+            return output;
         } catch (err) {
             vscode.window.showWarningMessage(this.cantConnectMessage);
             return err.error;
         }
     }
 
-     /**
+    /**
      * Streams the log output of the provided build to
      * the given output channel.
      * @param jobName The name of the job.

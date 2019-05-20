@@ -40,6 +40,6 @@ export class BuildLogJack extends JackBase {
         if (undefined === buildNumber) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await this.jenkins.streamBuildOutput(job.label, parseInt(buildNumber), this.outputChannel);
+        await this.jenkins.streamBuildOutput(job.label, parseInt(buildNumber), this.outputPanel);
     }
 }
