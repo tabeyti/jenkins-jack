@@ -6,7 +6,7 @@ export class ScriptConsoleJack extends JackBase {
     private readonly jenkins: JenkinsService;
 
     constructor() {
-        super('Scipt Console Jack');
+        super('Script Console Jack');
         this.jenkins = JenkinsService.instance();
     }
 
@@ -96,7 +96,7 @@ export class ScriptConsoleJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                vscode.window.showWarningMessage(`User canceled pipeline build.`);
+                this.showWarningMessage(`User canceled script console execute.`, undefined);
             });
 
             // Builds a list of console script http requests across the list of targeted machines

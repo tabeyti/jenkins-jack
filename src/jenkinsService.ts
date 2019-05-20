@@ -44,7 +44,7 @@ export class JenkinsService {
          }
     }
 
-    public static instance() {
+    public static instance(): JenkinsService {
         if (undefined === JenkinsService.jsInstance) {
             JenkinsService.jsInstance = new JenkinsService();
         }
@@ -294,7 +294,7 @@ export class JenkinsService {
      * different from the one specified in the configuration.
      * @param url The url to format.
      */
-    private fromUrlFormat(url: string) {
+    private fromUrlFormat(url: string): string {
         url = url.charAt(url.length - 1) === '/' ? url.slice(0, -1) : url;
         let match = url.match('.*?/(job/.*)');
         if (null !== match && match.length >= 0) {

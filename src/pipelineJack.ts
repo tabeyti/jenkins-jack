@@ -241,7 +241,7 @@ export class PipelineJack extends JackBase {
      */
     public async update(source: string, job: string) {
         if (undefined !== this.activeBuild) {
-            vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
+            this.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`, undefined);
             return;
         }
 
@@ -254,7 +254,7 @@ export class PipelineJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                vscode.window.showWarningMessage(`User canceled pipeline update.`);
+                this.showWarningMessage(`User canceled pipeline update.`, undefined);
             });
             progress.report({ increment: 50 });
             return new Promise(async resolve => {
@@ -271,7 +271,7 @@ export class PipelineJack extends JackBase {
      */
     public async build(source: string, job: string) {
         if (undefined !== this.activeBuild) {
-            vscode.window.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`);
+            this.showWarningMessage(`Already building/streaming - ${this.activeBuild.job}: #${this.activeBuild.nextBuildNumber}`, undefined);
             return;
         }
 
@@ -281,7 +281,7 @@ export class PipelineJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                vscode.window.showWarningMessage(`User canceled pipeline build.`);
+                this.showWarningMessage(`User canceled pipeline build.`, undefined);
             });
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
