@@ -18,8 +18,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:groovy",
-    "onCommand:extension.jenkins-jack"
+    "onLanguage:groovy"
   ],
   "main": "./out/extension.js",
   "repository": {
@@ -49,10 +48,10 @@
             "default": "",
             "description": "Password or API token to login to jenkins. Token can be found here: [jenkins_url]/user/[username]/configure"
           },
-          "jenkins-jack.pipeline.jobPrefix": {
-            "type": "string",
-            "default": "",
-            "description": "Optional prefix for created Pipeline jobs"
+          "jenkins-jack.pipeline.params.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enables the use of a parameters file associate with your Pipeline job"
           },
           "jenkins-jack.pipeline.browserBuildOutput": {
             "type": "boolean",
@@ -62,12 +61,12 @@
           "jenkins-jack.pipeline.browserSharedLibraryRef": {
             "type": "boolean",
             "default": false,
-            "description": "Show Pipeline Shared Library documentation via browser instead of within vscode as markdown."
+            "description": "Show Pipeline Shared Library documentation via browser instead of within vscode as markdown"
           },
           "jenkins-jack.snippets.enabled": {
             "type": "boolean",
             "default": true,
-            "description": "Enable Pipeline step snippets for `.groovy` files."
+            "description": "Enable Pipeline step snippets for `.groovy` files"
           }
         }
       }
@@ -87,7 +86,7 @@
         "category": "Jenkins Jack"
       },
       {
-        "command": "extension.jenkins-jack.pipline",
+        "command": "extension.jenkins-jack.pipeline",
         "title": "Pipeline Jack",
         "category": "Jenkins Jack"
       },
