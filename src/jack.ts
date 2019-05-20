@@ -10,10 +10,13 @@ export interface Jack {
 
 export abstract class JackBase implements Jack {
     [key: string]: any;
+    outputChannel: vscode.OutputChannel;
     name: string;
+    protected readonly barrierLine: string = '-'.repeat(80);
 
     constructor(name: string) {
         this.name = name;
+        this.outputChannel = vscode.window.createOutputChannel(name);
     }
 
     public abstract getCommands(): any[];
