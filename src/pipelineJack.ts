@@ -36,13 +36,11 @@ export class PipelineJack extends JackBase {
     browserSharedLibraryRef: string;
     browserBuildOutput: boolean;
 
-    outputPanel: vscode.OutputChannel;
     timeoutSecs: number;
     lastBuild?: PipelineBuild;
     activeBuild?: PipelineBuild;
     readonly sharedLib: SharedLibApiManager;
     readonly pollMs: number;
-    readonly barrierLine: string;
 
     readonly jenkins: JenkinsService;
 
@@ -56,9 +54,7 @@ export class PipelineJack extends JackBase {
 
         this.timeoutSecs = 10;
         this.pollMs = 100;
-        this.barrierLine = '-'.repeat(80);
 
-        this.outputPanel = vscode.window.createOutputChannel("Pipeline Jack");
         this.jenkins = JenkinsService.instance();
         this.sharedLib = SharedLibApiManager.instance();
     }
@@ -249,8 +245,8 @@ export class PipelineJack extends JackBase {
             return;
         }
 
-        this.outputPanel.show();
-        this.outputPanel.clear();
+        this.outputChannel.show();
+        this.outputChannel.clear();
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -318,7 +314,7 @@ export class PipelineJack extends JackBase {
                 this.jenkins.streamOutput(
                     this.activeBuild.job,
                     this.activeBuild.nextBuildNumber,
-                    this.outputPanel, () => {
+                    this.outputChannel, () => {
                         this.lastBuild = this.activeBuild;
                         this.activeBuild = undefined;
                     });
