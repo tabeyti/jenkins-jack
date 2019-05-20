@@ -107,13 +107,13 @@ export class ScriptConsoleJack extends JackBase {
                 let promise = undefined;
                 if ('System' === m) {
                     promise = new Promise(async (resolve) => {
-                        let result = await this.jenkins.runConsoleScript(source);
+                        let result = await this.jenkins.runConsoleScript(source, undefined, token);
                         return resolve({ node: 'System', output: result });
                     });
                 }
                 else {
                     promise = new Promise(async (resolve) => {
-                        let result = await this.jenkins.runConsoleScript(source, m);
+                        let result = await this.jenkins.runConsoleScript(source, m, token);
                         return resolve({ node: m, output: result });
                     });
                 }

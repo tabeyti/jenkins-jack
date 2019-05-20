@@ -87,7 +87,7 @@ export function getPipelineJobConfig() {
         </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
     </properties>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.29">
-        <script>++CONTENT++</script>
+        <script></script>
         <sandbox>false</sandbox>
     </definition>
     <triggers />
