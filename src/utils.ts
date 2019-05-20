@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 
 function _sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,6 +17,46 @@ export function isGroovy() {
     var editor = vscode.window.activeTextEditor;
     if (!editor) { return false; }
     return "groovy" === editor.document.languageId;
+}
+
+export async function showQuicPick(items: any[], ): Promise<void> {
+    let qp = vscode.window.createQuickPick();
+    qp.items = items;
+    qp.title = ''
+
+}
+
+/**
+ * Utility for parsing a json file and returning
+ * its contents.
+ * @param path The path to the json file.
+ * @returns The parsed json.
+ */
+export function readjson(path: string): any {
+    let raw: any = fs.readFileSync(path);
+    let json: any;
+    try {
+        json = JSON.parse(raw);
+    } catch (err) {
+        err.message = `Could not parse parameter JSON from ${path}`;
+        throw err;
+    }
+    return json;
+}
+
+/**
+ * Writes the given json to disk.
+ * @param path The the file path (file included) to write to.
+ * @param json The json to write out.
+ */
+export function writejson(path: string, json: any) {
+    try {
+        let jsonString = JSON.stringify(json, null, 4);
+        fs.writeFileSync(path, jsonString, 'utf8');
+    } catch (err) {
+        err.message = `Could not write parameter JSON to ${path}`;
+        throw err;
+    }
 }
 
 /**
