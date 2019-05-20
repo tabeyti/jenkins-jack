@@ -4,14 +4,10 @@ import { JackBase } from './jack';
 
 export class ScriptConsoleJack extends JackBase {
     private readonly jenkins: JenkinsService;
-    private readonly outputPanel: vscode.OutputChannel;
-    private readonly barrierLine: string;
 
     constructor() {
         super('Scipt Console Jack');
         this.jenkins = JenkinsService.instance();
-        this.barrierLine = '-'.repeat(80);
-        this.outputPanel = vscode.window.createOutputChannel("Script Console Jack");
     }
 
     public getCommands(): any[] {
@@ -127,14 +123,14 @@ export class ScriptConsoleJack extends JackBase {
 
             // Iterate over the result list, printing the name of the
             // machine and it's output.
-            this.outputPanel.clear();
-            this.outputPanel.show();
+            this.outputChannel.clear();
+            this.outputChannel.show();
             for (let r of results as any[]) {
-                this.outputPanel.appendLine(this.barrierLine);
-                this.outputPanel.appendLine(r.node);
-                this.outputPanel.appendLine('');
-                this.outputPanel.appendLine(r.output);
-                this.outputPanel.appendLine(this.barrierLine);
+                this.outputChannel.appendLine(this.barrierLine);
+                this.outputChannel.appendLine(r.node);
+                this.outputChannel.appendLine('');
+                this.outputChannel.appendLine(r.output);
+                this.outputChannel.appendLine(this.barrierLine);
             }
             progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
         });
