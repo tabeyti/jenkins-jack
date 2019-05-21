@@ -234,7 +234,7 @@ export class PipelineJack extends JackBase {
 
         // Generate params path.
         let parsed = path.parse(groovyScriptPath);
-        let paramsFileName = `${parsed.name}.params.json`;
+        let paramsFileName = `.${parsed.name}.params.json`;
         let paramsPath = path.join(parsed.dir, paramsFileName);
 
         // Gather parameter name/default-value json.
