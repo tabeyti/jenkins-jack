@@ -6,42 +6,23 @@ import * as opn from 'open';
 import { sleep } from './utils';
 
 export class JenkinsService {
-    private jenkinsConfig: any;
-    private jenkinsHost: string;
-    private jenkinsUri: string;
-    private username: string;
-    private password: string;
+    private config: any;
+    private jenkinsUri: string = 'http://127.0.0.1:8080';
 
+    // @ts-ignore
     public client: any;
     private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
-    private readonly barrierLine: string;
 
     private static jsInstance: any;
 
     private constructor() {
-        this.jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-        this.jenkinsHost = this.jenkinsConfig['uri'];
-        this.username = this.jenkinsConfig['username'];
-        this.password = this.jenkinsConfig['password'];
-        this.barrierLine = '-'.repeat(80);
-        vscode.workspace.onDidChangeConfiguration(event => {
-            this.jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-            this.updateSettings(this.jenkinsConfig);
-        });
+        this.updateSettings();
 
-         // Remove protocol identifier to properly format the Jenkins request URI.
-         this.jenkinsHost = this.jenkinsHost.replace('http://', '');
-         this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
-         console.log(`Using the following URI for Jenkins client: ${this.jenkinsUri}`);
-         try {
-             this.client = jenkins({
-                 baseUrl: this.jenkinsUri,
-                 crumbIssuer: false,
-                 promisify: true
-             });
-         } catch (err) {
-             vscode.window.showWarningMessage(err);
-         }
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('jenkins-jack.jenkins')) {
+                this.updateSettings();
+            }
+        });
     }
 
     public static instance(): JenkinsService {
@@ -52,30 +33,33 @@ export class JenkinsService {
     }
 
     /**
-     * TODO: Duplicate code of the constructor, for updating settings.
-     * Need a nicer way of doing this while still providing the necessary
-     * assignments for global vars in the constructor.
-     * @param jenkinsConfig
+     * Updates the settings for this service.
      */
-    public updateSettings(jenkinsConfig: any) {
-        this.jenkinsConfig = jenkinsConfig;
-        this.jenkinsHost = this.jenkinsConfig.uri;
-        this.username = this.jenkinsConfig.username;
-        this.password = this.jenkinsConfig.password;
+    public updateSettings() {
+        this.config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
 
-        // Remove protocol identifier to properly format the Jenkins request URI.
-        this.jenkinsHost = this.jenkinsHost.replace('http://', '');
-        this.jenkinsUri = `http://${this.username}:${this.password}@${this.jenkinsHost}`;
-        console.log(`Using the following URI for Jenkins client: ${this.jenkinsUri}`);
-        try {
-            this.client = jenkins({
-                baseUrl: this.jenkinsUri,
-                crumbIssuer: false,
-                promisify: true
-            });
-        } catch (err) {
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+        let protocol = 'http';
+        let host = this.config.uri;
+
+        let match = this.config.uri.match('(http|https)://(.*)');
+        if (null !== match && match.length === 3) {
+            protocol = match[1];
+            host = match[2];
         }
+
+        this.jenkinsUri = `${protocol}://${this.config.username}:${this.config.password}@${host}`;
+        console.log(`Using the following URI for Jenkins client: ${this.jenkinsUri}`);
+
+        this.client = jenkins({
+            baseUrl: this.jenkinsUri,
+            crumbIssuer: false,
+            promisify: true
+        });
+
+        // Will error if no connection can be made to the remote host
+        this.client.info().then((data: any) => { console.log(data); }).catch((err: any) => {
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+        });
     }
 
     /**
@@ -85,6 +69,7 @@ export class JenkinsService {
     public async get(endpoint: string) {
         let url = `${this.jenkinsUri}/${endpoint}`;
         return request.get(url).catch(err => {
+            console.log(err);
             vscode.window.showWarningMessage(this.cantConnectMessage);
             return undefined;
         });
@@ -101,6 +86,7 @@ export class JenkinsService {
             if (err.notFound) {
                 return undefined;
             }
+            console.log(err);
             vscode.window.showWarningMessage(this.cantConnectMessage);
             throw err;
         });
@@ -110,11 +96,12 @@ export class JenkinsService {
      * Recursive descent method for retrieving Jenkins jobs from
      * various job types (e.g. Multi-branch, Github Org, etc.).
      * @param job The current Jenkins 'job' object.
+     * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobs(job: any | undefined) {
+    public async getJobs(job: any | undefined): Promise<any[]> {
         let jobs = (undefined === job) ? await this.getJobsFromUrl(this.jenkinsUri) : await this.getJobsFromUrl(job['url']);
 
-        if (undefined === jobs) { return; }
+        if (undefined === jobs) { return []; }
 
         // Not all jobs are top level. Need to grab child jobs from certain class
         // types.
@@ -169,6 +156,7 @@ export class JenkinsService {
             let json = JSON.parse(r);
             return json.builds.map((n: any) => String(n.number));
         } catch (err) {
+            console.log(err);
             vscode.window.showWarningMessage(this.cantConnectMessage);
             return undefined;
         }
@@ -186,6 +174,7 @@ export class JenkinsService {
             let json = JSON.parse(r);
             return json.jobs;
         } catch (err) {
+            console.log(err);
             vscode.window.showWarningMessage(this.cantConnectMessage);
             return undefined;
         }
@@ -201,6 +190,7 @@ export class JenkinsService {
         source: string,
         node: string | undefined = undefined,
         token: vscode.CancellationToken | undefined = undefined) {
+
         try {
             let url = `${this.jenkinsUri}/scriptText`;
             if (undefined !== node) {
@@ -215,6 +205,7 @@ export class JenkinsService {
             let output = await r;
             return output;
         } catch (err) {
+            console.log(err);
             vscode.window.showWarningMessage(this.cantConnectMessage);
             return err.error;
         }
@@ -231,11 +222,13 @@ export class JenkinsService {
         jobName: string,
         buildNumber: number,
         outputChannel: vscode.OutputChannel) {
+
+        let barrierLine = '-'.repeat(80);
         outputChannel.show();
         outputChannel.clear();
-        outputChannel.appendLine(this.barrierLine);
+        outputChannel.appendLine(barrierLine);
         outputChannel.appendLine(`Streaming console ouptput...`);
-        outputChannel.appendLine(this.barrierLine);
+        outputChannel.appendLine(barrierLine);
 
         // Stream the output.
         await vscode.window.withProgress({
@@ -271,9 +264,9 @@ export class JenkinsService {
 
                 log.on('end', () => {
                     if (token.isCancellationRequested) { return; }
-                    outputChannel.appendLine(this.barrierLine);
+                    outputChannel.appendLine(barrierLine);
                     outputChannel.appendLine('Console stream ended.');
-                    outputChannel.appendLine(this.barrierLine);
+                    outputChannel.appendLine(barrierLine);
                     resolve();
                 });
             });
