@@ -13,7 +13,6 @@ import { JackBase } from './jack';
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
 export class PipelineJack extends JackBase {
-    private config: any;
     private cachedJob?: any;
     private activeJob?: any;
     private readonly sharedLib: SharedLibApiManager;
@@ -24,8 +23,12 @@ export class PipelineJack extends JackBase {
 
     constructor() {
         super('Pipeline Jack');
-        this.config = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
-        vscode.workspace.onDidChangeConfiguration(event => { this.updateSettings(); });
+        this.updateSettings();
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('jenkins.jack.pipeline')) {
+                this.updateSettings();
+            }
+        });
         this.jenkins = JenkinsService.instance();
         this.sharedLib = SharedLibApiManager.instance();
     }
