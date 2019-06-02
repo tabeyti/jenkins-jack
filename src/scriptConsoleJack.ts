@@ -96,7 +96,7 @@ export class ScriptConsoleJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                this.showWarningMessage(`User canceled script console execute.`, undefined);
+                this.showWarningMessage(`User canceled script console execute.`);
             });
 
             // Builds a list of console script http requests across the list of targeted machines

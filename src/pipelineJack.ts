@@ -194,8 +194,8 @@ export class PipelineJack extends JackBase {
         xml = new xml2js.Builder().buildObject(parsed);
 
         if (!job) {
-            let r = await this.showInformationMessage(
-                `"${jobName}" doesn't exist. Do you want us to create it?`, { modal: true }, "Yes");
+            let r = await this.showInformationModal(
+                `"${jobName}" doesn't exist. Do you want us to create it?`, { title: "Yes"} );
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
@@ -293,7 +293,7 @@ export class PipelineJack extends JackBase {
      */
     public async update(source: string, job: string) {
         if (undefined !== this.activeJob) {
-            this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`, undefined);
+            this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`);
             return;
         }
 
@@ -306,7 +306,7 @@ export class PipelineJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                this.showWarningMessage(`User canceled pipeline update.`, undefined);
+                this.showWarningMessage(`User canceled pipeline update.`);
             });
             progress.report({ increment: 50 });
             return new Promise(async resolve => {
@@ -327,7 +327,7 @@ export class PipelineJack extends JackBase {
     public async build(source: string, job: string) {
 
         if (undefined !== this.activeJob) {
-            this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`, undefined);
+            this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`);
             return undefined;
         }
 
@@ -337,7 +337,7 @@ export class PipelineJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                this.showWarningMessage(`User canceled pipeline build.`, undefined);
+                this.showWarningMessage(`User canceled pipeline build.`, this.messageItem);
             });
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
@@ -355,7 +355,7 @@ export class PipelineJack extends JackBase {
             try {
                 params = await this.buildParameterInput(currentJob, progress);
             } catch (err) {
-                this.showWarningMessage(err.message, undefined);
+                this.showWarningMessage(err.message);
                 return undefined;
             }
 
@@ -374,7 +374,7 @@ export class PipelineJack extends JackBase {
             try {
                 await this.jenkins.buildReady(jobName, buildNum);
             } catch (err) {
-                this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`, undefined);
+                this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
                 return undefined;
             }
             progress.report({ increment: 30, message: `Build is ready!` });
