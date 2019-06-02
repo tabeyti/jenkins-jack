@@ -48,6 +48,11 @@
             "default": "",
             "description": "Password or API token to login to jenkins. Token can be found here: [jenkins_url]/user/[username]/configure"
           },
+          "jenkins-jack.jenkins.strictTls": {
+            "type": "boolean",
+            "default": false,
+            "description": "If unchecked, the extension will **not** check certificate validity when connecting through HTTPS."
+          },
           "jenkins-jack.pipeline.params.enabled": {
             "type": "boolean",
             "default": false,
@@ -104,7 +109,9 @@
     "languages": [
       {
         "id": "pipeline-log",
-        "extensions": [ ".pipelinelog" ],
+        "extensions": [
+          ".pipelinelog"
+        ],
         "mimetypes": [
           "text/x-code-output",
           "x-code-output"
