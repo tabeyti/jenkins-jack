@@ -27,11 +27,15 @@ export abstract class JackBase implements Jack {
         return result.target();
     }
 
-    public async showInformationMessage(message: string, options: any | undefined, ...items: string[]): Promise<string | undefined> {
-        return vscode.window.showInformationMessage(`${this.name}: ${message}`, options, items);
+    public async showInformationMessage<T extends vscode.MessageItem>(message: string, ...items: T[]): Promise<T | undefined> {
+        return vscode.window.showInformationMessage(`${this.name}: ${message}`, ...items);
     }
 
-    public async showWarningMessage(message: string, options: any | undefined, ...items: string[]): Promise<string | undefined> {
-        return vscode.window.showWarningMessage(`${this.name}: ${message}`, options, items);
+    public async showInformationModal<T extends vscode.MessageItem>(message: string, ...items: T[]): Promise<T | undefined> {
+        return vscode.window.showInformationMessage(`${this.name}: ${message}`, { modal: true }, ...items);
+    }
+
+    public async showWarningMessage<T extends vscode.MessageItem>(message: string, ...items: T[]): Promise<T | undefined> {
+        return vscode.window.showWarningMessage(`${this.name}: ${message}`, ...items);
     }
 }
