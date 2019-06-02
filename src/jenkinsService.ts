@@ -37,6 +37,7 @@ export class JenkinsService {
      */
     public updateSettings() {
         this.config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this.config.strictTls ? '1' : '0';
 
         let protocol = 'http';
         let host = this.config.uri;
