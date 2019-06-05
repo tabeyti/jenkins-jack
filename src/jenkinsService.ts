@@ -152,10 +152,24 @@ export class JenkinsService {
     public async getBuildNumbersFromUrl(rootUrl: string) {
         try {
             rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=builds[number]`;
+            let url = `${rootUrl}/api/json?tree=builds[number,result]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
-            return json.builds.map((n: any) => String(n.number));
+            return json.builds.map((n: any) => {
+                let prefix = "";
+                switch(n.result) {
+                    case "SUCCESS":
+                        prefix = "$(check)";
+                        break;
+                    case "FAILURE":
+                        prefix = "$(x)";
+                        break;
+                    case "ABORTED":
+                        prefix = "$(alert)";
+                        break;
+                }
+                return { label: String(`${prefix} ${n.number}`) };
+            });
         } catch (err) {
             console.log(err);
             vscode.window.showWarningMessage(this.cantConnectMessage);
