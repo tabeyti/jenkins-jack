@@ -177,12 +177,15 @@ export class JenkinsService {
         }
     }
 
+
+
     /**
      * Retrieves a list of Jenkins 'job' objects.
      * @param rootUrl Root jenkins url for the request.
      */
     public async getJobsFromUrl(rootUrl: string) {
         try {
+            rootUrl = rootUrl !== undefined ? this.jenkinsUri : rootUrl;
             rootUrl = this.fromUrlFormat(rootUrl);
             let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
             let r = await request.get(url);
