@@ -13,6 +13,7 @@ import { JackBase } from './jack';
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
 export class PipelineJack extends JackBase {
+    private config: any;
     private cachedJob?: any;
     private activeJob?: any;
     private readonly sharedLib: SharedLibApiManager;
@@ -80,6 +81,7 @@ export class PipelineJack extends JackBase {
         if ("groovy" !== editor.document.languageId) {
             return;
         }
+        let groovyScriptPath = editor.document.uri.fsPath;
 
         // Validate there is an associated file with the view/editor.
         if ("untitled" === editor.document.uri.scheme) {
@@ -87,6 +89,10 @@ export class PipelineJack extends JackBase {
             this.showInformationMessage('Must save the document before you run.', this.messageItem);
             return;
         }
+
+        let config = new PipelineConfig(groovyScriptPath);
+
+        // var config = await this.getPipelineConfig(groovyScriptPath);
 
         // Grab filename to use as the Jenkins job name.
         var jobName = path.parse(path.basename(editor.document.fileName)).name;
@@ -96,7 +102,7 @@ export class PipelineJack extends JackBase {
         if ("" === source) { return; }
 
         // Build the pipeline.
-        this.activeJob = await this.build(source, jobName);
+        this.activeJob = await this.build2(source, jobName, config);
         if (undefined === this.activeJob) { return; }
 
         // Stream the output. Yep.
@@ -214,20 +220,19 @@ export class PipelineJack extends JackBase {
      * and the creation/updating of the associated *.params.json
      * file for the active editor's groovy file.
      * @param job The jenkins Pipeline job json object.
+     * @param config The Pipeline Jack job config.
      * @returns A parameters key/value json object.
      *          Undefined if job has no parameters.
-     *          An empty json if pamaeters are disabled.
+     *          An empty json if parameters are disabled.
      */
     public async buildParameterInput(
         job: any,
+        params: any,
         progress: vscode.Progress<{ message?: string | undefined; increment?: number | undefined; }>): Promise<any> {
 
         // Validate job has parameters.
         let paramProperty = job.property.find((p: any) => p._class === "hudson.model.ParametersDefinitionProperty");
         if (undefined === paramProperty) { return undefined; }
-
-        // Validate configuration enabled.
-        if (!this.config.params.enabled) { return {}; }
 
         // Validate active editor.
         if (undefined === vscode.window.activeTextEditor) {
@@ -241,49 +246,15 @@ export class PipelineJack extends JackBase {
         let paramsPath = path.join(parsed.dir, paramsFileName);
 
         // Gather parameter name/default-value json.
-        let infoMessage = `${paramsPath} created!`;
         let paramsJson: any = {};
         for (let p of paramProperty.parameterDefinitions) {
             paramsJson[p.name] = p.defaultParameterValue.value;
         }
 
-        let jsonParamsFileExist = fs.existsSync(paramsPath);
-
         // If there are existing parameters for this job, update the job's
         // defaults with the saved values.
-        if (jsonParamsFileExist) {
-            infoMessage = `${paramsPath} updated!`;
-
-            let json = readjson(paramsPath);
-            for (let key in json) { paramsJson[key] = json[key]; }
-        }
-
-        // Write the parameters file local to the editor's file.
-        writejson(paramsPath, paramsJson);
-        progress.report({ message: infoMessage });
-
-        // If there were no parameters file originally, present the defaults
-        // to the user in the editor to edit.
-        if (!jsonParamsFileExist) {
-            // Open the parameters file for the user to edit and wait
-            // on it's closing.
-            let openPath = vscode.Uri.parse(`file:///${paramsPath}`);
-            progress.report({ message: `${this.name}: Close ${paramsFileName} to continue build.` });
-            await vscode.window.showTextDocument(openPath, { viewColumn: vscode.ViewColumn.Beside });
-
-            // TODO: Don't know a better way on awaiting on a particular
-            // text editor closing.
-            let paramsEditorActive = undefined;
-            do {
-                await sleep(1000);
-                paramsEditorActive = vscode.window.visibleTextEditors.find(
-                    (e: vscode.TextEditor) => e.document.uri.path.includes(paramsFileName));
-            } while(undefined !== paramsEditorActive);
-
-        }
-
-        // Read saved/updated parameters and return to caller.
-        return readjson(paramsPath);
+        for (let key in params) { paramsJson[key] = params[key]; }
+        return paramsJson;
     }
 
     /**
@@ -315,16 +286,17 @@ export class PipelineJack extends JackBase {
             });
         });
     }
-
+    
     /**
      * Builds the targeted job with the provided Pipeline script/source.
      * @param source Scripted Pipeline source.
      * @param jobName The name of the job.
+      @param config The Pipeline Jack config for the file.
      * @returns The Jenkins job json object of the build, where nextBuildNumber
      *          represents the active build number.
      *          Undefined if cancellation or failure to complete flow.
      */
-    public async build(source: string, job: string) {
+    public async build(source: string, job: string, config: PipelineConfig) {
 
         if (undefined !== this.activeJob) {
             this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`);
@@ -353,7 +325,10 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 20, message: `Waiting on build paramter input...` });
             let params = {};
             try {
-                params = await this.buildParameterInput(currentJob, progress);
+                params = await this.buildParameterInput2(currentJob, config.params, progress);
+                config.params = params;
+                config.save();
+
             } catch (err) {
                 this.showWarningMessage(err.message);
                 return undefined;
@@ -380,5 +355,60 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 30, message: `Build is ready!` });
             return currentJob;
         });
+    }
+}
+
+class PipelineConfig {
+    public name: string;
+    public params: any;
+    private  path: string;
+
+    constructor(scriptPath: string) {
+        let parsed = path.parse(scriptPath);
+        let configFileName = `.${parsed.name}.config.json`;
+        this.path = path.join(parsed.dir, configFileName);
+
+        // If config doesn't exist, write out defaults.
+        if (!fs.existsSync(this.path)) {
+            this.name = parsed.name;
+            this.params = null;
+            this.save();
+            return;
+        }
+        let json = readjson(this.path);
+        this.name = json.name;
+        this.params = json.params;
+    }
+
+    toJSON(): any {
+        return {
+            name: this.name,
+            params: this.params
+        };
+    }
+
+    fromJSON(json: any): PipelineConfig {
+        let pc = Object.create(PipelineConfig.prototype);
+        return Object.assign(pc, json, {
+            name: json.name,
+            params: json.params
+        });
+    }
+
+    /**
+     * Saves the current pipeline configuration to disk.
+     */
+    public save() {
+        writejson(this.path, this);
+    }
+
+    /**
+     * Updates the class properties with the saved
+     * configuration values.
+     */
+    public update() {
+        let json = readjson(this.path);
+        this.name = json.name;
+        this.params = json.params;
     }
 }
