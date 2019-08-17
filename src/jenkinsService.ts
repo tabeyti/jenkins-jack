@@ -7,15 +7,32 @@ import { sleep } from './utils';
 
 export class JenkinsService {
     private config: any;
-    private jenkinsUri: string = 'http://127.0.0.1:8080';
+    private jenkinsUri: string;
 
     // @ts-ignore
     public client: any;
     private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
 
-    private static jsInstance: any;
+    public constructor(uri: string, username: string, password: string) {
 
-    private constructor() {
+        let protocol = 'http';
+        let host = uri;
+
+        let match = uri.match('(http|https)://(.*)');
+        if (null !== match && match.length === 3) {
+            protocol = match[1];
+            host = match[2];
+        }
+
+        this.jenkinsUri = `${protocol}://${username}:${password}@${host}`;
+        console.log(`Using the following URI for Jenkins client: ${this.jenkinsUri}`);
+
+        this.client = jenkins({
+            baseUrl: this.jenkinsUri,
+            crumbIssuer: false,
+            promisify: true
+        });
+
         this.updateSettings();
 
         vscode.workspace.onDidChangeConfiguration(event => {
@@ -25,37 +42,12 @@ export class JenkinsService {
         });
     }
 
-    public static instance(): JenkinsService {
-        if (undefined === JenkinsService.jsInstance) {
-            JenkinsService.jsInstance = new JenkinsService();
-        }
-        return JenkinsService.jsInstance;
-    }
-
     /**
      * Updates the settings for this service.
      */
     public updateSettings() {
         this.config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this.config.strictTls ? '1' : '0';
-
-        let protocol = 'http';
-        let host = this.config.uri;
-
-        let match = this.config.uri.match('(http|https)://(.*)');
-        if (null !== match && match.length === 3) {
-            protocol = match[1];
-            host = match[2];
-        }
-
-        this.jenkinsUri = `${protocol}://${this.config.username}:${this.config.password}@${host}`;
-        console.log(`Using the following URI for Jenkins client: ${this.jenkinsUri}`);
-
-        this.client = jenkins({
-            baseUrl: this.jenkinsUri,
-            crumbIssuer: false,
-            promisify: true
-        });
 
         // Will error if no connection can be made to the remote host
         this.client.info().then((data: any) => { console.log(data); }).catch((err: any) => {

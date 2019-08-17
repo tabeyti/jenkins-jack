@@ -32,7 +32,38 @@
     "configuration": [
       {
         "title": "Jenkins Jack configuration",
+        "type": "object",
         "properties": {
+          "jenkins-jack.jenkins.connections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "uri": {
+                  "type": "string",
+                  "default": "http://127.0.0.1:8080",
+                  "description": "The Jenkins root uri"
+                },
+                "username": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Username for authentication with Jenkins"
+                },
+                "password": {
+                  "type": "string",
+                  "default": "",
+                  "markdownDescription": "Password or API token to login to jenkins. Token can be found here: `[jenkins_url]/user/[username]/configure`"
+                },
+                "active": {
+                  "type": "boolean",
+                  "default": false,
+                  "markdownDescription": "Flag indicating if this host connection is targeted for use."
+                }
+              }
+            },
+            "default": [],
+            "markdownDescription": "List of jenkins connections (uri, username, and password) to target when running commands"
+          },
           "jenkins-jack.jenkins.uri": {
             "type": "string",
             "default": "127.0.0.1:8080",
@@ -103,6 +134,11 @@
       {
         "command": "extension.jenkins-jack.buildLog",
         "title": "Build Log Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.connections",
+        "title": "Jenkins Host Connections",
         "category": "Jenkins Jack"
       }
     ],

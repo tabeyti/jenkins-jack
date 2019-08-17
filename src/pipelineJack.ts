@@ -5,8 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 import { getPipelineJobConfig, readjson, writejson } from './utils';
-import { sleep } from './utils';
-import { JenkinsService } from './jenkinsService';
+import { JenkinsServiceManager } from './jenkinsServiceManager';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 
@@ -17,7 +16,7 @@ export class PipelineJack extends JackBase {
     private cachedJob?: any;
     private activeJob?: any;
     private readonly sharedLib: SharedLibApiManager;
-    private readonly jenkins: JenkinsService;
+    private readonly jenkins: JenkinsServiceManager;
     private readonly messageItem: vscode.MessageItem = {
         title: 'Okay'
     };
@@ -30,7 +29,7 @@ export class PipelineJack extends JackBase {
                 this.updateSettings();
             }
         });
-        this.jenkins = JenkinsService.instance();
+        this.jenkins = JenkinsServiceManager.instance();
         this.sharedLib = SharedLibApiManager.instance();
     }
 
@@ -92,8 +91,6 @@ export class PipelineJack extends JackBase {
 
         let config = new PipelineConfig(groovyScriptPath);
 
-        // var config = await this.getPipelineConfig(groovyScriptPath);
-
         // Grab filename to use as the Jenkins job name.
         var jobName = path.parse(path.basename(editor.document.fileName)).name;
 
@@ -106,7 +103,7 @@ export class PipelineJack extends JackBase {
         if (undefined === this.activeJob) { return; }
 
         // Stream the output. Yep.
-        await this.jenkins.streamBuildOutput(
+        await this.jenkins.host.streamBuildOutput(
             this.activeJob.fullName,
             this.activeJob.nextBuildNumber,
             this.outputChannel);
@@ -120,7 +117,7 @@ export class PipelineJack extends JackBase {
      */
     public async abortPipeline() {
         if (undefined === this.activeJob) { return; }
-        await this.jenkins.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
+        await this.jenkins.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
         this.activeJob = undefined;
     }
 
@@ -153,10 +150,10 @@ export class PipelineJack extends JackBase {
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
             if (undefined === this.cachedJob) {
-                this.jenkins.openBrowserAt(`pipeline-syntax/globals#${result.label}`);
+                this.jenkins.host.openBrowserAt(`pipeline-syntax/globals#${result.label}`);
             }
             else {
-                this.jenkins.openBrowserAt(`job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`);
+                this.jenkins.host.openBrowserAt(`job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`);
             }
         }
         else {
@@ -178,12 +175,12 @@ export class PipelineJack extends JackBase {
      */
     public async createUpdate(source: string, jobName: string): Promise<any> {
         let xml = getPipelineJobConfig();
-        let job = await this.jenkins.getJob(jobName);
+        let job = await this.jenkins.host.getJob(jobName);
 
         // If job already exists, grab the job config xml from Jenkins.
         if (job) {
             // Grab job's xml configuration.
-            xml = await this.jenkins.client.job.config(jobName).then((data: any) => {
+            xml = await this.jenkins.host.client.job.config(jobName).then((data: any) => {
                 return data;
             }).catch((err: any) => {
                 // TODO: Handle better
@@ -205,11 +202,11 @@ export class PipelineJack extends JackBase {
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
-            job = await this.jenkins.client.job.create(jobName, xml);
+            job = await this.jenkins.host.client.job.create(jobName, xml);
         }
         else {
             console.log(`${jobName} already exists. Updating...`);
-            await this.jenkins.client.job.config(jobName, xml);
+            await this.jenkins.host.client.job.config(jobName, xml);
         }
         console.log(`Successfully updated Pipeline: ${jobName}`);
         return job;
@@ -238,12 +235,6 @@ export class PipelineJack extends JackBase {
         if (undefined === vscode.window.activeTextEditor) {
             throw new Error("No active editor to grab document path.");
         }
-        let groovyScriptPath = vscode.window.activeTextEditor.document.uri.fsPath;
-
-        // Generate params path.
-        let parsed = path.parse(groovyScriptPath);
-        let paramsFileName = `.${parsed.name}.params.json`;
-        let paramsPath = path.join(parsed.dir, paramsFileName);
 
         // Gather parameter name/default-value json.
         let paramsJson: any = {};
@@ -286,7 +277,7 @@ export class PipelineJack extends JackBase {
             });
         });
     }
-    
+
     /**
      * Builds the targeted job with the provided Pipeline script/source.
      * @param source Scripted Pipeline source.
@@ -338,7 +329,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 20, message: `Building "${jobName} #${buildNum}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
-            await this.jenkins.client.job.build(buildOptions).catch((err: any) => {
+            await this.jenkins.host.client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
@@ -347,7 +338,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 30, message: `Waiting for build to be ready...` });
             try {
-                await this.jenkins.buildReady(jobName, buildNum);
+                await this.jenkins.host.buildReady(jobName, buildNum);
             } catch (err) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
                 return undefined;

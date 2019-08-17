@@ -74,6 +74,22 @@ export function activate(context: vscode.ExtensionContext) {
 	});
     context.subscriptions.push(jacksCommands);
 
+    // Backwards compat jenkins connection settings:
+    // Takes previous jenkins connection values (uri, username, password) and
+    // assigns it as the first entry in the jenkins-jack.jenkins.connections array
+    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+
+    if (0 === jenkinsConfig.connections.length) {
+        let conns = [
+            {
+                "uri": jenkinsConfig.uri,
+                "username": jenkinsConfig.username,
+                "password": jenkinsConfig.password
+            }
+        ]
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
+    }
+
     console.log('Extension Jenkins Jack now active!');
 }
 

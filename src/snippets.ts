@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { PipelineStepDoc } from './stepdoc';
-import { JenkinsService } from './jenkinsService';
+import { JenkinsServiceManager } from './jenkinsServiceManager';
 
 export class PipelineSnippets {
     public completionItems: Array<vscode.CompletionItem>;
@@ -21,7 +21,7 @@ export class PipelineSnippets {
             this.refresh();
         });
 
-        this.jenkins = JenkinsService.instance();
+        this.jenkins = JenkinsServiceManager.instance();
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
         this.refresh();
@@ -40,7 +40,7 @@ export class PipelineSnippets {
 
         // Parse each GDSL line for a 'method' signature.
         // This is a Pipeline Sep.
-        let gdsl = await this.jenkins.get('pipeline-syntax/gdsl');
+        let gdsl = await this.jenkins.host.get('pipeline-syntax/gdsl');
         if (undefined === gdsl) { return; }
 
         let lines = String(gdsl).split(/\r?\n/);
