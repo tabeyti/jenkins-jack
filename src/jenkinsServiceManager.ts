@@ -2,13 +2,12 @@ import * as vscode from 'vscode';
 import { JenkinsService } from './jenkinsService';
 
 export class JenkinsServiceManager {
-    public host: JenkinsService;
+    private host: JenkinsService;
  
     // @ts-ignore
     private static jsmInstance: JenkinsServiceManager;
 
     private constructor() {
-        this.host = new JenkinsService("127.0.0.1:8080", "", "");
         this.updateSettings();
 
         vscode.workspace.onDidChangeConfiguration(event => {
@@ -23,6 +22,10 @@ export class JenkinsServiceManager {
           JenkinsServiceManager.jsmInstance = new JenkinsServiceManager();
         }
         return JenkinsServiceManager.jsmInstance;
+    }
+
+    public static host(): JenkinsService {
+        return JenkinsServiceManager.instance().host;
     }
 
     /**
