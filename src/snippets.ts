@@ -21,7 +21,11 @@ export class PipelineSnippets {
             this.refresh();
         });
 
-        this.jenkins = JenkinsServiceManager.instance();
+        try {
+            this.jenkins = JenkinsServiceManager.instance();
+        } catch (err) {
+            this.enabled = false;
+        }
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
         this.refresh();

@@ -1,3 +1,7 @@
+/**
+ * Provide link in "error dialog: you must select a jenkins connection to use this plugin"
+ */
+
 import * as vscode from 'vscode';
 import { PipelineJack } from './pipelineJack';
 import { PipelineSnippets } from './snippets';
@@ -7,6 +11,23 @@ import { Jack } from './jack';
 import { isGroovy } from './utils';
 
 export function activate(context: vscode.ExtensionContext) {
+
+    // Backwards compat jenkins connection settings:
+    // Takes previous jenkins connection values (uri, username, password) and
+    // assigns it as the first entry in the `jenkins-jack.jenkins.connections` array
+    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+
+    if (0 === jenkinsConfig.connections.length) {
+        let conns = [
+            {
+                "uri": jenkinsConfig.uri,
+                "username": jenkinsConfig.username,
+                "password": jenkinsConfig.password,
+                "active": true
+            }
+        ]
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
+    }
 
     var pipelineSnippets = new PipelineSnippets();
     let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
@@ -73,22 +94,6 @@ export function activate(context: vscode.ExtensionContext) {
         await result.target();
 	});
     context.subscriptions.push(jacksCommands);
-
-    // Backwards compat jenkins connection settings:
-    // Takes previous jenkins connection values (uri, username, password) and
-    // assigns it as the first entry in the jenkins-jack.jenkins.connections array
-    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-
-    if (0 === jenkinsConfig.connections.length) {
-        let conns = [
-            {
-                "uri": jenkinsConfig.uri,
-                "username": jenkinsConfig.username,
-                "password": jenkinsConfig.password
-            }
-        ]
-        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
-    }
 
     console.log('Extension Jenkins Jack now active!');
 }

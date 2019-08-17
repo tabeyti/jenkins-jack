@@ -64,21 +64,6 @@
             "default": [],
             "markdownDescription": "List of jenkins connections (uri, username, and password) to target when running commands"
           },
-          "jenkins-jack.jenkins.uri": {
-            "type": "string",
-            "default": "127.0.0.1:8080",
-            "description": "Your Jenkins root uri"
-          },
-          "jenkins-jack.jenkins.username": {
-            "type": "string",
-            "default": "",
-            "description": "Username for authentication with Jenkins"
-          },
-          "jenkins-jack.jenkins.password": {
-            "type": "string",
-            "default": "",
-            "description": "Password or API token to login to jenkins. Token can be found here: [jenkins_url]/user/[username]/configure"
-          },
           "jenkins-jack.jenkins.strictTls": {
             "type": "boolean",
             "default": false,
