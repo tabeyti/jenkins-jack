@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { JenkinsService } from "./jenkinsService";
+import { JenkinsServiceManager } from "./jenkinsServiceManager";
 import { JackBase } from './jack';
 
 export class ScriptConsoleJack extends JackBase {
-    private readonly jenkins: JenkinsService;
+    private readonly jenkins: JenkinsServiceManager;
 
     constructor() {
         super('Script Console Jack');
-        this.jenkins = JenkinsService.instance();
+        this.jenkins = JenkinsServiceManager.instance();
     }
 
     public getCommands(): any[] {
@@ -35,7 +35,7 @@ export class ScriptConsoleJack extends JackBase {
     }
 
     public async execute(source: string) {
-        let nodes = await this.jenkins.getNodes();
+        let nodes = await this.jenkins.host.getNodes();
         nodes = nodes.filter((n: any) => n.displayName !== 'master');
 
         if (undefined === nodes) { return; }
@@ -107,13 +107,13 @@ export class ScriptConsoleJack extends JackBase {
                 let promise = undefined;
                 if ('System' === m) {
                     promise = new Promise(async (resolve) => {
-                        let result = await this.jenkins.runConsoleScript(source, undefined, token);
+                        let result = await this.jenkins.host.runConsoleScript(source, undefined, token);
                         return resolve({ node: 'System', output: result });
                     });
                 }
                 else {
                     promise = new Promise(async (resolve) => {
-                        let result = await this.jenkins.runConsoleScript(source, m, token);
+                        let result = await this.jenkins.host.runConsoleScript(source, m, token);
                         return resolve({ node: m, output: result });
                     });
                 }
