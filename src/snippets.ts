@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { PipelineStepDoc } from './stepdoc';
-import { JenkinsServiceManager } from './jenkinsServiceManager';
+import { JenkinsHostManager } from './jenkinsHostManager';
 
 export class PipelineSnippets {
     public completionItems: Array<vscode.CompletionItem>;
@@ -22,7 +22,7 @@ export class PipelineSnippets {
         });
 
         try {
-            this.jenkins = JenkinsServiceManager.instance();
+            this.jenkins = JenkinsHostManager.instance();
         } catch (err) {
             this.enabled = false;
         }

@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { JenkinsService } from './jenkinsService';
 
-export class JenkinsServiceManager {
+export class JenkinsHostManager {
     private host: JenkinsService;
  
     // @ts-ignore
-    private static jsmInstance: JenkinsServiceManager;
+    private static jsmInstance: JenkinsHostManager;
 
     private constructor() {
         this.updateSettings();
@@ -17,15 +17,15 @@ export class JenkinsServiceManager {
         });
     }
 
-    public static instance(): JenkinsServiceManager {
-        if (undefined === JenkinsServiceManager.jsmInstance) {
-          JenkinsServiceManager.jsmInstance = new JenkinsServiceManager();
+    public static instance(): JenkinsHostManager {
+        if (undefined === JenkinsHostManager.jsmInstance) {
+          JenkinsHostManager.jsmInstance = new JenkinsHostManager();
         }
-        return JenkinsServiceManager.jsmInstance;
+        return JenkinsHostManager.jsmInstance;
     }
 
     public static host(): JenkinsService {
-        return JenkinsServiceManager.instance().host;
+        return JenkinsHostManager.instance().host;
     }
 
     /**
