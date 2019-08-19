@@ -1,5 +1,6 @@
 /**
  * Provide link in "error dialog: you must select a jenkins connection to use this plugin"
+ * When there are no hosts to select in the command, open settings for user to add a host.
  */
 
 import * as vscode from 'vscode';
@@ -9,6 +10,7 @@ import { ScriptConsoleJack } from './scriptConsoleJack';
 import { BuildLogJack } from './buildLogJack';
 import { Jack } from './jack';
 import { isGroovy } from './utils';
+import { JenkinsHostManager } from './jenkinsHostManager';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -87,6 +89,13 @@ export function activate(context: vscode.ExtensionContext) {
         for (let j of jacks) {
             commands = commands.concat(j.getCommands());
         }
+
+        // Add in host selection command
+        commands.push({
+            label: "$(settings)  Host Selection",
+            description: "Select a jenkins host to connect to.",
+            target: async () => await JenkinsHostManager.instance().selectConnection()
+        })
 
         // Display full list of all commands and execute selected target.
         let result = await vscode.window.showQuickPick(commands);

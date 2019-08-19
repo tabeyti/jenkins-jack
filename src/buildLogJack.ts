@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { JackBase } from './jack';
-import { JenkinsServiceManager } from './jenkinsServiceManager';
+import { JenkinsHostManager } from './jenkinsHostManager';
 
 export class BuildLogJack extends JackBase {
     
@@ -22,7 +22,7 @@ export class BuildLogJack extends JackBase {
      * the selected job.
      */
     public async download() {
-        let jobs = await JenkinsServiceManager.host().getJobs(undefined);
+        let jobs = await JenkinsHostManager.host().getJobs(undefined);
         if (undefined === jobs) { return; }
         for (let job of jobs) {
             job.label = job.fullName;
@@ -33,11 +33,11 @@ export class BuildLogJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsServiceManager.host().getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await JenkinsHostManager.host().getBuildNumbersFromUrl(job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers);
         if (undefined === buildNumber) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await JenkinsServiceManager.host().streamBuildOutput(job.label, parseInt(buildNumber), this.outputPanel);
+        await JenkinsHostManager.host().streamBuildOutput(job.label, parseInt(buildNumber), this.outputPanel);
     }
 }
