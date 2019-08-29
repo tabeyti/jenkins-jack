@@ -211,11 +211,9 @@ export class PipelineJack extends JackBase {
     }
 
     /**
-     * Handles the build parameter input flow for a Pipeline job
-     * and the creation/updating of the associated *.params.json
-     * file for the active editor's groovy file.
+     * Handles the build parameter input flow for pipeline execution.
      * @param job The jenkins Pipeline job json object.
-     * @param config The Pipeline Jack job config.
+     * @param params The Pipeline Jack job config parameters.
      * @returns A parameters key/value json object.
      *          Undefined if job has no parameters.
      *          An empty json if parameters are disabled.
@@ -237,12 +235,19 @@ export class PipelineJack extends JackBase {
         // Gather parameter name/default-value json.
         let paramsJson: any = {};
         for (let p of paramProperty.parameterDefinitions) {
-            paramsJson[p.name] = p.defaultParameterValue.value;
+            // We choose empty string as default as that will cover the proper default for
+            // most build parameters.
+            paramsJson[p.name] = p.defaultParameterValue && p.defaultParameterValue.value || '';
         }
 
         // If there are existing parameters for this job, update the job's
         // defaults with the saved values.
-        for (let key in params) { paramsJson[key] = params[key]; }
+        if (null !== params) {
+            for (let key in params) {
+                // Disallow null parameter values
+                paramsJson[key] = params[key] !== null ? params[key] : '';
+            }
+        }
         return paramsJson;
     }
 
