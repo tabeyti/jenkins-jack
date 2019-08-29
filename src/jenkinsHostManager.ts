@@ -3,7 +3,7 @@ import { JenkinsService } from './jenkinsService';
 
 export class JenkinsHostManager {
     private host: JenkinsService;
- 
+
     // @ts-ignore
     private static jsmInstance: JenkinsHostManager;
 
@@ -62,5 +62,7 @@ export class JenkinsHostManager {
         if (undefined === result) { return undefined; }
 
         this.host = new JenkinsService(result.target.uri, result.target.username, result.target.password);
+
+        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${result.target.uri}`);
     }
 }
