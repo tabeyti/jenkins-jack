@@ -3,7 +3,7 @@ import { JackBase } from './jack';
 import { JenkinsHostManager } from './jenkinsHostManager';
 
 export class BuildLogJack extends JackBase {
-    
+
     constructor() {
         super('Build Log Jack');
     }
@@ -34,10 +34,10 @@ export class BuildLogJack extends JackBase {
 
         // Ask what build they want to download.
         let buildNumbers = await JenkinsHostManager.host().getBuildNumbersFromUrl(job.url);
-        let buildNumber = await vscode.window.showQuickPick(buildNumbers);
+        let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await JenkinsHostManager.host().streamBuildOutput(job.label, parseInt(buildNumber), this.outputPanel);
+        await JenkinsHostManager.host().streamBuildOutput(job.label, buildNumber.target, this.outputChannel);
     }
 }
