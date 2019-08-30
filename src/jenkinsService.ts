@@ -50,7 +50,7 @@ export class JenkinsService {
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this.config.strictTls ? '1' : '0';
 
         // Will error if no connection can be made to the remote host
-        this.client.info().then((data: any) => { console.log(data); }).catch((err: any) => {
+        this.client.info().catch((err: any) => {
             vscode.window.showWarningMessage(this.cantConnectMessage);
         });
     }
@@ -160,7 +160,7 @@ export class JenkinsService {
                         prefix = "$(alert)";
                         break;
                 }
-                return { label: String(`${prefix} ${n.number}`) };
+                return { label: String(`${prefix} ${n.number}`), target: n.number };
             });
         } catch (err) {
             console.log(err);
@@ -237,13 +237,13 @@ export class JenkinsService {
         outputChannel.show();
         outputChannel.clear();
         outputChannel.appendLine(barrierLine);
-        outputChannel.appendLine(`Streaming console ouptput...`);
+        outputChannel.appendLine(`Streaming console output...`);
         outputChannel.appendLine(barrierLine);
 
         // Stream the output.
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Streaming output for ${jobName} #2${buildNumber}`,
+            title: `Streaming output for ${jobName} ${buildNumber}`,
             cancellable: true
         }, async (progress: any, token: any) => {
             token.onCancellationRequested(() => {
@@ -268,15 +268,15 @@ export class JenkinsService {
 
                 log.on('error', (err: string) => {
                     if (token.isCancellationRequested) { return; }
-                    outputChannel.appendLine(`[ERROR]: ${err}`);
+                    console.log(`[ERROR]: ${err}`);
                     resolve();
                 });
 
                 log.on('end', () => {
                     if (token.isCancellationRequested) { return; }
-                    outputChannel.appendLine(barrierLine);
-                    outputChannel.appendLine('Console stream ended.');
-                    outputChannel.appendLine(barrierLine);
+                    // outputChannel.appendLine(barrierLine);
+                    // outputChannel.appendLine('Console stream ended.');
+                    // outputChannel.appendLine(barrierLine);
                     resolve();
                 });
             });

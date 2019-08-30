@@ -285,7 +285,7 @@ export class PipelineJack extends JackBase {
      * Builds the targeted job with the provided Pipeline script/source.
      * @param source Scripted Pipeline source.
      * @param jobName The name of the job.
-      @param config The Pipeline Jack config for the file.
+     * @param config The Pipeline Jack config for the file.
      * @returns The Jenkins job json object of the build, where nextBuildNumber
      *          represents the active build number.
      *          Undefined if cancellation or failure to complete flow.
