@@ -274,9 +274,6 @@ export class JenkinsService {
 
                 log.on('end', () => {
                     if (token.isCancellationRequested) { return; }
-                    // outputChannel.appendLine(barrierLine);
-                    // outputChannel.appendLine('Console stream ended.');
-                    // outputChannel.appendLine(barrierLine);
                     resolve();
                 });
             });

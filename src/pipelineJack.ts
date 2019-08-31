@@ -200,7 +200,8 @@ export class PipelineJack extends JackBase {
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
-            job = await JenkinsHostManager.host().client.job.create(jobName, xml);
+            await JenkinsHostManager.host().client.job.create(jobName, xml);
+            job = await JenkinsHostManager.host().getJob(jobName);
         }
         else {
             console.log(`${jobName} already exists. Updating...`);
