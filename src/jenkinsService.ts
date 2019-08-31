@@ -148,19 +148,19 @@ export class JenkinsService {
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.builds.map((n: any) => {
-                let prefix = "";
+                let buildStatus = "";
                 switch(n.result) {
                     case "SUCCESS":
-                        prefix = "$(check)";
+                        buildStatus = "$(check)";
                         break;
                     case "FAILURE":
-                        prefix = "$(x)";
+                        buildStatus = "$(x)";
                         break;
                     case "ABORTED":
-                        prefix = "$(alert)";
+                        buildStatus = "$(alert)";
                         break;
                 }
-                return { label: String(`${prefix} ${n.number}`), target: n.number };
+                return { label: String(`${n.number} ${buildStatus}`), target: n.number };
             });
         } catch (err) {
             console.log(err);
@@ -233,12 +233,8 @@ export class JenkinsService {
         buildNumber: number,
         outputChannel: vscode.OutputChannel) {
 
-        let barrierLine = '-'.repeat(80);
         outputChannel.show();
         outputChannel.clear();
-        outputChannel.appendLine(barrierLine);
-        outputChannel.appendLine(`Streaming console output...`);
-        outputChannel.appendLine(barrierLine);
 
         // Stream the output.
         await vscode.window.withProgress({
