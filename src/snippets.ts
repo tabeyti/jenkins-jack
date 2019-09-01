@@ -4,30 +4,30 @@ import { JenkinsHostManager } from './jenkinsHostManager';
 
 export class PipelineSnippets {
     public completionItems: Array<vscode.CompletionItem>;
-
     private enabled: Boolean;
     private stepDocs: Array<PipelineStepDoc>;
-    private readonly jenkins: any;
 
     /**
      * Constructor.
      */
     constructor() {
-        let config = vscode.workspace.getConfiguration('jenkins-jack.snippets');
-        this.enabled = config.enabled;
+
         vscode.workspace.onDidChangeConfiguration(event => {
-            let config = vscode.workspace.getConfiguration('jenkins-jack.snippets');
-            this.enabled = config.enabled;
-            this.refresh();
+            if (event.affectsConfiguration('jenkins-jack.snippets') ||
+                event.affectsConfiguration('jenkins-jack.jenkins.connections')) {
+                this.updateSettings();
+            }
         });
 
-        try {
-            this.jenkins = JenkinsHostManager.instance();
-        } catch (err) {
-            this.enabled = false;
-        }
+        this.updateSettings();
+    }
+
+    public updateSettings() {
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();
+
+        let config = vscode.workspace.getConfiguration('jenkins-jack.snippets');
+        this.enabled = config.enabled;
         this.refresh();
     }
 
@@ -44,7 +44,7 @@ export class PipelineSnippets {
 
         // Parse each GDSL line for a 'method' signature.
         // This is a Pipeline Sep.
-        let gdsl = await this.jenkins.host.get('pipeline-syntax/gdsl');
+        let gdsl = await JenkinsHostManager.host().get('pipeline-syntax/gdsl');
         if (undefined === gdsl) { return; }
 
         let lines = String(gdsl).split(/\r?\n/);

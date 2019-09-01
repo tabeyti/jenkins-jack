@@ -39,6 +39,10 @@
             "items": {
               "type": "object",
               "properties": {
+                "name": {
+                  "type": "string",
+                  "default": ""
+                },
                 "uri": {
                   "type": "string",
                   "default": "http://127.0.0.1:8080",
