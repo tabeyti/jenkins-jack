@@ -51,9 +51,11 @@ export class JenkinsHostManager {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         let hosts = []
         for (let c of config.connections) {
+            let activeIcon = c.active ? "$(primitive-dot)" : "$(dash)";
+
             hosts.push({
-                label: c.uri,
-                description: c.username,
+                label: `${activeIcon} ${c.name}`,
+                description: `${c.uri} (${c.username})`,
                 target: c
             })
         }
@@ -63,6 +65,14 @@ export class JenkinsHostManager {
 
         this.host = new JenkinsService(result.target.uri, result.target.username, result.target.password);
 
+        // Update settings with active host.
+        for (let c of config.connections) {
+            c.active  = (result.target.name === c.name &&
+                result.target.uri === c.uri &&
+                result.target.username === c.username &&
+                result.target.password === c.password);
+        }
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
         vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${result.target.uri}`);
     }
 }
