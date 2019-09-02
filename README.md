@@ -23,9 +23,21 @@ Any `groovy` file in the editor will have these completions. This feature can be
 |Build Log|Allows the user to select a job and build to pull a log from the Jenkins host.|`extension.jenkins-jack.buildLog`|
 
 ## Setup
-Jenkins Jack works by hooking into the user's running Jenkins instance via the Jenkins Remote API. Before you can use the plugin, you must fill in the extension settings to point to your remote Jenkins host/server.
+Jenkins Jack works by hooking into the user's running Jenkins instance via the Jenkins Remote API. Before you can use the plugin, you must fill in the extension settings to point to a Jenkins host(s) in `settings.json`:
 
-You can find these by opening VSCode's settings (`ctrl+,`) and searching for `Jenkins Jack`.
+```json
+"jenkins-jack.jenkins.connections": [
+    {
+        "name": "localhost",
+        "uri": "http://localhost:8080",
+        "username": "drapplesauce",
+        "password": "217287g126721687162f76f387fdsy7",
+        "active": true
+    }
+]
+```
+
+You can get to this via the Settings UI (`ctrl+,`) and searching for `Jenkins Jack Connections`.
 
 ## Use
 
