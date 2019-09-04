@@ -11,6 +11,7 @@ import { BuildLogJack } from './buildLogJack';
 import { Jack } from './jack';
 import { isGroovy } from './utils';
 import { JenkinsHostManager } from './jenkinsHostManager';
+import { NodeJack } from './nodeJack';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -81,6 +82,19 @@ export function activate(context: vscode.ExtensionContext) {
         }
 	});
     context.subscriptions.push(buildLogDisposable);
+
+    let nodeJack = new NodeJack();
+    jacks.push(nodeJack);
+	let nodeDisposable = vscode.commands.registerCommand('extension.jenkins-jack.node', async () => {
+        if (!isGroovy()) { return; }
+
+		try {
+            await nodeJack.displayCommands();
+        } catch (err) {
+            vscode.window.showWarningMessage('Could not display Node commands.');
+        }
+	});
+    context.subscriptions.push(nodeDisposable);
 
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
         if (!isGroovy()) { return; }
