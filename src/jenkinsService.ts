@@ -6,11 +6,11 @@ import * as opn from 'open';
 import { sleep } from './utils';
 
 export class JenkinsService {
-    private config: any;
-    private jenkinsUri: string;
-
     // @ts-ignore
     public client: any;
+
+    private config: any;
+    private jenkinsUri: string;
     private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
 
     public constructor(uri: string, username: string, password: string) {
