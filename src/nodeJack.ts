@@ -26,13 +26,13 @@ export class NodeJack extends JackBase {
     /**
      * Handles an input flow for performing and action on targeted nodes.
      * @param onNodeAction Async callback that runs an action on a node
-     * label and returns output. 
+     * label and returns output.
      * @param filter Optional filter on a jenkins API node.
      */
     public async onNodes(
         onNodeAction: (node: string) => Promise<string>,
         filter: ((node: any) => boolean) | undefined = undefined): Promise<any> {
-            
+
         let nodes = await JenkinsHostManager.host().getNodes();
         if (undefined !== filter) {
             nodes = nodes.filter(filter);
@@ -89,6 +89,9 @@ export class NodeJack extends JackBase {
         });
     }
 
+    /**
+     * Sets selected offline nodes and marks them online.
+     */
     public async setOnline() {
 
         await this.onNodes(async (label: string) => {
