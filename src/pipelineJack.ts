@@ -37,7 +37,7 @@ export class PipelineJack extends JackBase {
         // Displayed commands altered by active pipeline build.
         if (undefined === this.activeJob) {
             commands.push({
-                label: "$(triangle-right)  Pipeline: Execute",
+                label: "$(play)  Pipeline: Execute",
                 description: "Executes the current groovy file as a pipeline job.",
                 target: async () => await this.executePipeline(),
             });

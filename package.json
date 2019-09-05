@@ -126,6 +126,11 @@
         "category": "Jenkins Jack"
       },
       {
+        "command": "extension.jenkins-jack.node",
+        "title": "Node Jack",
+        "category": "Jenkins Jack"
+      },
+      {
         "command": "extension.jenkins-jack.connections",
         "title": "Jenkins Host Connections",
         "category": "Jenkins Jack"
