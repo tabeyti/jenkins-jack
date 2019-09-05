@@ -177,7 +177,7 @@ export class JenkinsService {
      */
     public async getJobsFromUrl(rootUrl: string) {
         try {
-            rootUrl = rootUrl !== undefined ? this.jenkinsUri : rootUrl;
+            rootUrl = rootUrl === undefined ? this.jenkinsUri : rootUrl;
             rootUrl = this.fromUrlFormat(rootUrl);
             let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
             let r = await request.get(url);
