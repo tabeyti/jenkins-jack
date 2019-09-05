@@ -10,7 +10,7 @@ export class ScriptConsoleJack extends JackBase {
 
     public getCommands(): any[] {
         return [{
-            label: "$(triangle-right)  Script Console: Execute",
+            label: "$(terminal)  Script Console: Execute",
             description: "Executes the current view's groovy script as a system/node console script (script console).",
             target: async () => await this.executeScriptConsole(),
         }];
