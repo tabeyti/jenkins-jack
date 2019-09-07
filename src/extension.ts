@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { PipelineJack } from './pipelineJack';
 import { PipelineSnippets } from './snippets';
 import { ScriptConsoleJack } from './scriptConsoleJack';
-import { BuildLogJack } from './buildLogJack';
+import { BuildJack } from './buildJack';
 import { Jack } from './jack';
 import { isGroovy } from './utils';
 import { JenkinsHostManager } from './jenkinsHostManager';
@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
     let jacks: Jack[] = [];
     jacks.push(registerJack(new PipelineJack(),        'extension.jenkins-jack.pipeline',      context));
     jacks.push(registerJack(new ScriptConsoleJack(),   'extension.jenkins-jack.scriptConsole', context));
-    jacks.push(registerJack(new BuildLogJack(),        'extension.jenkins-jack.buildLog',      context));
+    jacks.push(registerJack(new BuildJack(),           'extension.jenkins-jack.build',         context));
     jacks.push(registerJack(new NodeJack(),            'extension.jenkins-jack.node',          context));
     jacks.push(registerJack(new JobJack(),             'extension.jenkins-jack.job',           context));
 
