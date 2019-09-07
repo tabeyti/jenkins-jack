@@ -131,6 +131,11 @@
         "category": "Jenkins Jack"
       },
       {
+        "command": "extension.jenkins-jack.job",
+        "title": "Job Jack",
+        "category": "Jenkins Jack"
+      },
+      {
         "command": "extension.jenkins-jack.connections",
         "title": "Jenkins Host Connections",
         "category": "Jenkins Jack"
