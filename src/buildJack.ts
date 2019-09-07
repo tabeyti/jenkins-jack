@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { JackBase } from './jack';
 import { JenkinsHostManager } from './jenkinsHostManager';
 
-export class BuildLogJack extends JackBase {
+export class BuildJack extends JackBase {
 
     constructor() {
         super('Build Log Jack');
@@ -10,9 +10,9 @@ export class BuildLogJack extends JackBase {
 
     public getCommands(): any[] {
         return [{
-                label: "$(cloud-download)  Build Log: Download",
+                label: "$(cloud-download)  Build: Log Download",
                 description: "Select a job and build to download the log.",
-                target: async () => await this.download()
+                target: async () => await this.downloadLog()
         }];
     }
 
@@ -21,7 +21,7 @@ export class BuildLogJack extends JackBase {
      * of jobs to select from, and then a list of build numbers for
      * the selected job.
      */
-    public async download() {
+    public async downloadLog() {
         let jobs = await JenkinsHostManager.host().getJobs(undefined);
         if (undefined === jobs) { return; }
         for (let job of jobs) {

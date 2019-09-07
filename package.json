@@ -121,7 +121,7 @@
         "category": "Jenkins Jack"
       },
       {
-        "command": "extension.jenkins-jack.buildLog",
+        "command": "extension.jenkins-jack.build",
         "title": "Build Log Jack",
         "category": "Jenkins Jack"
       },
