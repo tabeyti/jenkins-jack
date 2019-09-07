@@ -12,6 +12,7 @@ import { Jack } from './jack';
 import { isGroovy } from './utils';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { NodeJack } from './nodeJack';
+import { JobJack } from './jobJack';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -32,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
     }
 
+    // Register Pipeline snippet definitions.
     var pipelineSnippets = new PipelineSnippets();
     let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
         provideCompletionItems(
@@ -44,57 +46,13 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
+    // Initialize the Jacks and their respective commands.
     let jacks: Jack[] = [];
-
-    let pipelineJack = new PipelineJack();
-    jacks.push(pipelineJack);
-	let pipelineDisposable = vscode.commands.registerCommand('extension.jenkins-jack.pipeline', async () => {
-        if (!isGroovy()) { return; }
-		try {
-            await pipelineJack.displayCommands();
-        } catch (err) {
-            vscode.window.showWarningMessage('Could not display Pipeline commands.');
-        }
-	});
-    context.subscriptions.push(pipelineDisposable);
-
-    let scriptConsoleJack = new ScriptConsoleJack();
-    jacks.push(scriptConsoleJack);
-	let scriptConsoleDisposable = vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole', async () => {
-        if (!isGroovy()) { return; }
-
-		try {
-            await scriptConsoleJack.displayCommands();
-        } catch (err) {
-            vscode.window.showWarningMessage('Could not display Script Console commands.');
-        }
-	});
-    context.subscriptions.push(scriptConsoleDisposable);
-
-    let buildLogJack = new BuildLogJack();
-    jacks.push(buildLogJack);
-	let buildLogDisposable = vscode.commands.registerCommand('extension.jenkins-jack.buildLog', async () => {
-        if (!isGroovy()) { return; }
-		try {
-            await buildLogJack.displayCommands();
-        } catch (err) {
-            vscode.window.showWarningMessage('Could not display Build Log commands.');
-        }
-	});
-    context.subscriptions.push(buildLogDisposable);
-
-    let nodeJack = new NodeJack();
-    jacks.push(nodeJack);
-	let nodeDisposable = vscode.commands.registerCommand('extension.jenkins-jack.node', async () => {
-        if (!isGroovy()) { return; }
-
-		try {
-            await nodeJack.displayCommands();
-        } catch (err) {
-            vscode.window.showWarningMessage('Could not display Node commands.');
-        }
-	});
-    context.subscriptions.push(nodeDisposable);
+    jacks.push(registerJack(new PipelineJack(),        'extension.jenkins-jack.pipeline',      context));
+    jacks.push(registerJack(new ScriptConsoleJack(),   'extension.jenkins-jack.scriptConsole', context));
+    jacks.push(registerJack(new BuildLogJack(),        'extension.jenkins-jack.buildLog',      context));
+    jacks.push(registerJack(new NodeJack(),            'extension.jenkins-jack.node',          context));
+    jacks.push(registerJack(new JobJack(),             'extension.jenkins-jack.job',           context));
 
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
         if (!isGroovy()) { return; }
@@ -102,6 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
         let commands: any[] = [];
         for (let j of jacks) {
             commands = commands.concat(j.getCommands());
+            commands.push({label: '$(dash)'.repeat(70), description: ''});
         }
 
         // Add in host selection command
@@ -113,12 +72,33 @@ export function activate(context: vscode.ExtensionContext) {
 
         // Display full list of all commands and execute selected target.
         let result = await vscode.window.showQuickPick(commands);
-        if (undefined === result) { return; }
+        if (undefined === result || undefined === result.target) { return; }
         await result.target();
 	});
     context.subscriptions.push(jacksCommands);
 
     console.log('Extension Jenkins Jack now active!');
+
+
+    /**
+     * Registers a jack command to display all sub-commands within that Jack.
+     */
+    function registerJack(
+        jack: Jack,
+        registerCommandString: string,
+        context: vscode.ExtensionContext) {
+
+        let disposable = vscode.commands.registerCommand(registerCommandString, async () => {
+            if (!isGroovy()) { return; }
+            try {
+                await jack.displayCommands();
+            } catch (err) {
+                vscode.window.showWarningMessage(`Could not display ${registerCommandString} commands.`);
+            }
+        });
+        context.subscriptions.push(disposable);
+        return jack;
+    }
 }
 
 export function deactivate() {}

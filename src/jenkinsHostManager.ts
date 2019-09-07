@@ -44,7 +44,7 @@ export class JenkinsHostManager {
             throw new Error("You must select a host connection to use the plugin's features");
         }
 
-        this.host = new JenkinsService(conn.uri, conn.username, conn.password);
+        this.host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
     }
 
     public async selectConnection() {
@@ -63,7 +63,7 @@ export class JenkinsHostManager {
         let result = await vscode.window.showQuickPick(hosts);
         if (undefined === result) { return undefined; }
 
-        this.host = new JenkinsService(result.target.uri, result.target.username, result.target.password);
+        this.host = new JenkinsService(result.target.name, result.target.uri, result.target.username, result.target.password);
 
         // Update settings with active host.
         for (let c of config.connections) {
