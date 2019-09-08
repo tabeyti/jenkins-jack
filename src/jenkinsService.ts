@@ -171,7 +171,25 @@ export class JenkinsService {
         }
     }
 
-
+    /**
+     * Deletes a build from Jenkins. "Found" status (302)
+     * is considered success.
+     * @param jobName The name of the job
+     * @param buildNumber The build number to delete
+     */
+    public async deleteBuild(jobName: string, buildNumber: any) {
+        try {
+            let url = `${this.jenkinsUri}/job/${jobName}/${buildNumber}/doDelete`;
+            await request.post(url);
+        } catch (err) {
+            if (302 == err.statusCode) {
+                return `${jobName} #${buildNumber} deleted`
+            }
+            console.log(err);
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+            return undefined;
+        }
+    }
 
     /**
      * Retrieves a list of Jenkins 'job' objects.

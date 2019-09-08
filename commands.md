@@ -28,12 +28,39 @@ Provies a searchable list of the available Pipeline Shared Library steps/vars. W
 
 Executes the current `groovy` file/script you are editing on the remote jenkins, targeting either the System (e.g. Manage Jenkins Script Console) or N number of nodes/slaves/agents/etc.
 
-## Build Log
+## Build
 
-### Download
+### Download Log
 
 Presents the user with a searchable list of Jenkins jobs retrieved from the remote server. 
 Upon selection of a job, a list of build numbers for that job will be presented for selection. The selection of a build will then stream the output to the user's Output panel.
+
+### Delete
+
+Presents the user with a searchable list of Jenkins jobs retrieved from the remote server. 
+Upon selection of a job, a list of build numbers for that job will be presented for the user to select for deletion for the remote Jenkins.
+
+## Job
+
+### Disable
+Presents the user with a searchable list of Jenkins buildable jobs retrieved from the remote server. Jobs selected will be disabled.
+
+### Enable
+Presents the user with a searchable list of disabled Jenkins jobs retrieved from the remote server. Jobs selected will be re-enabled.
+
+### Delete
+Presents the user with a searchable list of Jenkins jobs retrieved from the remote server. Jobs selected will be deleted.
+
+## Node
+
+### Set Offline
+Presents the user with a searchable list of active Jenkins nodes retrieved from the remote server. Nodes selected will be placed in an temporary Offline state.
+
+### Set Online
+Presents the user with a searchable list of offline Jenkins nodes retrieved from the remote server. Nodes selected will be re-enabled.
+
+### Disconnect
+Presents the user with a searchable list of Jenkins nodes retrieved from the remote server. Nodes selected will be disconnected.
 
 ## Host Selection
 
