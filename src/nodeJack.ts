@@ -28,6 +28,10 @@ export class NodeJack extends JackBase {
         ];
     }
 
+    /**
+     * Allows the user to select multiple offline nodes to be
+     * re-enabled.
+     */
     public async setOnline() {
         await this.onNodes(async (label: string) => {
             await JenkinsHostManager.host().client.node.enable(label);
@@ -35,6 +39,10 @@ export class NodeJack extends JackBase {
         }, (n: any) => n.displayName !== 'master' && n.offline);
     }
 
+    /**
+     * Allows the user to select multiple online nodes to 
+     * be set in a temporary offline status, with a message.
+     */
     public async setOffline() {
         let offlineMessage = await vscode.window.showInputBox({ prompt: 'Enter an offline message.' });
         if (undefined === offlineMessage) { return; }
@@ -45,6 +53,10 @@ export class NodeJack extends JackBase {
         }, (n: any) => n.displayName !== 'master' && !n.offline);
     }
 
+    /**
+     * Allows the user to select multiple nodes to be
+     * disconnected from the server.
+     */
     public async disconnect() {
         await this.onNodes(async (label: string) => {
             await JenkinsHostManager.host().client.node.disconnect(label);
@@ -73,6 +85,11 @@ export class NodeJack extends JackBase {
             n.description = n.offline ? "$(alert)" : "$(check)";
             n.target = n
         });
+
+        if (0 >= nodes.length) {
+            this.showInformationMessage('No nodes found outside of "master"');
+            return;
+        }
 
         let selections = await vscode.window.showQuickPick(nodes, { canPickMany: true }) as any;
         if (undefined === selections) { return; }
