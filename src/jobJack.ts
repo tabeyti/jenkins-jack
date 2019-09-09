@@ -31,21 +31,21 @@ export class JobJack extends JackBase {
     public async enable() {
         await this.onJob(async (job: string) => {
             await JenkinsHostManager.host().client.job.disable(job);
-            return `Job "${job} has been re-enabled`
+            return `"${job}" has been re-enabled`
         }, (j: any) => !j.buildable);
     }
 
     public async disable() {
         await this.onJob(async (job: string) => {
             await JenkinsHostManager.host().client.job.disable(job);
-            return `Job "${job} has been disabled`
+            return `"${job}" has been disabled`
         }, (j: any) => j.buildable);
     }
 
     public async delete() {
         await this.onJob(async (job: string) => {
             await JenkinsHostManager.host().client.job.destroy(job);
-            return `Job "${job} has been deleted`
+            return `"${job}" has been deleted`
         });
     }
 
