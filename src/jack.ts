@@ -22,7 +22,7 @@ export abstract class JackBase implements Jack {
     public abstract getCommands(): any[];
 
     public async displayCommands(): Promise<void> {
-        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Build Log Jack' });
+        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Jenkins Jack' });
         if (undefined === result) { return; }
         return result.target();
     }
