@@ -50,8 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
     let jacks: Jack[] = [];
     jacks.push(registerJack(new PipelineJack(),        'extension.jenkins-jack.pipeline',      context));
     jacks.push(registerJack(new ScriptConsoleJack(),   'extension.jenkins-jack.scriptConsole', context));
-    jacks.push(registerJack(new BuildJack(),           'extension.jenkins-jack.build',         context));
     jacks.push(registerJack(new NodeJack(),            'extension.jenkins-jack.node',          context));
+    jacks.push(registerJack(new BuildJack(),           'extension.jenkins-jack.build',         context));
     jacks.push(registerJack(new JobJack(),             'extension.jenkins-jack.job',           context));
 
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
