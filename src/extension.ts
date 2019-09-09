@@ -16,17 +16,17 @@ import { JobJack } from './jobJack';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    // Backwards compat jenkins connection settings:
-    // Takes previous jenkins connection values (uri, username, password) and
-    // assigns it as the first entry in the `jenkins-jack.jenkins.connections` array
+    // Applies default host or the legacy host connection info to the 
+    // list of jenkins hosts.
     let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
 
     if (0 === jenkinsConfig.connections.length) {
         let conns = [
             {
-                "uri": jenkinsConfig.uri,
-                "username": jenkinsConfig.username,
-                "password": jenkinsConfig.password,
+                "name": "default",
+                "uri": undefined === jenkinsConfig.uri ? 'http://127.0.0.1:8080' : jenkinsConfig.uri,
+                "username": undefined === jenkinsConfig.username ? 'default' : jenkinsConfig.username,
+                "password": undefined === jenkinsConfig.password ? 'default' : jenkinsConfig.password,
                 "active": true
             }
         ]
