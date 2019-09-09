@@ -11,16 +11,57 @@ export class NodeJack extends JackBase {
     public getCommands(): any[] {
         return [
             {
-                label: "$(pulse)  Node: Set Offline",
+                label: "$(stop)  Node: Set Offline",
                 description: "Mark targeted nodes offline with a message.",
                 target: async () => await this.setOffline()
             },
             {
-                label: "$(pulse)  Node: Set Online",
+                label: "$(check)  Node: Set Online",
                 description: "Mark targeted nodes online.",
                 target: async () => await this.setOnline()
+            },
+            {
+                label: "$(circle-slash)  Node: Disconnect",
+                description: "Disconnects targeted nodes from the host.",
+                target: async () => await this.disconnect()
             }
         ];
+    }
+
+    /**
+     * Allows the user to select multiple offline nodes to be
+     * re-enabled.
+     */
+    public async setOnline() {
+        await this.onNodes(async (label: string) => {
+            await JenkinsHostManager.host().client.node.enable(label);
+            return 'Node Online!'
+        }, (n: any) => n.displayName !== 'master' && n.offline);
+    }
+
+    /**
+     * Allows the user to select multiple online nodes to 
+     * be set in a temporary offline status, with a message.
+     */
+    public async setOffline() {
+        let offlineMessage = await vscode.window.showInputBox({ prompt: 'Enter an offline message.' });
+        if (undefined === offlineMessage) { return; }
+
+        await this.onNodes(async (label: string) => {
+            await JenkinsHostManager.host().client.node.disable(label, offlineMessage);
+            return 'Node Offline'
+        }, (n: any) => n.displayName !== 'master' && !n.offline);
+    }
+
+    /**
+     * Allows the user to select multiple nodes to be
+     * disconnected from the server.
+     */
+    public async disconnect() {
+        await this.onNodes(async (label: string) => {
+            await JenkinsHostManager.host().client.node.disconnect(label);
+            return 'Disconnected'
+        }, (n: any) => n.displayName !== 'master');
     }
 
     /**
@@ -29,7 +70,7 @@ export class NodeJack extends JackBase {
      * label and returns output.
      * @param filter Optional filter on a jenkins API node.
      */
-    public async onNodes(
+    private async onNodes(
         onNodeAction: (node: string) => Promise<string>,
         filter: ((node: any) => boolean) | undefined = undefined): Promise<any> {
 
@@ -45,12 +86,17 @@ export class NodeJack extends JackBase {
             n.target = n
         });
 
+        if (0 >= nodes.length) {
+            this.showInformationMessage('No nodes found outside of "master"');
+            return;
+        }
+
         let selections = await vscode.window.showQuickPick(nodes, { canPickMany: true }) as any;
         if (undefined === selections) { return; }
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Console Script(s)`,
+            title: `Node Jack Output(s)`,
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
@@ -87,30 +133,5 @@ export class NodeJack extends JackBase {
             }
             progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
         });
-    }
-
-    /**
-     * Sets selected offline nodes and marks them online.
-     */
-    public async setOnline() {
-
-        await this.onNodes(async (label: string) => {
-            await JenkinsHostManager.host().client.node.enable(label);
-            return 'Node Online!'
-        }, (n: any) => n.displayName !== 'master' && n.offline);
-    }
-
-    /**
-     * Sets selected nodes offline with an optional message.
-     */
-    public async setOffline() {
-
-        let offlineMessage = await vscode.window.showInputBox({ prompt: 'Enter an offline message.' });
-        if (undefined === offlineMessage) { return; }
-
-        await this.onNodes(async (label: string) => {
-            await JenkinsHostManager.host().client.node.disable(label, offlineMessage);
-            return 'Node Offline'
-        }, (n: any) => n.displayName !== 'master' && !n.offline);
     }
 }

@@ -8,12 +8,14 @@ import { sleep } from './utils';
 export class JenkinsService {
     // @ts-ignore
     public client: any;
+    public readonly name: string;
 
     private config: any;
     private jenkinsUri: string;
     private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
 
-    public constructor(uri: string, username: string, password: string) {
+    public constructor(name: string, uri: string, username: string, password: string) {
+        this.name = name;
 
         let protocol = 'http';
         let host = uri;
@@ -169,7 +171,25 @@ export class JenkinsService {
         }
     }
 
-
+    /**
+     * Deletes a build from Jenkins. "Found" status (302)
+     * is considered success.
+     * @param jobName The name of the job
+     * @param buildNumber The build number to delete
+     */
+    public async deleteBuild(jobName: string, buildNumber: any) {
+        try {
+            let url = `${this.jenkinsUri}/job/${jobName}/${buildNumber}/doDelete`;
+            await request.post(url);
+        } catch (err) {
+            if (302 == err.statusCode) {
+                return `${jobName} #${buildNumber} deleted`
+            }
+            console.log(err);
+            vscode.window.showWarningMessage(this.cantConnectMessage);
+            return undefined;
+        }
+    }
 
     /**
      * Retrieves a list of Jenkins 'job' objects.
@@ -179,7 +199,7 @@ export class JenkinsService {
         try {
             rootUrl = rootUrl === undefined ? this.jenkinsUri : rootUrl;
             rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=jobs[fullName,url,jobs[fullName,url,jobs[fullName,url]]]`;
+            let url = `${rootUrl}/api/json?tree=jobs[fullName,url,buildable,jobs[fullName,url,buildable,jobs[fullName,url,buildable]]]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.jobs;
