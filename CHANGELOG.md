@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to the "jenkins-jack" extension will be documented in this file.
 
+## 0.1.5
+
+* __Job Jack:__ Execute disable, enable, and delete operations on one or more targeted jobs.
+* __Node Jack:__ Execute set-online, set-offline, and disconnect operations on one or more targeted nodes.
+* __Build Jack:__ Stream syntax higlighted build logs or delete one or more builds from a targeted job.
+
+Fixed
+* Default host connection now populates with default values properly
+* Fixed conditional logic for retrieving build numbers via jenkins url
+
 ## 0.1.4
 
 * __Multiple Host Connection Support:__ Now supports multiple Jenkins host connections and the ability to swap between hosts (`ctrl+shift+j -> Host Selection`)
