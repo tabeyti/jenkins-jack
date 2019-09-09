@@ -28,6 +28,7 @@ Honestly, not that much more.
 * Build Jack
     * Download a build log
     * Delete multiple builds
+* Supports switching between Jenkins hosts for running commands
 * Pipeline (GDSL) auto-completions for `groovy` files
 
 ## Extension Commands (Jacks!)
