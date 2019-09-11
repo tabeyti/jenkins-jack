@@ -146,7 +146,7 @@ export class JenkinsService {
     public async getBuildNumbersFromUrl(rootUrl: string) {
         try {
             rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=builds[number,result]`;
+            let url = `${rootUrl}/api/json?tree=builds[number,result,description]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.builds.map((n: any) => {
@@ -162,7 +162,11 @@ export class JenkinsService {
                         buildStatus = "$(alert)";
                         break;
                 }
-                return { label: String(`${n.number} ${buildStatus}`), target: n.number };
+                return {
+                    label: String(`${n.number} ${buildStatus}`),
+                    description: n.description,
+                    target: n.number
+                };
             });
         } catch (err) {
             console.log(err);
