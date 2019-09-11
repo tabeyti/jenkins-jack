@@ -259,7 +259,7 @@ export class JenkinsService {
         // Stream the output.
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Streaming output for ${jobName} ${buildNumber}`,
+            title: `Streaming output for "${jobName}" #${buildNumber}`,
             cancellable: true
         }, async (progress: any, token: any) => {
             token.onCancellationRequested(() => {
