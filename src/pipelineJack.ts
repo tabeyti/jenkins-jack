@@ -331,7 +331,7 @@ export class PipelineJack extends JackBase {
 
             if (token.isCancellationRequested) { return undefined;  }
 
-            progress.report({ increment: 20, message: `Building "${jobName} #${buildNum}` });
+            progress.report({ increment: 20, message: `Building "${jobName}" #${buildNum}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
             await JenkinsHostManager.host().client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
