@@ -18,7 +18,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:groovy"
+    "*"
   ],
   "main": "./out/extension.js",
   "repository": {

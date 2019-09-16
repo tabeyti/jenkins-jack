@@ -9,7 +9,6 @@ import { PipelineSnippets } from './snippets';
 import { ScriptConsoleJack } from './scriptConsoleJack';
 import { BuildJack } from './buildJack';
 import { Jack } from './jack';
-import { isGroovy } from './utils';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
@@ -55,10 +54,11 @@ export function activate(context: vscode.ExtensionContext) {
     jacks.push(registerJack(new JobJack(),             'extension.jenkins-jack.job',           context));
 
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
-        if (!isGroovy()) { return; }
         // Build up command list from all the Jacks.
         let commands: any[] = [];
         for (let j of jacks) {
+            let cmds = j.getCommands();
+            if (0 === cmds.length) { continue; }
             commands = commands.concat(j.getCommands());
             commands.push({label: '$(dash)'.repeat(70), description: ''});
         }
@@ -89,7 +89,6 @@ export function activate(context: vscode.ExtensionContext) {
         context: vscode.ExtensionContext) {
 
         let disposable = vscode.commands.registerCommand(registerCommandString, async () => {
-            if (!isGroovy()) { return; }
             try {
                 await jack.displayCommands();
             } catch (err) {
