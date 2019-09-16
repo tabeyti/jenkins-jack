@@ -4,7 +4,7 @@ import * as util from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { getPipelineJobConfig, readjson, writejson } from './utils';
+import { getPipelineJobConfig, readjson, writejson, isGroovy } from './utils';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
@@ -33,6 +33,8 @@ export class PipelineJack extends JackBase {
 
     public getCommands(): any[] {
         let commands: any[] = [];
+
+        if (!isGroovy()) { return []; }
 
         // Displayed commands altered by active pipeline build.
         if (undefined === this.activeJob) {

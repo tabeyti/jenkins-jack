@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { JenkinsHostManager } from "./jenkinsHostManager";
 import { JackBase } from './jack';
+import { isGroovy } from './utils';
 
 export class ScriptConsoleJack extends JackBase {
 
@@ -9,6 +10,8 @@ export class ScriptConsoleJack extends JackBase {
     }
 
     public getCommands(): any[] {
+        if (!isGroovy()) { return []; }
+
         return [{
             label: "$(terminal)  Script Console: Execute",
             description: "Executes the current view's groovy script as a system/node console script (script console).",
