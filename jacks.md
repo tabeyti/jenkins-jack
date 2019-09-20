@@ -2,6 +2,8 @@
 
 ## Pipeline
 
+> __NOTE:__ This jack's commands are only visible when the view has the `groovy` language mode set. In order to execute a pipeline, you also must be editing a local file.
+
 ### Execute
 
 Builds the current Pipeline `groovy` file/script you are editing on your remote Jenkins, using the name of the file as the name of the job the extension will reference.
@@ -25,6 +27,8 @@ Aborts a streaming pipeline build (if one is active).
 Provies a searchable list of the available Pipeline Shared Library steps/vars. When a selection is made, the user will be presented with the markdown documentation of the step/var pulled and parsed from the remote Jenkins (no snippets currently).
 
 ## Script Console
+
+> __NOTE:__ This jack's commands are only visible when the view has the `groovy` language mode set. Unlike the Pipeline Jack, you don't need a saved file in order to execute your script remotely.
 
 ### Execute
 

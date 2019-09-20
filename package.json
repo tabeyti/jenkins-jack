@@ -100,8 +100,7 @@
       {
         "command": "extension.jenkins-jack.jacks",
         "title": "jenkins-jack",
-        "key": "ctrl+shift+j",
-        "when": "editorTextFocus"
+        "key": "ctrl+shift+j"
       }
     ],
     "commands": [

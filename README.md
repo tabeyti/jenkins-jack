@@ -1,4 +1,3 @@
-
 ![logo](images/demo.gif)
 
 # Jenkins Jack
@@ -18,8 +17,8 @@ Honestly, not that much more.
 * Script Console Jack
     * Execute
 * Node Jack
-    * Set muliple nodes offline
-    * Set muliple nodes online
+    * Set multiple nodes offline
+    * Set multiple nodes online
     * Disconnect multiple nodes
 * Job Jack
     * Disable multiple jobs
@@ -56,11 +55,11 @@ Jenkins Jack works by hooking into the user's running Jenkins instance via the J
 
 ```json
 "jenkins-jack.jenkins.connections": [
-    {        
+    {
         "name": "localhost",                            // "name" can be seen in the host selection command
         "uri": "http://localhost:8080",
-        "username": "drapplesauce",         
-                                            
+        "username": "drapplesauce",
+
 
         "password": "217287g126721687162f76f387fdsy7",  // gen API token via <your-jenkins>/user/<user name>/configure
                                                         // E.g. http://127.0.0.1:8080/user/drapplesauce/configure

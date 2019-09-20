@@ -74,13 +74,8 @@ export class PipelineJack extends JackBase {
 
     // @ts-ignore
     private async executePipeline() {
-        // Validate it's valid groovy source.
-        var editor = vscode.window.activeTextEditor;
+        let editor = vscode.window.activeTextEditor;
         if (undefined === editor) { return; }
-        if ("groovy" !== editor.document.languageId) {
-            return;
-        }
-        let groovyScriptPath = editor.document.uri.fsPath;
 
         // Validate there is an associated file with the view/editor.
         if ("untitled" === editor.document.uri.scheme) {
@@ -89,6 +84,7 @@ export class PipelineJack extends JackBase {
             return;
         }
 
+        let groovyScriptPath = editor.document.uri.fsPath;
         let config = new PipelineConfig(groovyScriptPath);
 
         // Grab filename to use as the Jenkins job name.
