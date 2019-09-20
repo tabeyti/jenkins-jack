@@ -42,11 +42,11 @@ export class SharedLibApiManager {
 
     /**
      * Retrieves/parses Shared Library/Global Variable definitions.
-     * @param job Optional job to retrieve global-vars/shared-library from.
+     * @param job Optional Jenkins API job (json blob) to retrieve global-vars/shared-library from.
      * E.g. <root>/pipeline-syntax/globals vs. <root>/job/somejob/pipeline-syntax/globals
      */
-    public async refresh(job: string | undefined = undefined) {
-        let url = undefined !== job ?   `job/${job}/pipeline-syntax/globals` :
+    public async refresh(job: any | undefined = undefined) {
+        let url = undefined !== job ?   `job/${job.fullName}/pipeline-syntax/globals` :
                                         'pipeline-syntax/globals';
 
         let html: string = await JenkinsHostManager.host().get(url);
