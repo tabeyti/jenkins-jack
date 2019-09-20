@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to the "jenkins-jack" extension will be documented in this file.
 
+## 0.1.6
+
+* __Build Jack:__ Build description now given when showing the list of build numbers to download.
+
+Fixed
+* Most "jacks" can now be invoked (`ctrl+shift+j`) without the need to be in a `groovy` file. Certain jack commands won't display if the view you are editing isn't set to the `groovy` language mode (e.g. Pipeline, Script Console)
+* Fixed progress window text formating.
+
 ## 0.1.5
 
 * __Job Jack:__ Execute disable, enable, and delete operations on one or more targeted jobs.
@@ -14,7 +22,7 @@ Fixed
 ## 0.1.4
 
 * __Multiple Host Connection Support:__ Now supports multiple Jenkins host connections and the ability to swap between hosts (`ctrl+shift+j -> Host Selection`)
-    
+
     __NOTE:__ Additional hosts are added via `settings.json` which can be found in Settings by typing `Jenkins Jack`.
 
 * __Build Parameter Support for Pipeline Exection:__ Groovy files used for Pipeline execution now support parameters via a config file: `<FILE>.conf.json`. Config file will be created automatically if one doesn't exist for a groovy file.
