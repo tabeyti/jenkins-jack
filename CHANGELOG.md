@@ -3,6 +3,13 @@ All notable changes to the "jenkins-jack" extension will be documented in this f
 
 ## 0.1.6
 
+* New [logo](./images/logo.png)
+
+Fix
+* Shared Library Reference now pulls definitions from any pipelines executed that include a shared lib (e.g. `@Library('shared')`).
+
+## 0.1.6
+
 * __Build Jack:__ Build description now given when showing the list of build numbers to download.
 
 Fixed

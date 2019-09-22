@@ -36,11 +36,11 @@ See [jacks](jacks.md) for a more comprehensive list of commands and features.
 
 |Jack|Description|Command|
 |---|---|:---|
-|__Pipeline Jack__|Remotely build/abort/update Jenkins pipeline scripts from an open `groovy` file, streaming syntax highlighted output to the output console.|`extension.jenkins-jack.pipeline`|
-|__Script Console Jack__|Remote execute on the Jenkins Script Console from an open `groovy` file, targeting one or more nodes. Results will appearing in the output console.|`extension.jenkins-jack.scriptConsole`|
-|__Build Jack__|Select a job to download logs to display on the output window or to delete from the remote Jenkins.|`extension.jenkins-jack.build`|
-|__Job Jack__|Select one or more jobs to disable, re-enable, or delete from the remote Jenkins.|`extension.jenkins-jack.job`|
-|__Node Jack__|Select one or more nodes to set offine, online, or disconnect from the remote Jenkins.|`extension.jenkins-jack.node`|
+|__Pipeline__|Remotely build/abort/update Jenkins pipeline scripts from an open `groovy` file, streaming syntax highlighted output to the output console.|`extension.jenkins-jack.pipeline`|
+|__Script Console__|Remote execute on the Jenkins Script Console from an open `groovy` file, targeting one or more nodes. Results will appearing in the output console.|`extension.jenkins-jack.scriptConsole`|
+|__Build__|Select a job to download logs to display on the output window or to delete from the remote Jenkins.|`extension.jenkins-jack.build`|
+|__Job__|Select one or more jobs to disable, re-enable, or delete from the remote Jenkins.|`extension.jenkins-jack.job`|
+|__Node__|Select one or more nodes to set offine, online, or disconnect from the remote Jenkins.|`extension.jenkins-jack.node`|
 
 Individual jacks can be mapped to hot keys as user sees fit.
 
