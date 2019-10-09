@@ -4,6 +4,8 @@ import * as request from 'request-promise-native';
 import * as opn from 'open';
 
 import { sleep } from './utils';
+import { OutputProvider } from './outputProvider';
+// import { TextDecoder } from 'util';
 
 export class JenkinsService {
     // @ts-ignore
@@ -255,10 +257,13 @@ export class JenkinsService {
     public async streamBuildOutput(
         jobName: string,
         buildNumber: number,
-        outputChannel: vscode.OutputChannel) {
+        thing: vscode.OutputChannel) {
 
-        outputChannel.show();
-        outputChannel.clear();
+        let ocManager = OutputProvider.instance();
+        let outputWindowName = `${jobName} output`
+
+        ocManager.clear(outputWindowName);
+        ocManager.show(outputWindowName);
 
         // Stream the output.
         await vscode.window.withProgress({
@@ -283,7 +288,7 @@ export class JenkinsService {
 
                 log.on('data', (text: string) => {
                     if (token.isCancellationRequested) { return; }
-                    outputChannel.appendLine(text);
+                    ocManager.updateDoc(outputWindowName, text);
                 });
 
                 log.on('error', (err: string) => {
