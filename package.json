@@ -34,6 +34,15 @@
         "title": "Jenkins Jack configuration",
         "type": "object",
         "properties": {
+          "jenkins-jack.general.output.view": {
+            "type": "string",
+            "default": "channel",
+            "enum": ["channel", "panel"],
+            "enumDescriptions": [
+              "Adds a heatmap indicator on the left edge of the gutter blame annotations",
+              "Adds a heatmap indicator on the right edge of the gutter blame annotations"
+            ]
+          },
           "jenkins-jack.jenkins.connections": {
             "type": "array",
             "items": {
