@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { OutputPanelProvider } from './outputProvider';
 
 export interface Jack {
     [key:string]: any;
@@ -14,9 +15,36 @@ export abstract class JackBase implements Jack {
     name: string;
     protected readonly barrierLine: string = '-'.repeat(80);
 
+    private outputViewType: string;
+
     constructor(name: string) {
         this.name = name;
-        this.outputChannel = vscode.window.createOutputChannel(name);
+
+        let config = vscode.workspace.getConfiguration('jenkins-jack.general');
+        this.outputViewType = config.view;
+        this.updateOutputChannel(this.outputViewType);
+
+        vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+            if (event.affectsConfiguration('jenkins-jack.general')) {
+                let config = vscode.workspace.getConfiguration('jenkins-jack.general');
+                if (config.view !== this.outputViewType) {
+                    this.outputViewType = config.view;
+                    this.updateOutputChannel(this.outputViewType);
+                }
+            }
+        });
+    }
+
+    private updateOutputChannel(type: string) {
+        if ("channel" === type) {
+            this.outputChannel = vscode.window.createOutputChannel(this.name);
+        }
+        else if ("panel" === type) {
+            this.outputChannel = OutputPanelProvider.instance().get(`${this.name} output`);
+        }
+        else {
+            throw new Error("Invalid 'view' type for output.");
+        }     
     }
 
     public abstract getCommands(): any[];

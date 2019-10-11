@@ -12,8 +12,8 @@ import { Jack } from './jack';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
-import { sleep } from './utils';
-import { OutputProvider } from './outputProvider';
+// import { sleep } from './utils';
+import { OutputPanelProvider } from './outputProvider';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -55,10 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
     jacks.push(registerJack(new BuildJack(),           'extension.jenkins-jack.build',         context));
     jacks.push(registerJack(new JobJack(),             'extension.jenkins-jack.job',           context));
 
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputProvider.instance().scheme, OutputProvider.instance()));
-
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance()));
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
-
         // let messageItem: vscode.MessageItem = {
         //     title: 'Okay',
 
