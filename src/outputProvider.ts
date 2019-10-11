@@ -2,15 +2,13 @@ import * as vscode from 'vscode';
 
 export class OutputPanel implements vscode.OutputChannel {
     name: string;
-
     public readonly uri: vscode.Uri;
     public _text: string;
-
     private _provider: OutputPanelProvider;
 
     constructor(name: string, provider: OutputPanelProvider) {
         this._provider = provider;
-        this.uri = vscode.Uri.parse(`jenkins-jack:${name}`);
+        this.uri = vscode.Uri.parse(`${OutputPanelProvider.scheme()}:${name}`);
     }
 
     public async show() {
@@ -39,6 +37,7 @@ export class OutputPanel implements vscode.OutputChannel {
     }
 
     public dispose(): void {
+        this._text = ''
         throw new Error("Method not implemented.");
     }
 
@@ -47,13 +46,12 @@ export class OutputPanel implements vscode.OutputChannel {
         this._provider.update(this.uri);
     }
 
-    public getText(): string {
+    public text(): string {
         return this._text;
     }
 }
 
 export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
-
     private _eventEmitter: vscode.EventEmitter<vscode.Uri>;
     private _panelMap: Map<string, OutputPanel>;
 
@@ -64,21 +62,25 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
         this._panelMap = new Map();
     }
 
+    public static scheme(): string {
+        return 'jenkins-jack'
+    }
+
     public static instance() {
-        if (null == this._instance) {
+        if (null === this._instance || undefined == this._instance) {
             this._instance = new OutputPanelProvider();
         }
 
         return this._instance;
     }
 
-    public get(uri: vscode.Uri): OutputPanel {
-        if (!this._panelMap.has(uri.toString())) {
-            this._panelMap.set(uri.toString(), new OutputPanel(uri.path, this));
+    public get(fileName: string): OutputPanel {
+        if (!this._panelMap.has(fileName)) {
+            this._panelMap.set(fileName, new OutputPanel(fileName, this));
         }
 
         // @ts-ignore
-        return this._panelMap.get(uri.path);
+        return this._panelMap.get(fileName);
     }
 
     public update(uri: vscode.Uri) {
@@ -90,8 +92,11 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
     }
 
     async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
-        let panel = this.get(uri);
+        if (uri.scheme !== OutputPanelProvider.scheme()) {
+            return '';
+        }
+        let panel = this.get(uri.path);
         // @ts-ignore
-        return panel.getText();
+        return panel.text();
     }
 };

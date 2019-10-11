@@ -24,7 +24,7 @@ export class PipelineJack extends JackBase {
         super('Pipeline Jack');
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('jenkins.jack.pipeline')) {
+            if (event.affectsConfiguration('jenkins-jack.pipeline')) {
                 this.updateSettings();
             }
         });

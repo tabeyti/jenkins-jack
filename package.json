@@ -34,13 +34,13 @@
         "title": "Jenkins Jack configuration",
         "type": "object",
         "properties": {
-          "jenkins-jack.general.output.view": {
+          "jenkins-jack.general.view": {
             "type": "string",
             "default": "channel",
             "enum": ["channel", "panel"],
             "enumDescriptions": [
-              "Adds a heatmap indicator on the left edge of the gutter blame annotations",
-              "Adds a heatmap indicator on the right edge of the gutter blame annotations"
+              "Output is streamed to the OUTPUT channel provided by vscode.",
+              "Streams output to read-only editor window."
             ]
           },
           "jenkins-jack.jenkins.connections": {
