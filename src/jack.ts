@@ -40,7 +40,7 @@ export abstract class JackBase implements Jack {
             this.outputChannel = vscode.window.createOutputChannel(this.name);
         }
         else if ("panel" === type) {
-            this.outputChannel = OutputPanelProvider.instance().get(`${this.name} output`);
+            this.outputChannel = OutputPanelProvider.instance().get(`${this.name} Output`);
         }
         else {
             throw new Error("Invalid 'view' type for output.");
