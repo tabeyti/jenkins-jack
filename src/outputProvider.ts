@@ -3,7 +3,8 @@ import * as vscode from 'vscode';
 export class OutputPanel implements vscode.OutputChannel {
     name: string;
     public readonly uri: vscode.Uri;
-    public _text: string;
+
+    private _text: string;
     private _provider: OutputPanelProvider;
 
     constructor(name: string, provider: OutputPanelProvider) {
@@ -63,7 +64,7 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
     }
 
     public static scheme(): string {
-        return 'jenkins-jack'
+        return 'jenkins-jack';
     }
 
     public static instance() {
