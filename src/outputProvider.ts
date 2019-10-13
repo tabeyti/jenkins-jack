@@ -6,6 +6,7 @@ export class OutputPanel implements vscode.OutputChannel {
 
     private _text: string;
     private _provider: OutputPanelProvider;
+    private _activeEditor: vscode.TextEditor | undefined;
 
     constructor(name: string, provider: OutputPanelProvider) {
         this._provider = provider;
@@ -13,18 +14,52 @@ export class OutputPanel implements vscode.OutputChannel {
     }
 
     public async show() {
-        let editor = await vscode.window.showTextDocument(this.uri, {
-            viewColumn: vscode.ViewColumn.Beside,
-            preserveFocus: false,
-            selection: new vscode.Range(
-                new vscode.Position(0, 0),
-                new vscode.Position(0, 0)
-            )
-        });
-        vscode.languages.setTextDocumentLanguage(editor.document, 'pipeline-log');
+
+        let editor = vscode.window.visibleTextEditors.find((e: vscode.TextEditor) =>
+                e.document.uri.scheme === OutputPanelProvider.scheme() &&
+                e.document.uri.path === this.uri.path)
+
+        if (undefined === editor) {
+            this._activeEditor = await vscode.window.showTextDocument(this.uri, {
+                viewColumn: vscode.ViewColumn.Beside,
+                preserveFocus: false,
+                selection: new vscode.Selection(
+                    new vscode.Position(0, 0),
+                    new vscode.Position(0, 0)
+                )
+            });
+        }
+        else {
+            this._activeEditor = await vscode.window.showTextDocument(this.uri, {
+                viewColumn: editor.viewColumn,
+                preserveFocus: false,
+                selection: new vscode.Selection(
+                    new vscode.Position(0, 0),
+                    new vscode.Position(0, 0)
+                )
+            });
+        }
+
+
+        this._activeEditor.setDecorations
+        vscode.languages.setTextDocumentLanguage(this._activeEditor.document, 'pipeline-log');
+
+        // const deco = {
+        //     borderStyle: 'solid',
+        //     borderColor: '#66f'
+        // }
+
+        // const decoCurrent = vscode.window.createTextEditorDecorationType(
+        //     Object.assign({}, deco, { borderWidth: '0px 0px 1px 0px' }));
+        // this._activeEditor.setDecorations(decoCurrent, []);
     }
 
     public async append(text: string) {
+        if (undefined === this._activeEditor) {
+            return;
+        }
+        this._activeEditor.selection = new vscode.Selection(new vscode.Position(0, 0),
+                                                            new vscode.Position(0, 0));
         this._text += text;
         this._provider.update(this.uri);
     }

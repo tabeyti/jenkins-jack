@@ -26,9 +26,9 @@ export abstract class JackBase implements Jack {
 
         vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
             if (event.affectsConfiguration('jenkins-jack.general')) {
-                let config = vscode.workspace.getConfiguration('jenkins-jack.general');
-                if (config.view !== this.outputViewType) {
-                    this.outputViewType = config.view;
+                let config = vscode.workspace.getConfiguration('jenkins-jack.outputView');
+                if (config.type !== this.outputViewType) {
+                    this.outputViewType = config.type;
                     this.updateOutputChannel(this.outputViewType);
                 }
             }
@@ -44,7 +44,7 @@ export abstract class JackBase implements Jack {
         }
         else {
             throw new Error("Invalid 'view' type for output.");
-        }     
+        }
     }
 
     public abstract getCommands(): any[];
