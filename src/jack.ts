@@ -20,12 +20,12 @@ export abstract class JackBase implements Jack {
     constructor(name: string) {
         this.name = name;
 
-        let config = vscode.workspace.getConfiguration('jenkins-jack.general');
-        this.outputViewType = config.view;
+        let config = vscode.workspace.getConfiguration('jenkins-jack.outputView');
+        this.outputViewType = config.type;
         this.updateOutputChannel(this.outputViewType);
 
         vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
-            if (event.affectsConfiguration('jenkins-jack.general')) {
+            if (event.affectsConfiguration('jenkins-jack.outputView')) {
                 let config = vscode.workspace.getConfiguration('jenkins-jack.outputView');
                 if (config.type !== this.outputViewType) {
                     this.outputViewType = config.type;
