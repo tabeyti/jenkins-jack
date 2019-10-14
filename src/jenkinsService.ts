@@ -11,9 +11,10 @@ export class JenkinsService {
     public client: any;
     public readonly name: string;
 
-    private config: any;
-    private jenkinsUri: string;
-    private readonly cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
+    private _config: any;
+    private _jenkinsUri: string;
+    private readonly _cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
+    private _disposed = false;
 
     public constructor(name: string, uri: string, username: string, password: string) {
         this.name = name;
@@ -27,11 +28,11 @@ export class JenkinsService {
             host = match[2];
         }
 
-        this.jenkinsUri = `${protocol}://${username}:${password}@${host}`;
-        console.log(`Using the following URI for Jenkins client: ${this.jenkinsUri}`);
+        this._jenkinsUri = `${protocol}://${username}:${password}@${host}`;
+        console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
 
         this.client = jenkins({
-            baseUrl: this.jenkinsUri,
+            baseUrl: this._jenkinsUri,
             crumbIssuer: false,
             promisify: true
         });
@@ -49,13 +50,21 @@ export class JenkinsService {
      * Updates the settings for this service.
      */
     public updateSettings() {
-        this.config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this.config.strictTls ? '1' : '0';
+        if (this._disposed) { return; }
+
+        this._config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+        process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this._config.strictTls ? '1' : '0';
 
         // Will error if no connection can be made to the remote host
         this.client.info().catch((err: any) => {
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            if (this._disposed) { return; }
+            vscode.window.showWarningMessage(this._cantConnectMessage);
         });
+    }
+
+    public dispose() {
+        this.client = undefined;
+        this._disposed = true;
     }
 
     /**
@@ -63,10 +72,10 @@ export class JenkinsService {
      * @param path The targeted path from the Jenkins host.
      */
     public async get(endpoint: string) {
-        let url = `${this.jenkinsUri}/${endpoint}`;
+        let url = `${this._jenkinsUri}/${endpoint}`;
         return request.get(url).catch(err => {
             console.log(err);
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            vscode.window.showWarningMessage(this._cantConnectMessage);
             return undefined;
         });
     }
@@ -83,7 +92,7 @@ export class JenkinsService {
                 return undefined;
             }
             console.log(err);
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            vscode.window.showWarningMessage(this._cantConnectMessage);
             throw err;
         });
     }
@@ -95,7 +104,7 @@ export class JenkinsService {
      * @returns A list of Jenkins 'job' objects.
      */
     public async getJobs(job: any | undefined): Promise<any[]> {
-        let jobs = (undefined === job) ? await this.getJobsFromUrl(this.jenkinsUri) : await this.getJobsFromUrl(job['url']);
+        let jobs = (undefined === job) ? await this.getJobsFromUrl(this._jenkinsUri) : await this.getJobsFromUrl(job['url']);
 
         if (undefined === jobs) { return []; }
 
@@ -171,7 +180,7 @@ export class JenkinsService {
             });
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            vscode.window.showWarningMessage(this._cantConnectMessage);
             return undefined;
         }
     }
@@ -184,14 +193,14 @@ export class JenkinsService {
      */
     public async deleteBuild(jobName: string, buildNumber: any) {
         try {
-            let url = `${this.jenkinsUri}/job/${jobName}/${buildNumber}/doDelete`;
+            let url = `${this._jenkinsUri}/job/${jobName}/${buildNumber}/doDelete`;
             await request.post(url);
         } catch (err) {
             if (302 == err.statusCode) {
                 return `${jobName} #${buildNumber} deleted`
             }
             console.log(err);
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            vscode.window.showWarningMessage(this._cantConnectMessage);
             return undefined;
         }
     }
@@ -202,7 +211,7 @@ export class JenkinsService {
      */
     public async getJobsFromUrl(rootUrl: string) {
         try {
-            rootUrl = rootUrl === undefined ? this.jenkinsUri : rootUrl;
+            rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
             rootUrl = this.fromUrlFormat(rootUrl);
             let url = `${rootUrl}/api/json?tree=jobs[fullName,url,buildable,jobs[fullName,url,buildable,jobs[fullName,url,buildable]]]`;
             let r = await request.get(url);
@@ -210,7 +219,7 @@ export class JenkinsService {
             return json.jobs;
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            vscode.window.showWarningMessage(this._cantConnectMessage);
             return undefined;
         }
     }
@@ -227,9 +236,9 @@ export class JenkinsService {
         token: vscode.CancellationToken | undefined = undefined) {
 
         try {
-            let url = `${this.jenkinsUri}/scriptText`;
+            let url = `${this._jenkinsUri}/scriptText`;
             if (undefined !== node) {
-                url = `${this.jenkinsUri}/computer/${node}/scriptText`;
+                url = `${this._jenkinsUri}/computer/${node}/scriptText`;
             }
             let r = request.post({ url: url, form: { script: source } });
             if (undefined !== token) {
@@ -241,7 +250,7 @@ export class JenkinsService {
             return output;
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this.cantConnectMessage);
+            vscode.window.showWarningMessage(this._cantConnectMessage);
             return err.error;
         }
     }
@@ -308,7 +317,7 @@ export class JenkinsService {
      * @param path The desired path from the Jenkins host. Example: /job/someJob
      */
     public openBrowserAt(path: string) {
-        opn(`${this.jenkinsUri}/${path}`);
+        opn(`${this._jenkinsUri}/${path}`);
     }
 
     /**
@@ -347,7 +356,7 @@ export class JenkinsService {
         url = url.charAt(url.length - 1) === '/' ? url.slice(0, -1) : url;
         let match = url.match('.*?/(job/.*)');
         if (null !== match && match.length >= 0) {
-            url = `${this.jenkinsUri}/${match[1]}`;
+            url = `${this._jenkinsUri}/${match[1]}`;
         }
         return url;
     }

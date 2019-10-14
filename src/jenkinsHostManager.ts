@@ -44,6 +44,9 @@ export class JenkinsHostManager {
             throw new Error("You must select a host connection to use the plugin's features");
         }
 
+        if (undefined !== this.host) {
+            this.host.dispose();
+        }
         this.host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
     }
 

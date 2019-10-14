@@ -34,6 +34,10 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
     }
 
+    // We initialize the Jenkins service first in order to avoid
+    // a race condition during onDidChangeConfiguration
+    JenkinsHostManager.instance();
+
     // Register Pipeline snippet definitions.
     var pipelineSnippets = new PipelineSnippets();
     let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
