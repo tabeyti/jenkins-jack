@@ -72,7 +72,8 @@ export function activate(context: vscode.ExtensionContext) {
             let cmds = j.getCommands();
             if (0 === cmds.length) { continue; }
             commands = commands.concat(j.getCommands());
-            commands.push({label: '$(dash)'.repeat(70), description: ''});
+            // visual label to divide up the jack sub commands
+            commands.push({label: '$(kebab-horizontal)', description: ''});
         }
 
         // Add in host selection command
