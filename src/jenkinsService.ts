@@ -4,7 +4,6 @@ import * as request from 'request-promise-native';
 import * as opn from 'open';
 
 import { sleep } from './utils';
-// import { TextDecoder } from 'util';
 
 export class JenkinsService {
     // @ts-ignore
@@ -49,7 +48,7 @@ export class JenkinsService {
     /**
      * Updates the settings for this service.
      */
-    public updateSettings() {
+    private updateSettings() {
         if (this._disposed) { return; }
 
         this._config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
@@ -266,10 +265,16 @@ export class JenkinsService {
         jobName: string,
         buildNumber: number,
         outputChannel: vscode.OutputChannel) {
-        // let outputView = true ? OutputProvider.instance().get(`${jobName} output`) :
 
         outputChannel.clear();
         outputChannel.show();
+
+        // TODO:Arbitrary sleep to mitigate a race condition where the window
+        //      updates with empty content before the log stream can
+        //      append text to the OutputPanel's buffer.
+        //      A better solution would be for the show of OutputPanel to await on the
+        //      editor's visibility before firing an update with the OutputPanelProvider.
+        await sleep(1000);
 
         // Stream the output.
         await vscode.window.withProgress({
