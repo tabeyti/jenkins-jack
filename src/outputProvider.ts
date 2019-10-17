@@ -5,63 +5,58 @@ export class OutputPanel implements vscode.OutputChannel {
     public readonly uri: vscode.Uri;
 
     private _text: string;
-    private _provider: OutputPanelProvider;
     private _activeEditor: vscode.TextEditor | undefined;
+    private _defaultViewColumn: any;
 
-    constructor(name: string, provider: OutputPanelProvider) {
-        this._provider = provider;
-        this.uri = vscode.Uri.parse(`${OutputPanelProvider.scheme()}:${name}`);
+    constructor(uri: vscode.Uri) {
+        this.uri = uri;
+
+        this.updateSettings();
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('jenkins-jack.outputView.panel')) {
+                this.updateSettings();
+            }
+        });
     }
 
-    public async show() {
+    /**
+     * Updates the settings for this editor.
+     */
+    private updateSettings() {
+        let config = vscode.workspace.getConfiguration('jenkins-jack.outputView.panel');
+        this._defaultViewColumn = vscode.ViewColumn[config.defaultViewColumn];
+    }
 
+    /**
+     * Inherited from vscode.OutputChannel
+     */
+    public async show() {
         let editor = vscode.window.visibleTextEditors.find((e: vscode.TextEditor) =>
                 e.document.uri.scheme === OutputPanelProvider.scheme() &&
                 e.document.uri.path === this.uri.path)
 
-        if (undefined === editor) {
-            this._activeEditor = await vscode.window.showTextDocument(this.uri, {
-                viewColumn: vscode.ViewColumn.Beside,
-                preserveFocus: false,
-                selection: new vscode.Selection(
-                    new vscode.Position(0, 0),
-                    new vscode.Position(0, 0)
-                )
-            });
-        }
-        else {
-            this._activeEditor = await vscode.window.showTextDocument(this.uri, {
-                viewColumn: editor.viewColumn,
-                preserveFocus: false,
-                selection: new vscode.Selection(
-                    new vscode.Position(0, 0),
-                    new vscode.Position(0, 0)
-                )
-            });
-        }
-
+        // Only display the default view column for the editor if the editor
+        // isn't already shown
+        let viewColumn = (undefined !== editor) ? editor.viewColumn : this._defaultViewColumn
+        this._activeEditor = await vscode.window.showTextDocument(this.uri, {
+            viewColumn: viewColumn,
+            preserveFocus: false,
+            selection: new vscode.Selection(
+                new vscode.Position(0, 0),
+                new vscode.Position(0, 0)
+            )
+        });
 
         this._activeEditor.setDecorations
         vscode.languages.setTextDocumentLanguage(this._activeEditor.document, 'pipeline-log');
-
-        // const deco = {
-        //     borderStyle: 'solid',
-        //     borderColor: '#66f'
-        // }
-
-        // const decoCurrent = vscode.window.createTextEditorDecorationType(
-        //     Object.assign({}, deco, { borderWidth: '0px 0px 1px 0px' }));
-        // this._activeEditor.setDecorations(decoCurrent, []);
     }
 
     public async append(text: string) {
         if (undefined === this._activeEditor) {
             return;
         }
-        this._activeEditor.selection = new vscode.Selection(new vscode.Position(0, 0),
-                                                            new vscode.Position(0, 0));
         this._text += text;
-        this._provider.update(this.uri);
+        OutputPanelProvider.instance().update(this.uri);
     }
 
     public async appendLine(value: string) {
@@ -74,12 +69,11 @@ export class OutputPanel implements vscode.OutputChannel {
 
     public dispose(): void {
         this._text = ''
-        throw new Error("Method not implemented.");
     }
 
     public clear() {
         this._text = '';
-        this._provider.update(this.uri);
+        OutputPanelProvider.instance().update(this.uri);
     }
 
     public text(): string {
@@ -110,14 +104,15 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
         return this._instance;
     }
 
-    public get(fileName: string): OutputPanel {
-        if (!this._panelMap.has(fileName)) {
-            this._panelMap.set(fileName, new OutputPanel(fileName, this));
+    public get(key: string): OutputPanel {
+        if (!this._panelMap.has(key)) {
+            this._panelMap.set(key, new OutputPanel(vscode.Uri.parse(`${OutputPanelProvider.scheme()}:${key}`)));
         }
 
         // @ts-ignore
-        return this._panelMap.get(fileName);
+        return this._panelMap.get(key);
     }
+
 
     public update(uri: vscode.Uri) {
         this._eventEmitter.fire(uri);

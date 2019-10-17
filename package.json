@@ -41,7 +41,26 @@
             "enumDescriptions": [
               "Output is streamed to the OUTPUT channel provided by vscode.",
               "Streams output to a read-only editor window."
-            ]
+            ],
+            "markdownDescription": "The output view."
+          },
+          "jenkins-jack.outputView.panel.defaultViewColumn": {
+            "type": "string",
+            "default": "Beside",
+            "enum": [
+              "Beside",
+              "Active",
+              "One",
+              "Two",
+              "Three",
+              "Four",
+              "Five",
+              "Six",
+              "Seven",
+              "Eight",
+              "Nine"
+            ],
+            "markdownDescription": "The default view column (location) in vscode the output panel will spawn on show. See https://code.visualstudio.com/api/references/vscode-api#ViewColumn"
           },
           "jenkins-jack.jenkins.connections": {
             "type": "array",
@@ -80,27 +99,27 @@
           "jenkins-jack.jenkins.strictTls": {
             "type": "boolean",
             "default": false,
-            "description": "If unchecked, the extension will **not** check certificate validity when connecting through HTTPS."
+            "markdownDescription": "If unchecked, the extension will **not** check certificate validity when connecting through HTTPS."
           },
           "jenkins-jack.pipeline.params.enabled": {
             "type": "boolean",
             "default": false,
-            "description": "Enables the use of a parameters file associate with your Pipeline job"
+            "markdownDescription": "Enables the use of a parameters file associate with your Pipeline job"
           },
           "jenkins-jack.pipeline.browserBuildOutput": {
             "type": "boolean",
             "default": false,
-            "description": "Show build output via browser instead of the `OUTPUT` channel"
+            "markdownDescription": "Show build output via browser instead of the `OUTPUT` channel"
           },
           "jenkins-jack.pipeline.browserSharedLibraryRef": {
             "type": "boolean",
             "default": false,
-            "description": "Show Pipeline Shared Library documentation via browser instead of within vscode as markdown"
+            "markdownDescription": "Show Pipeline Shared Library documentation via browser instead of within vscode as markdown"
           },
           "jenkins-jack.snippets.enabled": {
             "type": "boolean",
             "default": true,
-            "description": "Enable Pipeline step snippets for `.groovy` files"
+            "markdownDescription": "Enable Pipeline step snippets for `.groovy` files"
           }
         }
       }
