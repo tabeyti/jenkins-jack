@@ -72,6 +72,21 @@ Jenkins Jack works by hooking into the user's running Jenkins instance via the J
 
 You can get to this via the Settings UI (`ctrl+,`) and searching for `Jenkins Jack Connections`.
 
+### Settings
+<!-- settings-start -->
+
+|Name |Description |
+| --- | ---------- |
+| `jenkins-jack.jenkins.connections` | List of jenkins connections (uri, username, and password) to target when running commands |
+| `jenkins-jack.jenkins.strictTls` | If unchecked, the extension will **not** check certificate validity when connecting through HTTPS. |
+| `jenkins-jack.outputView.panel.defaultViewColumn` | The default view column (location) in vscode the output panel will spawn on show. See https://code.visualstudio.com/api/references/vscode-api#ViewColumn |
+| `jenkins-jack.outputView.type` | The output view. |
+| `jenkins-jack.pipeline.browserBuildOutput` | Show build output via browser instead of the `OUTPUT` channel |
+| `jenkins-jack.pipeline.browserSharedLibraryRef` | Show Pipeline Shared Library documentation via browser instead of within vscode as markdown |
+| `jenkins-jack.pipeline.params.enabled` | Enables the use of a parameters file associate with your Pipeline job |
+| `jenkins-jack.snippets.enabled` | Enable Pipeline step snippets for `.groovy` files |
+<!-- settings-end -->
+
 ## Quick-use
 
 ### `ctrl+shift+j`
