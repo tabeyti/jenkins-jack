@@ -247,6 +247,19 @@ export class PipelineJack extends JackBase {
                 paramsJson[key] = params[key] !== null ? params[key] : '';
             }
         }
+
+        if (this.config.params.interactiveInput)
+            for (let k of Object.keys(paramsJson)) {
+                let result = await vscode.window.showInputBox({
+                    value: paramsJson[k],
+                    prompt: k
+                });
+
+                if (undefined == result) { return paramsJson; }
+
+                paramsJson[k] = result;
+            }
+
         return paramsJson;
     }
 
@@ -317,14 +330,16 @@ export class PipelineJack extends JackBase {
             // TODO: config conditional
             progress.report({ increment: 20, message: `Waiting on build paramter input...` });
             let params = {};
-            try {
-                params = await this.buildParameterInput(currentJob, config.params, progress);
-                config.params = params;
-                config.save();
+            if (this.config.params.enabled) {
+                try {
+                    params = await this.buildParameterInput(currentJob, config.params, progress);
+                    config.params = params;
+                    config.save();
 
-            } catch (err) {
-                this.showWarningMessage(err.message);
-                return undefined;
+                } catch (err) {
+                    this.showWarningMessage(err.message);
+                    return undefined;
+                }
             }
 
             if (token.isCancellationRequested) { return undefined;  }
