@@ -104,12 +104,12 @@
           "jenkins-jack.pipeline.params.enabled": {
             "type": "boolean",
             "default": false,
-            "markdownDescription": "Enables the use of a parameters file associate with your Pipeline job"
+            "markdownDescription": "Enables the use of parameters (stored in '.myfile.config.json') to be used in your Pipeline execution."
           },
           "jenkins-jack.pipeline.params.interactiveInput": {
             "type": "boolean",
             "default": false,
-            "markdownDescription": "If set true, will prompt the user to input parameter values into input boxes."
+            "markdownDescription": "If true, will grab parameters from the remote jenkins job and prompt user for builder parameter input using input boxes and quick picks."
           },
           "jenkins-jack.pipeline.browserBuildOutput": {
             "type": "boolean",
