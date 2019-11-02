@@ -58,8 +58,7 @@ export class PipelineJack extends JackBase {
             });
         }
 
-        commands = commands.concat([
-            {
+        commands = commands.concat([{
                 label: "$(file-text)  Pipeline: Shared Library Reference",
                 description: "Provides a list of steps from the Shares Library and global variables.",
                 target: async () => await this.showSharedLibraryReference(),
@@ -209,18 +208,50 @@ export class PipelineJack extends JackBase {
         return job;
     }
 
+    public async showParameterInput(param: any, prefillValue: string) {
+        let value: string | undefined;
+        let title = param.name + (param.description != "" ? ` - ${param.description}` : '')
+        switch(param._class) {
+            case "hudson.model.BooleanParameterDefinition":
+                let result = await vscode.window.showQuickPick([{
+                        label: title,
+                        picked: (prefillValue === "true")
+                    }], {
+                    canPickMany: true
+                })
+                if (undefined === result) { return undefined; }
+                value = String(result.length === 1)
+                break;
+            case "hudson.model.ChoiceParameterDefinition":
+                value = await vscode.window.showQuickPick(param.choices, {
+                    placeHolder: title
+                });
+                break;
+            case "hudson.model.StringParameterDefinition":
+            default:
+                value = await vscode.window.showInputBox({
+                    placeHolder: title,
+                    value: prefillValue
+                })
+                break;
+        }
+        return value;
+    }
+
     /**
      * Handles the build parameter input flow for pipeline execution.
      * @param job The jenkins Pipeline job json object.
-     * @param params The Pipeline Jack job config parameters.
+     * @param config The Pipeline Jack job config.
      * @returns A parameters key/value json object.
      *          Undefined if job has no parameters.
      *          An empty json if parameters are disabled.
      */
     public async buildParameterInput(
         job: any,
-        params: any,
+        config: PipelineConfig,
         progress: vscode.Progress<{ message?: string | undefined; increment?: number | undefined; }>): Promise<any> {
+
+        let params = config.params;
 
         // Validate job has parameters.
         let paramProperty = job.property.find((p: any) => p._class === "hudson.model.ParametersDefinitionProperty");
@@ -246,6 +277,27 @@ export class PipelineJack extends JackBase {
                 // Disallow null parameter values
                 paramsJson[key] = params[key] !== null ? params[key] : '';
             }
+        }
+
+        // If interactive input is specified, use remote job's build parameters
+        // to display input boxes, lists, etc. (quick picks, input boxes, boolean check thinger)
+        // for the user to fill values in (updates config param values)
+        if (!this.config.params.interactiveInput) { return paramsJson; }
+        for (let p of paramProperty.parameterDefinitions) {
+            let title = p.name + (p.description != "" ? ` - ${p.description}` : '')
+            let value: string | undefined = "";
+
+            if (undefined !== config.interactiveInputOverride &&
+                undefined !== config.interactiveInputOverride[p.name]) {
+                value = await vscode.window.showQuickPick(config.interactiveInputOverride[p.name], {
+                    placeHolder: title
+                });
+            }
+            else {
+                value = await this.showParameterInput(p, paramsJson[p.name]);
+            }
+            if (undefined === value) { return paramsJson; }
+            paramsJson[p.name] = value;
         }
         return paramsJson;
     }
@@ -275,6 +327,9 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 50 });
             return new Promise(async resolve => {
                 await this.createUpdate(source, job);
+                this.outputChannel.appendLine(this.barrierLine);
+                this.outputChannel.appendLine(`Pipeline ${job} updated!`);
+                this.outputChannel.appendLine(this.barrierLine);
                 resolve();
             });
         });
@@ -311,22 +366,22 @@ export class PipelineJack extends JackBase {
 
             let jobName = currentJob.fullName;
             let buildNum = currentJob.nextBuildNumber;
-
             if (token.isCancellationRequested) { return undefined;  }
 
-            // TODO: config conditional
             progress.report({ increment: 20, message: `Waiting on build paramter input...` });
             let params = {};
-            try {
-                params = await this.buildParameterInput(currentJob, config.params, progress);
-                config.params = params;
-                config.save();
-
-            } catch (err) {
-                this.showWarningMessage(err.message);
-                return undefined;
+            if (this.config.params.enabled) {
+                try {
+                    params = await this.buildParameterInput(currentJob, config, progress);
+                    if (undefined !== params) {
+                        config.params = params;
+                        config.save();
+                    }
+                } catch (err) {
+                    this.showWarningMessage(err.message);
+                    return undefined;
+                }
             }
-
             if (token.isCancellationRequested) { return undefined;  }
 
             progress.report({ increment: 20, message: `Building "${jobName}" #${buildNum}` });
@@ -335,17 +390,17 @@ export class PipelineJack extends JackBase {
                 console.log(err);
                 throw err;
             });
-
             if (token.isCancellationRequested) { return undefined;  }
 
-            progress.report({ increment: 30, message: `Waiting for build to be ready...` });
+            progress.report({ increment: 30, message: 'Waiting for build to be ready...' });
             try {
                 await JenkinsHostManager.host().buildReady(jobName, buildNum);
             } catch (err) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
                 return undefined;
             }
-            progress.report({ increment: 30, message: `Build is ready!` });
+
+            progress.report({ increment: 30, message: 'Build is ready!' });
             return currentJob;
         });
     }
@@ -354,7 +409,8 @@ export class PipelineJack extends JackBase {
 class PipelineConfig {
     public name: string;
     public params: any;
-    private  path: string;
+    public interactiveInputOverride: any;
+    private path: string;
 
     constructor(scriptPath: string) {
         let parsed = path.parse(scriptPath);
@@ -371,12 +427,14 @@ class PipelineConfig {
         let json = readjson(this.path);
         this.name = json.name;
         this.params = json.params;
+        this.interactiveInputOverride = json.interactiveInputOverride;
     }
 
     toJSON(): any {
         return {
             name: this.name,
-            params: this.params
+            params: this.params,
+            interactiveInputOverride: this.interactiveInputOverride
         };
     }
 
@@ -384,7 +442,8 @@ class PipelineConfig {
         let pc = Object.create(PipelineConfig.prototype);
         return Object.assign(pc, json, {
             name: json.name,
-            params: json.params
+            params: json.params,
+            interactiveInputOverride: json.interactiveInputOverride
         });
     }
 
@@ -403,5 +462,6 @@ class PipelineConfig {
         let json = readjson(this.path);
         this.name = json.name;
         this.params = json.params;
+        this.interactiveInputOverride = json.interactiveInputOverride;
     }
 }
