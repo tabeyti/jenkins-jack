@@ -24,7 +24,7 @@ Aborts a streaming pipeline build (if one is active).
 
 ### Shared Library Reference
 
-Provies a searchable list of the available Pipeline Shared Library steps/vars. When a selection is made, the user will be presented with the markdown documentation of the step/var pulled and parsed from the remote Jenkins (no snippets currently).
+Provides a searchable list of the available Pipeline Shared Library steps/vars. When a selection is made, the user will be presented with the markdown documentation of the step/var pulled and parsed from the remote Jenkins (no snippets currently).
 
 ## Script Console
 
