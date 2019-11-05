@@ -14,6 +14,7 @@ import { JobJack } from './jobJack';
 // import { sleep } from './utils';
 import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
+import { PipelineJobTreeProvider, PipelineJob } from './pipelineJobTree';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -50,6 +51,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(snippetsDisposable);
+
+    const pipelineJobTreeProvider = new PipelineJobTreeProvider();
+    vscode.window.registerTreeDataProvider('pipelineJobTree', pipelineJobTreeProvider);
 
     // Initialize the Jacks and their respective commands.
     let commandSets: CommandSet[] = [];

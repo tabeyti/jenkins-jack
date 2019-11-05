@@ -29,6 +29,35 @@
     "url": "https://github.com/tabeyti/jenkins-jack/issues"
   },
   "contributes": {
+    "viewsContainers": {
+			"activitybar": [
+				{
+					"id": "jenkins-jack-pipeline-explorer",
+					"title": "Pipeline Job List",
+					"icon": "media/pipeline_view_icon.svg"
+				}
+			]
+    },
+    "views": {
+      "jenkins-jack-pipeline-explorer": [
+        {
+          "id": "pipelineJobTree",
+          "name": "Pipeline Jobs"
+        }
+      ]
+    },
+    "menus": {
+      "view/item/context": [
+          {
+              "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
+              "when": "viewItem == pipelineJobTreeItem"
+          },
+          {
+            "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
+            "when": "viewItem == pipelineJobTreeItem"
+          }
+      ]
+    },
     "configuration": [
       {
         "title": "Jenkins Jack configuration",
@@ -106,7 +135,7 @@
           },
           "jenkins-jack.pipeline.params.enabled": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "markdownDescription": "Enables the use of parameters (stored in '.myfile.config.json') to be used in your Pipeline execution."
           },
           "jenkins-jack.pipeline.params.interactiveInput": {
@@ -128,6 +157,26 @@
             "type": "boolean",
             "default": true,
             "markdownDescription": "Enable Pipeline step snippets for `.groovy` files"
+          },
+          "jenkins-jack.pipeline.jobTree.items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "jobName": {
+                  "type": "string",
+                  "default": "",
+                  "description": "The job name, including folder paths."
+                },
+                "filepath": {
+                  "type": "string",
+                  "default": null,
+                  "description": "The local file path of the pipeline script."
+                }
+              }
+            },
+            "default": [],
+            "markdownDescription": "Remote jenkins job to local pipeline script associations"
           }
         }
       }
@@ -174,7 +223,15 @@
         "command": "extension.jenkins-jack.connections",
         "title": "Jenkins Host Connections",
         "category": "Jenkins Jack"
-      }
+      },
+      {
+				"command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
+				"title": "Open script"
+			},
+      {
+				"command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
+				"title": "Pull script"
+			}
     ],
     "languages": [
       {
