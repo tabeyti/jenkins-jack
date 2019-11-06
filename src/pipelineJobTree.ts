@@ -28,7 +28,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         });
     }
 
-    public async saveTreeItemsConfig() {
+    private async saveTreeItemsConfig() {
         let children = await this.getChildren();
         let json = [];
         for (let child of children) {
@@ -43,7 +43,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         await vscode.workspace.getConfiguration().update('jenkins-jack.pipeline.jobTree.items', json, vscode.ConfigurationTarget.Global);
     }
 
-    public getTreeItemConfig(key: string): any {
+    private getTreeItemConfig(key: string): any {
         if (undefined === this.config.items) { this.config.items = []; }
         if (undefined === this.config.items || undefined === this.config.items.find((i: any) => i.jobName === key)) {
             this.config.items.push({
@@ -54,30 +54,29 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         return this.config.items.find((i: any) => i.jobName === key);
     }
 
-    public async openScript(node: PipelineJob) {
-
-        let nodeConfig = this.getTreeItemConfig(node.label);
+    private async openScript(node: PipelineJob) {
+        let treeItemConfig = this.getTreeItemConfig(node.label);
 
         // If the script file path is not mapped, prompt the user to locate it.
-        if (null === nodeConfig.filepath || undefined === nodeConfig.filepath) {
+        if (null === treeItemConfig.filepath || undefined === treeItemConfig.filepath) {
             let scriptResult = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
                 canSelectFolders: false,
-                canSelectMany: false,
-                defaultUri: vscode.workspace.workspaceFolders ? vscode.Uri.parse('.') : vscode.workspace.workspaceFolders
+                canSelectMany: false
             });
-
             if (undefined === scriptResult) { return; }
 
+            // Update the tree item config with the new file path
             let scriptUri = scriptResult[0];
-            nodeConfig.filepath = scriptUri.path;
+            treeItemConfig.filepath = scriptUri.path;
         }
 
-        let uri = vscode.Uri.parse(`file:${nodeConfig.filepath}`);
+        // Open the document in vscode
+        let uri = vscode.Uri.parse(`file:${treeItemConfig.filepath}`);
         await vscode.window.showTextDocument(uri);
     }
 
-    public async pullScriptFromHost(node: PipelineJob) {
+    private async pullScriptFromHost(node: PipelineJob) {
         // Prompt user for folder location to save script
         let folderResult = await vscode.window.showOpenDialog({
             canSelectFiles: false,
@@ -88,10 +87,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         if (undefined === folderResult) { return; }
         let folderUri = folderResult[0];
 
-        // Save the file locally, create/save the pipeline config, and udpate the tree mapping
-
-
-        //
+        // See if script source exists on job
         let xml = await JenkinsHostManager.host().client.job.config(node.label).then((data: any) => {
             return data;
         }).catch((err: any) => {
@@ -99,20 +95,17 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             console.log(err);
             throw err;
         });
-
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
         let script = root.definition[0].script;
-
         if (undefined === script) {
             vscode.window.showInformationMessage(`Pipeline job "${node.label} has no script to pull.`);
             return;
         }
-        let content = script[0];
 
         // Create local script file
         let scriptPath = `${folderUri.fsPath}/${node.job.name}`
-        fs.writeFileSync(scriptPath, content, 'utf-8');
+        fs.writeFileSync(scriptPath, script[0], 'utf-8');
 
         // Create associated pipeline script with folder location if present
         let pipelineJobConfig = new PipelineConfig(scriptPath);
@@ -122,39 +115,9 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         }
         pipelineJobConfig.save();
 
+        // Open it in vscode with supported language id
         let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${scriptPath}`));
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");;
-
-        // if (undefined !== script) {
-        //     // Check if any active text editor matches the file
-        //     // TODO
-
-        //     // Ask the user to select a file, if he cancels, save a local file of the job
-        //     // name and open it in the editor
-        //     let result = await vscode.window.showOpenDialog({
-        //         canSelectFiles: true,
-        //         canSelectFolders: false,
-        //         canSelectMany: false,
-        //         defaultUri: vscode.workspace.workspaceFolders ? vscode.Uri.parse('.') : vscode.workspace.workspaceFolders
-        //     });
-
-        //     // If no file was selected, create an untitled document with the script source injected
-        //     if (undefined === result) {
-        //         let textDocument = await vscode.workspace.openTextDocument(vscode.Uri.parse(`untitled:${node.label}.groovy`));
-        //         let editor = await vscode.window.showTextDocument(textDocument);
-        //         await editor.edit((builder: vscode.TextEditorEdit) => {
-        //             builder.insert(new vscode.Position(0, 0), script[0]);
-        //         });
-        //     }
-
-        // }
-
-        // // There is no script so let's store some scm information
-        // if (root.definition[0].scm[0].$.class === "hudson.plugins.git.GitSCM") {
-        //     // Save the scm information somwhere...
-
-
-        // }
     }
 
 	refresh(): void {
@@ -166,37 +129,19 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 	}
 
 	getChildren(element?: PipelineJob): Thenable<PipelineJob[]> {
-
         return new Promise(async resolve => {
-            let jobs = await JenkinsHostManager.host().client.job.list();
-            let list = [];
+
+            let jobs = await JenkinsHostManager.host().getJobs(undefined);
+            // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
+            jobs = jobs.filter((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" && job.buildable);
+            let list =  [];
             for(let job of jobs) {
-                let info = await JenkinsHostManager.host().client.job.get(job.name);
-                if ("com.cloudbees.hudson.plugins.folder.Folder" === job._class) {
-
-                    let folderJobs = await JenkinsHostManager.host().getJobs(info);
-                    if (undefined === folderJobs) { continue; }
-
-                    for (let f of folderJobs) {
-                        info = await JenkinsHostManager.host().client.job.get(f.fullName);
-                        list.push(new PipelineJob(f.fullName, info));
-                    }
-                }
-
-                if ("org.jenkinsci.plugins.workflow.job.WorkflowJob" === job._class) {
-                    list.push(new PipelineJob(job.name, info))
-                }
+                list.push(new PipelineJob(job.fullName, job))
             }
             resolve(list);
+
         })
     }
-}
-
-export class GitSCMInfo {
-    constructor(
-        public readonly uri: string
-    )
-    {}
 }
 
 export class PipelineJob extends vscode.TreeItem {

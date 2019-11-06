@@ -15,6 +15,13 @@ export class JenkinsService {
     private readonly _cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
     private _disposed = false;
 
+    private _jobProps = [
+        'fullName',
+        'url',
+        'buildable',
+        'description'
+    ].join(',')
+
     public constructor(name: string, uri: string, username: string, password: string) {
         this.name = name;
 
@@ -212,7 +219,7 @@ export class JenkinsService {
         try {
             rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
             rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=jobs[fullName,url,buildable,jobs[fullName,url,buildable,jobs[fullName,url,buildable]]]`;
+            let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.jobs;

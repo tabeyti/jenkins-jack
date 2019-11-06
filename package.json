@@ -33,8 +33,8 @@
 			"activitybar": [
 				{
 					"id": "jenkins-jack-pipeline-explorer",
-					"title": "Pipeline Job List",
-					"icon": "media/pipeline_view_icon.svg"
+					"title": "Jenkins Jack",
+					"icon": "resources/jenkins_bow_icon.svg"
 				}
 			]
     },
@@ -163,6 +163,11 @@
             "items": {
               "type": "object",
               "properties": {
+                "hostId": {
+                  "type": "string",
+                  "default": null,
+                  "description": "The job name, including folder paths."
+                },
                 "jobName": {
                   "type": "string",
                   "default": "",
