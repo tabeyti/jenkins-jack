@@ -133,13 +133,15 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
             let jobs = await JenkinsHostManager.host().getJobs(undefined);
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
-            jobs = jobs.filter((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" && job.buildable);
+            jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" && 
+                                                job.buildable && 
+                                                null === job.url.match(/\/job\/.*\/job\/.*/) // TODO: hack to ensure this is not a multi-branch type of job
+            );
             let list =  [];
             for(let job of jobs) {
                 list.push(new PipelineJob(job.fullName, job))
             }
-            resolve(list);
-
+            resolve(list);  
         })
     }
 }
