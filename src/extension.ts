@@ -14,7 +14,7 @@ import { JobJack } from './jobJack';
 // import { sleep } from './utils';
 import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
-import { PipelineJobTreeProvider, PipelineJob } from './pipelineJobTree';
+import { PipelineJobTreeProvider } from './pipelineJobTree';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // We initialize the Jenkins service first in order to avoid
     // a race condition during onDidChangeConfiguration
-    JenkinsHostManager.instance();
+    JenkinsHostManager.instance;
 
     // Register Pipeline snippet definitions.
     var pipelineSnippets = new PipelineSnippets();
@@ -52,8 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    const pipelineJobTreeProvider = new PipelineJobTreeProvider();
-    vscode.window.registerTreeDataProvider('pipelineJobTree', pipelineJobTreeProvider);
+    vscode.window.registerTreeDataProvider('pipelineJobTree', PipelineJobTreeProvider.instance);
 
     // Initialize the Jacks and their respective commands.
     let commandSets: CommandSet[] = [];
@@ -66,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Grab host selection command
     commandSets.push(registerCommandSet(JenkinsHostManager.instance(),   'extension.jenkins-jack.connections',    context));
 
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance()));
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance));
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
 
         // Build up command list
@@ -78,7 +77,12 @@ export function activate(context: vscode.ExtensionContext) {
             // visual label to divide up the jack sub commands
             selections.push({label: '$(kebab-horizontal)', description: ''});
         }
-        selections.pop();
+        // Add in host selection command
+        commands.push({
+            label: "$(settings)  Host Selection",
+            description: "Select a jenkins host to connect to.",
+            target: async () => await JenkinsHostManager.instance.selectConnection()
+        })
 
         // Display full list of all commands and execute selected target.
         let result = await vscode.window.showQuickPick(selections);

@@ -8,7 +8,6 @@ import { sleep } from './utils';
 export class JenkinsService {
     // @ts-ignore
     public client: any;
-    public readonly name: string;
 
     private _config: any;
     private _jenkinsUri: string;
@@ -22,8 +21,11 @@ export class JenkinsService {
         'description'
     ].join(',')
 
-    public constructor(name: string, uri: string, username: string, password: string) {
-        this.name = name;
+    public constructor(
+        public readonly id: string,
+        public readonly uri: string,
+        username: string,
+        password: string) {
 
         let protocol = 'http';
         let host = uri;

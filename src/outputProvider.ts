@@ -56,7 +56,7 @@ export class OutputPanel implements vscode.OutputChannel {
             return;
         }
         this._text += text;
-        OutputPanelProvider.instance().update(this.uri);
+        OutputPanelProvider.instance.update(this.uri);
     }
 
     public async appendLine(value: string) {
@@ -73,7 +73,7 @@ export class OutputPanel implements vscode.OutputChannel {
 
     public clear() {
         this._text = '';
-        OutputPanelProvider.instance().update(this.uri);
+        OutputPanelProvider.instance.update(this.uri);
     }
 
     public text(): string {
@@ -96,7 +96,7 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
         return 'jenkins-jack';
     }
 
-    public static instance() {
+    public static get instance() {
         if (null === this._instance || undefined == this._instance) {
             this._instance = new OutputPanelProvider();
         }

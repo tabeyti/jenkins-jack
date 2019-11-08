@@ -27,7 +27,7 @@ export class PipelineJack extends JackBase {
                 this.updateSettings();
             }
         });
-        this.sharedLib = SharedLibApiManager.instance();
+        this.sharedLib = SharedLibApiManager.instance;
     }
 
     public get commands(): any[] {
@@ -347,14 +347,14 @@ export class PipelineJack extends JackBase {
     private async restoreJobScm(job: any) {
         if (undefined === job.scm) { return; }
 
-        let xml = await JenkinsHostManager.host().client.job.config(job.name);
+        let xml = await JenkinsHostManager.host.client.job.config(job.name);
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
         delete root.definition;
         root.definition = job.scm;
         xml = new xml2js.Builder().buildObject(parsed);
 
-        await JenkinsHostManager.host().client.job.config(job.name, xml);
+        await JenkinsHostManager.host.client.job.config(job.name, xml);
     }
 
     /**

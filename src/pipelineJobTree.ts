@@ -10,12 +10,21 @@ const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string
 
 export class PipelineJobTreeProvider implements vscode.TreeDataProvider<PipelineJob> {
 
+    // @ts-ignore
+    private static treeProviderInstance: PipelineJobTreeProvider;
+
     private config: any;
 	private _onDidChangeTreeData: vscode.EventEmitter<PipelineJob | undefined> = new vscode.EventEmitter<PipelineJob | undefined>();
     readonly onDidChangeTreeData: vscode.Event<PipelineJob | undefined> = this._onDidChangeTreeData.event;
 
-	constructor() {
-        this.config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.jobTree');
+	private constructor() {
+        this.updateSettings();
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('jenkins-jack.pipeline.jobTree')) {
+                this.updateSettings();
+            }
+        });
+
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScript', async (node: PipelineJob) => {
             await this.openScript(node);
             await this.saveTreeItemsConfig();
@@ -23,42 +32,46 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScript', async (node: PipelineJob) => {
             await this.pullScriptFromHost(node);
-            // this._onDidChangeTreeData.fire();
             await this.saveTreeItemsConfig();
         });
     }
 
-    private async saveTreeItemsConfig() {
-        let children = await this.getChildren();
-        let json = [];
-        for (let child of children) {
-            let childConfig = this.getTreeItemConfig(child.label);
-            if (null === childConfig.filepath ||  undefined === childConfig.filepath) { continue; }
-
-            if (undefined === childConfig.jobName) {
-                childConfig.jobName = child.job.fullName;
-            }
-            json.push(childConfig);
+    public static get instance(): PipelineJobTreeProvider {
+        if (undefined === PipelineJobTreeProvider.treeProviderInstance) {
+          PipelineJobTreeProvider.treeProviderInstance = new PipelineJobTreeProvider();
         }
-        await vscode.workspace.getConfiguration().update('jenkins-jack.pipeline.jobTree.items', json, vscode.ConfigurationTarget.Global);
+        return PipelineJobTreeProvider.treeProviderInstance;
+    }
+
+    private updateSettings() {
+        this.config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.jobTree');
+    }
+
+
+    private async saveTreeItemsConfig() {
+        await vscode.workspace.getConfiguration().update(
+            'jenkins-jack.pipeline.jobTree.items',
+            this.config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
+            vscode.ConfigurationTarget.Global);
     }
 
     private getTreeItemConfig(key: string): any {
         if (undefined === this.config.items) { this.config.items = []; }
-        if (undefined === this.config.items || undefined === this.config.items.find((i: any) => i.jobName === key)) {
+        if (undefined === this.config.items || undefined === this.config.items.find((i: any) => i.jobName === key && i.hostId === JenkinsHostManager.host.id)) {
             this.config.items.push({
+                hostId: JenkinsHostManager.host.id,
                 jobName: key,
-                filepath: null
+                filepath: null,
             });
         }
         return this.config.items.find((i: any) => i.jobName === key);
     }
 
     private async openScript(node: PipelineJob) {
-        let treeItemConfig = this.getTreeItemConfig(node.label);
+        let config = this.getTreeItemConfig(node.label);
 
         // If the script file path is not mapped, prompt the user to locate it.
-        if (null === treeItemConfig.filepath || undefined === treeItemConfig.filepath) {
+        if (null === config.filepath || undefined === config.filepath) {
             let scriptResult = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
                 canSelectFolders: false,
@@ -68,15 +81,17 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
             // Update the tree item config with the new file path
             let scriptUri = scriptResult[0];
-            treeItemConfig.filepath = scriptUri.path;
+            config.filepath = scriptUri.path;
         }
 
         // Open the document in vscode
-        let uri = vscode.Uri.parse(`file:${treeItemConfig.filepath}`);
-        await vscode.window.showTextDocument(uri);
+        let uri = vscode.Uri.parse(`file:${config.filepath}`);
+        let editor = await vscode.window.showTextDocument(uri);
+        await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
     }
 
     private async pullScriptFromHost(node: PipelineJob) {
+
         // Prompt user for folder location to save script
         let folderResult = await vscode.window.showOpenDialog({
             canSelectFiles: false,
@@ -88,7 +103,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         let folderUri = folderResult[0];
 
         // See if script source exists on job
-        let xml = await JenkinsHostManager.host().client.job.config(node.label).then((data: any) => {
+        let xml = await JenkinsHostManager.host.client.job.config(node.label).then((data: any) => {
             return data;
         }).catch((err: any) => {
             // TODO: Handle better
@@ -103,8 +118,11 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             return;
         }
 
+        // TODO: Check for files of the same name, even with extension .groovy, and
+        // TODO: ask user if they want to overwrite as it will affect blah balh bpt
+
         // Create local script file
-        let scriptPath = `${folderUri.fsPath}/${node.job.name}`
+        let scriptPath = `${folderUri.fsPath}/${node.job.fullName}`
         fs.writeFileSync(scriptPath, script[0], 'utf-8');
 
         // Create associated pipeline script with folder location if present
@@ -117,7 +135,10 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         // Open it in vscode with supported language id
         let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${scriptPath}`));
-        await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");;
+        await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
+
+        // update the filepath of this tree item's config
+        this.getTreeItemConfig(node.label).filepath = scriptPath;
     }
 
 	refresh(): void {
@@ -131,17 +152,17 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 	getChildren(element?: PipelineJob): Thenable<PipelineJob[]> {
         return new Promise(async resolve => {
 
-            let jobs = await JenkinsHostManager.host().getJobs(undefined);
+            let jobs = await JenkinsHostManager.host.getJobs(undefined);
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
-            jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" && 
-                                                job.buildable && 
+            jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
+                                                job.buildable &&
                                                 null === job.url.match(/\/job\/.*\/job\/.*/) // TODO: hack to ensure this is not a multi-branch type of job
             );
             let list =  [];
             for(let job of jobs) {
                 list.push(new PipelineJob(job.fullName, job))
             }
-            resolve(list);  
+            resolve(list);
         })
     }
 }
@@ -161,7 +182,7 @@ export class PipelineJob extends vscode.TreeItem {
 
 	get description(): string {
 		return this.job.description;
-	}
+    }
 
 	iconPath = {
 		light: path.join(__filename, '..', '..', 'resources', 'pipe_icon.svg'),
