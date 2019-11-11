@@ -30,13 +30,13 @@
   },
   "contributes": {
     "viewsContainers": {
-			"activitybar": [
-				{
-					"id": "jenkins-jack-pipeline-explorer",
-					"title": "Jenkins Jack",
-					"icon": "resources/jenkins_bow_icon.svg"
-				}
-			]
+      "activitybar": [
+        {
+          "id": "jenkins-jack-pipeline-explorer",
+          "title": "Jenkins Jack",
+          "icon": "images/jenkins_bow_icon.svg"
+        }
+      ]
     },
     "views": {
       "jenkins-jack-pipeline-explorer": [
@@ -47,15 +47,22 @@
       ]
     },
     "menus": {
+      "view/title": [
+			{
+					"command": "extension.jenkins-jack.pipeline.jobTree.refresh",
+					"when": "view == pipelineJobTree",
+					"group": "navigation"
+			}],
       "view/item/context": [
-          {
-              "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
-              "when": "viewItem == pipelineJobTreeItem"
-          },
-          {
-            "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
-            "when": "viewItem == pipelineJobTreeItem"
-          }
+        {
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
+          "when": "viewItem == pipelineJobTreeItem",
+          "group": "inline"
+        },
+        {
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
+          "when": "viewItem == pipelineJobTreeItem"
+        }
       ]
     },
     "configuration": [
@@ -230,12 +237,28 @@
         "category": "Jenkins Jack"
       },
       {
-				"command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
-				"title": "Open script"
-			},
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
+        "title": "Open script",
+        "icon": {
+          "light": "images/open_script-light.svg",
+          "dark": "images/open_script-dark.svg"
+        }
+      },
       {
-				"command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
-				"title": "Pull script"
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
+        "title": "Pull script",
+        "icon": {
+          "light": "images/pull_script-light.svg",
+          "dark": "images/pull_script-dark.svg"
+        }
+      },
+      {
+				"command": "extension.jenkins-jack.pipeline.jobTree.refresh",
+				"title": "Refresh",
+				"icon": {
+					"light": "images/refresh-light.svg",
+					"dark": "images/refresh-dark.svg"
+				}
 			}
     ],
     "languages": [

@@ -140,12 +140,9 @@ export class PipelineJack extends JackBase {
         let result = await vscode.window.showQuickPick(lib);
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
-            if (undefined === this.cachedJob) {
-                JenkinsHostManager.host.openBrowserAt(`pipeline-syntax/globals#${result.label}`);
-            }
-            else {
-                JenkinsHostManager.host.openBrowserAt(`job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`);
-            }
+            let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
+                                                        `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`
+            JenkinsHostManager.host.openBrowserAt(uri);
         }
         else {
             const panel = vscode.window.createWebviewPanel(

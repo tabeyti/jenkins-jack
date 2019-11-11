@@ -34,6 +34,10 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             await this.pullScriptFromHost(node);
             await this.saveTreeItemsConfig();
         });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.refresh', (node: PipelineJob) => {
+            this.refresh();
+        });
     }
 
     public static get instance(): PipelineJobTreeProvider {
@@ -114,8 +118,15 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         let root = parsed['flow-definition'];
         let script = root.definition[0].script;
         if (undefined === script) {
-            vscode.window.showInformationMessage(`Pipeline job "${node.label} has no script to pull.`);
-            return;
+            // If we have git scm object, use it to pull script source
+            // if (undefined !== root.definition[0].scm && "hudson.plugins.git.GitSCM" === root.definition[0].scm[0].$.class) {
+                // script = this.getScriptFromGitScm(root.definition[0].scm[0]);
+
+            // }
+            // else  {
+                vscode.window.showInformationMessage(`Pipeline job "${node.label} has no script to pull.`);
+                return;
+            // }
         }
 
         // TODO: Check for files of the same name, even with extension .groovy, and
@@ -139,6 +150,18 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         // update the filepath of this tree item's config
         this.getTreeItemConfig(node.label).filepath = scriptPath;
+    }
+
+    private getScriptFromGitScm(scm: any): void {
+        // let branch = scm.branches[0]["hudson.plugins.git.BranchSpec"][0].name[0];
+        // let match = branch.match(/.*\/?(pickles)/);
+
+        // if (!match) {
+        //     vscode.window.showWarningMessage(`Could not parse branch from job`);
+        //     return '';
+        // }
+
+        // let uri = ''
     }
 
 	refresh(): void {
@@ -185,8 +208,8 @@ export class PipelineJob extends vscode.TreeItem {
     }
 
 	iconPath = {
-		light: path.join(__filename, '..', '..', 'resources', 'pipe_icon.svg'),
-		dark: path.join(__filename, '..', '..', 'resources', 'pipe_icon.svg')
+		light: path.join(__filename, '..', '..', 'images', 'pipe_icon.svg'),
+		dark: path.join(__filename, '..', '..', 'images', 'pipe_icon.svg')
 	};
 
 	contextValue = 'pipelineJobTreeItem';
