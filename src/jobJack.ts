@@ -8,7 +8,7 @@ export class JobJack extends JackBase {
         super('Job Jack');
     }
 
-    public getCommands(): any[] {
+    public get commands(): any[] {
         return [
             {
                 label: "$(stop)  Job: Disable",
@@ -30,21 +30,21 @@ export class JobJack extends JackBase {
 
     public async enable() {
         await this.onJob(async (job: string) => {
-            await JenkinsHostManager.host().client.job.disable(job);
+            await JenkinsHostManager.host.client.job.disable(job);
             return `"${job}" has been re-enabled`
         }, (j: any) => !j.buildable);
     }
 
     public async disable() {
         await this.onJob(async (job: string) => {
-            await JenkinsHostManager.host().client.job.disable(job);
+            await JenkinsHostManager.host.client.job.disable(job);
             return `"${job}" has been disabled`
         }, (j: any) => j.buildable);
     }
 
     public async delete() {
         await this.onJob(async (job: string) => {
-            await JenkinsHostManager.host().client.job.destroy(job);
+            await JenkinsHostManager.host.client.job.destroy(job);
             return `"${job}" has been deleted`
         });
     }
@@ -60,7 +60,7 @@ export class JobJack extends JackBase {
         onJobAction: (job: string) => Promise<string>,
         filter: ((job: any) => boolean) | undefined = undefined): Promise<any> {
 
-        let jobs = await JenkinsHostManager.host().getJobs(undefined);
+        let jobs = await JenkinsHostManager.host.getJobs(undefined);
         if (undefined === jobs) { return; }
         if (undefined !== filter) {
             jobs = jobs.filter(filter);

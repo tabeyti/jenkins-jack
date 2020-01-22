@@ -1,18 +1,11 @@
 import * as vscode from 'vscode';
 import { OutputPanelProvider } from './outputProvider';
+import { CommandSet } from './commandSet';
 
-export interface Jack {
-    [key:string]: any;
-    readonly name: string;
-
-    displayCommands(): Promise<void>;
-    getCommands(): any[];
-}
-
-export abstract class JackBase implements Jack {
+export abstract class JackBase implements CommandSet {
     [key: string]: any;
     outputChannel: vscode.OutputChannel;
-    name: string;
+    readonly name: string;
     protected readonly barrierLine: string = '-'.repeat(80);
 
     private outputViewType: string;
@@ -47,11 +40,15 @@ export abstract class JackBase implements Jack {
         }
     }
 
-    public abstract getCommands(): any[];
+    public abstract get commands(): any[];
 
-    public async displayCommands(): Promise<void> {
-        let result = await vscode.window.showQuickPick(this.getCommands(), { placeHolder: 'Jenkins Jack' });
+    public async display(): Promise<void> {
+        let commands = this.commands;
+        if (0 === commands.length) { return; }
+
+        let result = await vscode.window.showQuickPick(commands, { placeHolder: 'Jenkins Jack' });
         if (undefined === result) { return; }
+
         return result.target();
     }
 
