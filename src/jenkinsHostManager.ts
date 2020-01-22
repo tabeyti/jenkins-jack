@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { JenkinsService } from './jenkinsService';
+import { CommandSet } from './commandSet';
 
-export class JenkinsHostManager {
+export class JenkinsHostManager implements CommandSet {
     private host: JenkinsService;
 
     // @ts-ignore
@@ -24,8 +25,22 @@ export class JenkinsHostManager {
         return JenkinsHostManager.jsmInstance;
     }
 
-    public static host(): JenkinsService {
+    public static get host(): JenkinsService {
         return JenkinsHostManager.instance().host;
+    }
+
+    public get commands(): any[] {
+        return [{
+            label: "$(settings)  Host Selection",
+            description: "Select a jenkins host to connect to.",
+            target: async () => await this.selectConnection()
+        }];
+    }
+
+    public async display() {
+        let result = await vscode.window.showQuickPick(this.commands, { placeHolder: 'Jenkins Jack' });
+        if (undefined === result) { return; }
+        return result.target();
     }
 
     /**
@@ -55,16 +70,24 @@ export class JenkinsHostManager {
         let hosts = []
         for (let c of config.connections) {
             let activeIcon = c.active ? "$(primitive-dot)" : "$(dash)";
-
             hosts.push({
                 label: `${activeIcon} ${c.name}`,
                 description: `${c.uri} (${c.username})`,
                 target: c
             })
         }
+        hosts.push({
+            label: "$(settings) Edit Hosts"
+        })
 
         let result = await vscode.window.showQuickPick(hosts);
         if (undefined === result) { return undefined; }
+
+        // If edit was selected, open settings.json
+        if (result.label.indexOf('Edit Hosts') >= 0) {
+            vscode.commands.executeCommand('workbench.action.openSettingsJson');
+            return;
+        }
 
         this.host = new JenkinsService(result.target.name, result.target.uri, result.target.username, result.target.password);
 

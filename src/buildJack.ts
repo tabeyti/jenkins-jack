@@ -8,7 +8,7 @@ export class BuildJack extends JackBase {
         super('Build Jack');
     }
 
-    public getCommands(): any[] {
+    public get commands(): any[] {
         return [
             {
                 label: "$(cloud-download)  Build: Log Download",
@@ -29,7 +29,7 @@ export class BuildJack extends JackBase {
      * numbers related to that job to delete.
      */
     public async delete() {
-        let jobs = await JenkinsHostManager.host().getJobs(undefined);
+        let jobs = await JenkinsHostManager.host.getJobs(undefined);
         if (undefined === jobs) { return; }
         for (let job of jobs) {
             job.label = job.fullName;
@@ -40,7 +40,7 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host().getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(job.url);
         let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: true }) as any;
         if (undefined === selections) { return; }
 
@@ -60,7 +60,7 @@ export class BuildJack extends JackBase {
             for (let s of selections) {
                 let promise = new Promise(async (resolve) => {
                     try {
-                        let output = await JenkinsHostManager.host().deleteBuild(job.label, s.target);
+                        let output = await JenkinsHostManager.host.deleteBuild(job.label, s.target);
                         return resolve({ label: s.target, output: output })
                     } catch (err) {
                         return resolve({ label: s.target, output: err })
@@ -91,7 +91,7 @@ export class BuildJack extends JackBase {
      * the selected job.
      */
     public async downloadLog() {
-        let jobs = await JenkinsHostManager.host().getJobs(undefined);
+        let jobs = await JenkinsHostManager.host.getJobs(undefined);
         if (undefined === jobs) { return; }
         for (let job of jobs) {
             job.label = job.fullName;
@@ -102,11 +102,11 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host().getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await JenkinsHostManager.host().streamBuildOutput(job.label, buildNumber.target, this.outputChannel);
+        await JenkinsHostManager.host.streamBuildOutput(job.label, buildNumber.target, this.outputChannel);
     }
 }

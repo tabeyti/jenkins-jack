@@ -44,7 +44,7 @@ export class PipelineSnippets {
 
         // Parse each GDSL line for a 'method' signature.
         // This is a Pipeline Sep.
-        let gdsl = await JenkinsHostManager.host().get('pipeline-syntax/gdsl');
+        let gdsl = await JenkinsHostManager.host.get('pipeline-syntax/gdsl');
         if (undefined === gdsl) { return; }
 
         let lines = String(gdsl).split(/\r?\n/);

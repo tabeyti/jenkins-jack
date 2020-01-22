@@ -8,12 +8,12 @@ import { PipelineJack } from './pipelineJack';
 import { PipelineSnippets } from './snippets';
 import { ScriptConsoleJack } from './scriptConsoleJack';
 import { BuildJack } from './buildJack';
-import { Jack } from './jack';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
 // import { sleep } from './utils';
 import { OutputPanelProvider } from './outputProvider';
+import { CommandSet } from './commandSet';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -52,39 +52,32 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(snippetsDisposable);
 
     // Initialize the Jacks and their respective commands.
-    let jacks: Jack[] = [];
-    jacks.push(registerJack(new PipelineJack(),        'extension.jenkins-jack.pipeline',      context));
-    jacks.push(registerJack(new ScriptConsoleJack(),   'extension.jenkins-jack.scriptConsole', context));
-    jacks.push(registerJack(new NodeJack(),            'extension.jenkins-jack.node',          context));
-    jacks.push(registerJack(new BuildJack(),           'extension.jenkins-jack.build',         context));
-    jacks.push(registerJack(new JobJack(),             'extension.jenkins-jack.job',           context));
+    let commandSets: CommandSet[] = [];
+    commandSets.push(registerCommandSet(new PipelineJack(),              'extension.jenkins-jack.pipeline',      context));
+    commandSets.push(registerCommandSet(new ScriptConsoleJack(),         'extension.jenkins-jack.scriptConsole', context));
+    commandSets.push(registerCommandSet(new NodeJack(),                  'extension.jenkins-jack.node',          context));
+    commandSets.push(registerCommandSet(new BuildJack(),                 'extension.jenkins-jack.build',         context));
+    commandSets.push(registerCommandSet(new JobJack(),                   'extension.jenkins-jack.job',           context));
+
+    // Grab host selection command
+    commandSets.push(registerCommandSet(JenkinsHostManager.instance(),   'extension.jenkins-jack.connections',    context));
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance()));
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
-        // let messageItem: vscode.MessageItem = {
-        //     title: 'Okay',
 
-        // };
-
-        // Build up command list from all the Jacks.
-        let commands: any[] = [];
-        for (let j of jacks) {
-            let cmds = j.getCommands();
+        // Build up command list
+        let selections: any[] = [];
+        for (let c of commandSets) {
+            let cmds = c.commands;
             if (0 === cmds.length) { continue; }
-            commands = commands.concat(j.getCommands());
+            selections = selections.concat(cmds);
             // visual label to divide up the jack sub commands
-            commands.push({label: '$(kebab-horizontal)', description: ''});
+            selections.push({label: '$(kebab-horizontal)', description: ''});
         }
-
-        // Add in host selection command
-        commands.push({
-            label: "$(settings)  Host Selection",
-            description: "Select a jenkins host to connect to.",
-            target: async () => await JenkinsHostManager.instance().selectConnection()
-        })
+        selections.pop();
 
         // Display full list of all commands and execute selected target.
-        let result = await vscode.window.showQuickPick(commands);
+        let result = await vscode.window.showQuickPick(selections);
         if (undefined === result || undefined === result.target) { return; }
         await result.target();
 	});
@@ -96,20 +89,20 @@ export function activate(context: vscode.ExtensionContext) {
     /**
      * Registers a jack command to display all sub-commands within that Jack.
      */
-    function registerJack(
-        jack: Jack,
+    function registerCommandSet(
+        commandSet: CommandSet,
         registerCommandString: string,
         context: vscode.ExtensionContext) {
 
         let disposable = vscode.commands.registerCommand(registerCommandString, async () => {
             try {
-                await jack.displayCommands();
+                await commandSet.display();
             } catch (err) {
                 vscode.window.showWarningMessage(`Could not display ${registerCommandString} commands.`);
             }
         });
         context.subscriptions.push(disposable);
-        return jack;
+        return commandSet;
     }
 }
 
