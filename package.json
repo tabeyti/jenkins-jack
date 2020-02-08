@@ -37,7 +37,10 @@
           "jenkins-jack.outputView.type": {
             "type": "string",
             "default": "channel",
-            "enum": ["channel", "panel"],
+            "enum": [
+              "channel",
+              "panel"
+            ],
             "enumDescriptions": [
               "Output is streamed to the OUTPUT channel provided by vscode.",
               "Streams output to a read-only editor window."
@@ -208,7 +211,7 @@
     "vscode": "^1.1.25",
     "tslint": "^5.8.0",
     "xml2js": "0.4.3",
-    "jenkins": "^0.25.0",
+    "jenkins": "^0.27.0",
     "open": "^6.2.0",
     "@types/node": "^8.10.25",
     "@types/mocha": "^2.2.42",
@@ -220,10 +223,11 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
-    "jenkins": "^0.25.0",
+    "jenkins": "^0.27.0",
     "open": "^6.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
+    "vsce": "^1.71.0",
     "xml2js": "0.4.3"
   }
 }
