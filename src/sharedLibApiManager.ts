@@ -49,7 +49,7 @@ export class SharedLibApiManager {
         let url = undefined !== job ?   `job/${job.fullName}/pipeline-syntax/globals` :
                                         'pipeline-syntax/globals';
 
-        let html: string = await JenkinsHostManager.host().get(url);
+        let html: string = await JenkinsHostManager.host.get(url);
         if (undefined === html) { return; }
 
         this.sharedLibVars = this.parseHtml(html);
@@ -73,6 +73,8 @@ export class SharedLibApiManager {
             let descr = child.next('dd').find('div').first().text().trim();
             let html = child.next('dd').find('div').first().html();
             if (null === descr || null === html) { continue; }
+
+            if (undefined === name) { name = 'undefined'; }
 
             // Add shared var name as title to the content.
             html = `<div id='outer' markdown='1'><h2>${name}</h2>${html}</div>`;

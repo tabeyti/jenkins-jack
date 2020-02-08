@@ -31,7 +31,7 @@ export class PipelineJack extends JackBase {
         this.sharedLib = SharedLibApiManager.instance();
     }
 
-    public getCommands(): any[] {
+    public get commands(): any[] {
         let commands: any[] = [];
 
         if (!isGroovy()) { return []; }
@@ -98,7 +98,7 @@ export class PipelineJack extends JackBase {
         if (undefined === this.activeJob) { return; }
 
         // Stream the output. Yep.
-        await JenkinsHostManager.host().streamBuildOutput(
+        await JenkinsHostManager.host.streamBuildOutput(
             this.activeJob.fullName,
             this.activeJob.nextBuildNumber,
             this.outputChannel);
@@ -112,7 +112,7 @@ export class PipelineJack extends JackBase {
      */
     public async abortPipeline() {
         if (undefined === this.activeJob) { return; }
-        await JenkinsHostManager.host().client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
+        await JenkinsHostManager.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
         this.activeJob = undefined;
     }
 
@@ -145,10 +145,10 @@ export class PipelineJack extends JackBase {
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
             if (undefined === this.cachedJob) {
-                JenkinsHostManager.host().openBrowserAt(`pipeline-syntax/globals#${result.label}`);
+                JenkinsHostManager.host.openBrowserAt(`pipeline-syntax/globals#${result.label}`);
             }
             else {
-                JenkinsHostManager.host().openBrowserAt(`job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`);
+                JenkinsHostManager.host.openBrowserAt(`job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`);
             }
         }
         else {
@@ -170,12 +170,12 @@ export class PipelineJack extends JackBase {
      */
     public async createUpdate(source: string, jobName: string): Promise<any> {
         let xml = getPipelineJobConfig();
-        let job = await JenkinsHostManager.host().getJob(jobName);
+        let job = await JenkinsHostManager.host.getJob(jobName);
 
         // If job already exists, grab the job config xml from Jenkins.
         if (job) {
             // Grab job's xml configuration.
-            xml = await JenkinsHostManager.host().client.job.config(jobName).then((data: any) => {
+            xml = await JenkinsHostManager.host.client.job.config(jobName).then((data: any) => {
                 return data;
             }).catch((err: any) => {
                 // TODO: Handle better
@@ -197,12 +197,12 @@ export class PipelineJack extends JackBase {
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
-            await JenkinsHostManager.host().client.job.create(jobName, xml);
-            job = await JenkinsHostManager.host().getJob(jobName);
+            await JenkinsHostManager.host.client.job.create(jobName, xml);
+            job = await JenkinsHostManager.host.getJob(jobName);
         }
         else {
             console.log(`${jobName} already exists. Updating...`);
-            await JenkinsHostManager.host().client.job.config(jobName, xml);
+            await JenkinsHostManager.host.client.job.config(jobName, xml);
         }
         console.log(`Successfully updated Pipeline: ${jobName}`);
         return job;
@@ -369,7 +369,7 @@ export class PipelineJack extends JackBase {
             if (token.isCancellationRequested) { return undefined;  }
 
             progress.report({ increment: 20, message: `Waiting on build paramter input...` });
-            let params = {};
+            let params = undefined;
             if (this.config.params.enabled) {
                 try {
                     params = await this.buildParameterInput(currentJob, config, progress);
@@ -386,7 +386,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 20, message: `Building "${jobName}" #${buildNum}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
-            await JenkinsHostManager.host().client.job.build(buildOptions).catch((err: any) => {
+            await JenkinsHostManager.host.client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
@@ -394,7 +394,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 30, message: 'Waiting for build to be ready...' });
             try {
-                await JenkinsHostManager.host().buildReady(jobName, buildNum);
+                await JenkinsHostManager.host.buildReady(jobName, buildNum);
             } catch (err) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
                 return undefined;

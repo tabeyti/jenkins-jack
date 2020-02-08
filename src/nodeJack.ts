@@ -8,7 +8,7 @@ export class NodeJack extends JackBase {
         super('Node Jack');
     }
 
-    public getCommands(): any[] {
+    public get commands(): any[] {
         return [
             {
                 label: "$(stop)  Node: Set Offline",
@@ -34,13 +34,13 @@ export class NodeJack extends JackBase {
      */
     public async setOnline() {
         await this.onNodes(async (label: string) => {
-            await JenkinsHostManager.host().client.node.enable(label);
+            await JenkinsHostManager.host.client.node.enable(label);
             return 'Node Online!'
         }, (n: any) => n.displayName !== 'master' && n.offline);
     }
 
     /**
-     * Allows the user to select multiple online nodes to 
+     * Allows the user to select multiple online nodes to
      * be set in a temporary offline status, with a message.
      */
     public async setOffline() {
@@ -48,7 +48,7 @@ export class NodeJack extends JackBase {
         if (undefined === offlineMessage) { return; }
 
         await this.onNodes(async (label: string) => {
-            await JenkinsHostManager.host().client.node.disable(label, offlineMessage);
+            await JenkinsHostManager.host.client.node.disable(label, offlineMessage);
             return 'Node Offline'
         }, (n: any) => n.displayName !== 'master' && !n.offline);
     }
@@ -59,7 +59,7 @@ export class NodeJack extends JackBase {
      */
     public async disconnect() {
         await this.onNodes(async (label: string) => {
-            await JenkinsHostManager.host().client.node.disconnect(label);
+            await JenkinsHostManager.host.client.node.disconnect(label);
             return 'Disconnected'
         }, (n: any) => n.displayName !== 'master');
     }
@@ -74,7 +74,7 @@ export class NodeJack extends JackBase {
         onNodeAction: (node: string) => Promise<string>,
         filter: ((node: any) => boolean) | undefined = undefined): Promise<any> {
 
-        let nodes = await JenkinsHostManager.host().getNodes();
+        let nodes = await JenkinsHostManager.host.getNodes();
         if (undefined !== filter) {
             nodes = nodes.filter(filter);
         }
