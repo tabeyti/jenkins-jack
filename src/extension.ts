@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
     commandSets.push(registerCommandSet(new JobJack(),                   'extension.jenkins-jack.job',           context));
 
     // Grab host selection command
-    commandSets.push(registerCommandSet(JenkinsHostManager.instance(),   'extension.jenkins-jack.connections',    context));
+    commandSets.push(registerCommandSet(JenkinsHostManager.instance,   'extension.jenkins-jack.connections',    context));
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance));
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
             selections.push({label: '$(kebab-horizontal)', description: ''});
         }
         // Add in host selection command
-        commands.push({
+        selections.push({
             label: "$(settings)  Host Selection",
             description: "Select a jenkins host to connect to.",
             target: async () => await JenkinsHostManager.instance.selectConnection()

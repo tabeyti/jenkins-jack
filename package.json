@@ -48,11 +48,12 @@
     },
     "menus": {
       "view/title": [
-			{
-					"command": "extension.jenkins-jack.pipeline.jobTree.refresh",
-					"when": "view == pipelineJobTree",
-					"group": "navigation"
-			}],
+        {
+          "command": "extension.jenkins-jack.pipeline.jobTree.refresh",
+          "when": "view == pipelineJobTree",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
@@ -253,13 +254,13 @@
         }
       },
       {
-				"command": "extension.jenkins-jack.pipeline.jobTree.refresh",
-				"title": "Refresh",
-				"icon": {
-					"light": "images/refresh-light.svg",
-					"dark": "images/refresh-dark.svg"
-				}
-			}
+        "command": "extension.jenkins-jack.pipeline.jobTree.refresh",
+        "title": "Refresh",
+        "icon": {
+          "light": "images/refresh-light.svg",
+          "dark": "images/refresh-dark.svg"
+        }
+      }
     ],
     "languages": [
       {
