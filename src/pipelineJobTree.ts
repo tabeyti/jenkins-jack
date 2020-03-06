@@ -129,11 +129,16 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             // }
         }
 
-        // TODO: Check for files of the same name, even with extension .groovy, and
-        // TODO: ask user if they want to overwrite as it will affect blah balh bpt
+        // Check for files of the same name, even with extension .groovy, and
+        // ask user if they want to overwrite
+        let scriptPath = `${folderUri.fsPath}/${node.job.fullName}`
+        if (fs.existsSync(scriptPath)) {
+            let r = await vscode.window.showInformationMessage(
+                `File ${scriptPath} already exists. Overwrite?`, { modal: true }, { title: "Yes"} );
+             if (undefined !== r) { return; }
+        }
 
         // Create local script file
-        let scriptPath = `${folderUri.fsPath}/${node.job.fullName}`
         fs.writeFileSync(scriptPath, script[0], 'utf-8');
 
         // Create associated pipeline script with folder location if present
