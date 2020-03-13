@@ -340,7 +340,6 @@ export class PipelineJack extends JackBase {
         });
     }
 
-
     private async restoreJobScm(job: any) {
         if (undefined === job.scm) { return; }
 

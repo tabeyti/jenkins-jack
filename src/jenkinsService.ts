@@ -5,6 +5,13 @@ import * as opn from 'open';
 
 import { sleep } from './utils';
 
+export enum JobType {
+    Default = "default",
+    Folder = "folder",
+    Multi = "multibranch",
+    Org = "org",
+}
+
 export class JenkinsService {
     // @ts-ignore
     public client: any;
@@ -112,35 +119,49 @@ export class JenkinsService {
      * @returns A list of Jenkins 'job' objects.
      */
     public async getJobs(job: any | undefined): Promise<any[]> {
+        // If this is the first call of the recursive function, retrieve all jobs from the 
+        // Jenkins API
         let jobs = (undefined === job) ? await this.getJobsFromUrl(this._jenkinsUri) : await this.getJobsFromUrl(job['url']);
 
         if (undefined === jobs) { return []; }
 
+        // Ineligant way of propogating the parent 'folder' type to the children
+        if (undefined !== job && JobType.Folder === job.type) {
+            for (let j of jobs) {
+                j.type = JobType.Folder;
+            }
+        }
+
         // Not all jobs are top level. Need to grab child jobs from certain class
         // types.
         let jobList: any[] = [];
-        for (let job of jobs) {
-            switch(job._class) {
+        for (let j of jobs) {
+            switch(j._class) {
                 case 'com.cloudbees.hudson.plugins.folder.Folder': {
-                    jobList = jobList.concat(await this.getJobs(job));
+                    // Propogate the the parent's job type to the child jobs. My babies!
+                    j.type = JobType.Folder;
+                    jobList = jobList.concat(await this.getJobs(j));
                     break;
                 }
                 case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
-                    for (let c of job.jobs) {
+                    for (let c of j.jobs) {
+                        c.type = JobType.Multi;
                         jobList.push(c);
                     }
                     break;
                 }
                 case 'jenkins.branch.OrganizationFolder': {
-                    for (var pc of job.jobs) {
+                    for (var pc of j.jobs) {
                         for (let c of pc.jobs) {
+                            c.type = JobType.Org;
                             jobList.push(c);
                         }
                     }
                     break;
                 }
                 default: {
-                    jobList.push(job);
+                    j.type = undefined === j.type ? JobType.Default : job.type;
+                    jobList.push(j);
                 }
             }
         }

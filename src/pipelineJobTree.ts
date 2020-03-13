@@ -5,6 +5,7 @@ import { JenkinsHostManager } from './jenkinsHostManager';
 import * as util from 'util';
 import * as xml2js from "xml2js";
 import { PipelineConfig } from './pipelineJobConfig';
+import { JobType } from './jenkinsService';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -75,7 +76,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         let config = this.getTreeItemConfig(node.label);
 
         // If the script file path is not mapped, prompt the user to locate it.
-        if (null === config.filepath || undefined === config.filepath) {
+        if (null === config.filepath || undefined === config.filepath || !fs.existsSync(config.filepath)) {
             let scriptResult = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
                 canSelectFolders: false,
@@ -131,21 +132,21 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         // Check for files of the same name, even with extension .groovy, and
         // ask user if they want to overwrite
-        let scriptPath = `${folderUri.fsPath}/${node.job.fullName}`
+        let jobName = node.job.type === JobType.Folder ? path.parse(node.job.fullName).base : node.job.fullName;
+        let scriptPath = `${folderUri.fsPath}/${jobName}`
         if (fs.existsSync(scriptPath)) {
             let r = await vscode.window.showInformationMessage(
                 `File ${scriptPath} already exists. Overwrite?`, { modal: true }, { title: "Yes"} );
-             if (undefined !== r) { return; }
+             if (undefined === r) { return; }
         }
 
         // Create local script file
         fs.writeFileSync(scriptPath, script[0], 'utf-8');
 
-        // Create associated pipeline script with folder location if present
+        // Create associated pipeline script config, with folder location if present
         let pipelineJobConfig = new PipelineConfig(scriptPath);
-        let folderPath = path.dirname(node.label);
-        if ('.' !== folderPath) {
-            pipelineJobConfig.folder = folderPath;
+        if (JobType.Folder === node.job.type) {
+            pipelineJobConfig.folder = path.dirname(node.job.fullName);
         }
         pipelineJobConfig.save();
 
@@ -184,7 +185,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                                 job.buildable &&
-                                                null === job.url.match(/\/job\/.*\/job\/.*/) // TODO: hack to ensure this is not a multi-branch type of job
+                                                job.type !== JobType.Multi && job.type !== JobType.Org
             );
             let list =  [];
             for(let job of jobs) {
@@ -199,7 +200,7 @@ export class PipelineJob extends vscode.TreeItem {
 	constructor(
         public readonly label: string,
         public readonly job: any,
-		public readonly command?: vscode.Command
+        public readonly command?: vscode.Command
 	) {
 		super(label, vscode.TreeItemCollapsibleState.None);
 	}
