@@ -26,24 +26,42 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             }
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScript', async (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton', async (node: PipelineJob) => {
             await this.openScript(node);
             await this.saveTreeItemsConfig();
+            await this.refresh();
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScript', async (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext', async (node: PipelineJob) => {
+            await this.openScript(node);
+            await this.saveTreeItemsConfig();
+            await this.refresh();
+        });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptButton', async (node: PipelineJob) => {
             await this.pullScriptFromHost(node);
             await this.saveTreeItemsConfig();
+            await this.refresh();
+        });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJob) => {
+            await this.pullScriptFromHost(node);
+            await this.saveTreeItemsConfig();
+            await this.refresh();
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.refresh', (node: PipelineJob) => {
             this.refresh();
         });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.settings', (node: PipelineJob) => {
+            vscode.commands.executeCommand('workbench.action.openSettingsJson');
+        });
     }
 
     public static get instance(): PipelineJobTreeProvider {
         if (undefined === PipelineJobTreeProvider.treeProviderInstance) {
-          PipelineJobTreeProvider.treeProviderInstance = new PipelineJobTreeProvider();
+            PipelineJobTreeProvider.treeProviderInstance = new PipelineJobTreeProvider();
         }
         return PipelineJobTreeProvider.treeProviderInstance;
     }
@@ -51,7 +69,6 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     private updateSettings() {
         this.config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.jobTree');
     }
-
 
     private async saveTreeItemsConfig() {
         await vscode.workspace.getConfiguration().update(
@@ -84,9 +101,9 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             });
             if (undefined === scriptResult) { return; }
 
-            // Update the tree item config with the new file path
+            // Update the tree item config with the new file path and save global config
             let scriptUri = scriptResult[0];
-            config.filepath = scriptUri.path;
+            config.filepath = scriptUri.fsPath;
         }
 
         // Open the document in vscode
@@ -119,15 +136,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         let root = parsed['flow-definition'];
         let script = root.definition[0].script;
         if (undefined === script) {
-            // If we have git scm object, use it to pull script source
-            // if (undefined !== root.definition[0].scm && "hudson.plugins.git.GitSCM" === root.definition[0].scm[0].$.class) {
-                // script = this.getScriptFromGitScm(root.definition[0].scm[0]);
-
-            // }
-            // else  {
-                vscode.window.showInformationMessage(`Pipeline job "${node.label} has no script to pull.`);
-                return;
-            // }
+            vscode.window.showInformationMessage(`Pipeline job "${node.label} has no script to pull.`);
+            return;
         }
 
         // Check for files of the same name, even with extension .groovy, and
@@ -154,20 +164,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${scriptPath}`));
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
 
-        // update the filepath of this tree item's config
+        // update the filepath of this tree item's config, save it globally, and refresh tree items
         this.getTreeItemConfig(node.label).filepath = scriptPath;
-    }
-
-    private getScriptFromGitScm(scm: any): void {
-        // let branch = scm.branches[0]["hudson.plugins.git.BranchSpec"][0].name[0];
-        // let match = branch.match(/.*\/?(pickles)/);
-
-        // if (!match) {
-        //     vscode.window.showWarningMessage(`Could not parse branch from job`);
-        //     return '';
-        // }
-
-        // let uri = ''
     }
 
 	refresh(): void {
@@ -187,9 +185,15 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
                                                 job.buildable &&
                                                 job.type !== JobType.Multi && job.type !== JobType.Org
             );
+
             let list =  [];
             for(let job of jobs) {
-                list.push(new PipelineJob(job.fullName, job))
+                let pipelineJobTreeItem = new PipelineJob(job.fullName, job);
+                // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
+                pipelineJobTreeItem.contextValue = (undefined !== this.config.items.find((i: any) => i.jobName === job.fullName)) ? 
+                                                    'pipelineJobTreeItemEntry' : 
+                                                    'pipelineJobTreeItemDefault';
+                list.push(pipelineJobTreeItem);
             }
             resolve(list);
         })
@@ -203,7 +207,7 @@ export class PipelineJob extends vscode.TreeItem {
         public readonly command?: vscode.Command
 	) {
 		super(label, vscode.TreeItemCollapsibleState.None);
-	}
+    }
 
 	get tooltip(): string {
 		return `${this.label} - ${this.job.description}`;
@@ -218,6 +222,5 @@ export class PipelineJob extends vscode.TreeItem {
 		dark: path.join(__filename, '..', '..', 'images', 'pipe_icon.svg')
 	};
 
-	contextValue = 'pipelineJobTreeItem';
-
+	contextValue = 'pipelineJobTreeItemDefault';
 }

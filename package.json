@@ -52,17 +52,31 @@
           "command": "extension.jenkins-jack.pipeline.jobTree.refresh",
           "when": "view == pipelineJobTree",
           "group": "navigation"
+        },
+        {
+          "command": "extension.jenkins-jack.pipeline.jobTree.settings",
+          "when": "view == pipelineJobTree",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
-          "when": "viewItem == pipelineJobTreeItem",
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton",
+          "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry",
           "group": "inline"
         },
         {
-          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
-          "when": "viewItem == pipelineJobTreeItem"
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext",
+          "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry"
+        },
+        {
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptButton",
+          "when": "view == pipelineJobTree",
+          "group": "inline"
+        },
+        {
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext",
+          "when": "view == pipelineJobTree"
         }
       ]
     },
@@ -238,7 +252,7 @@
         "category": "Jenkins Jack"
       },
       {
-        "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScript",
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton",
         "title": "Open script",
         "icon": {
           "light": "images/open_script-light.svg",
@@ -246,7 +260,11 @@
         }
       },
       {
-        "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScript",
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext",
+        "title": "Open script"
+      },
+      {
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptButton",
         "title": "Pull script",
         "icon": {
           "light": "images/pull_script-light.svg",
@@ -254,11 +272,23 @@
         }
       },
       {
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext",
+        "title": "Pull script"
+      },
+      {
         "command": "extension.jenkins-jack.pipeline.jobTree.refresh",
         "title": "Refresh",
         "icon": {
           "light": "images/refresh-light.svg",
           "dark": "images/refresh-dark.svg"
+        }
+      },
+      {
+        "command": "extension.jenkins-jack.pipeline.jobTree.settings",
+        "title": "Settings JSON",
+        "icon": {
+          "light": "images/treeview-settings-light.svg",
+          "dark": "images/treeview-settings-dark.svg"
         }
       }
     ],
