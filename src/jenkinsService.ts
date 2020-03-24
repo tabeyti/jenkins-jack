@@ -181,6 +181,7 @@ export class JenkinsService {
     /**
      * Retrieves build numbers for the job url provided.
      * @param rootUrl Base 'job' url for the request.
+     * @returns List of showQuickPick build objects or undefined.
      */
     public async getBuildNumbersFromUrl(rootUrl: string) {
         try {
@@ -215,6 +216,29 @@ export class JenkinsService {
     }
 
     /**
+     * Returns a pipeline script from a previous build (replay).
+     * @param jobName The name of the Jenkins job
+     * @param buildNumber The build number of the job to retrieve the script from
+     * @returns Pipeline script as string or undefined.
+     */
+    public async getReplayScript(jobName: string, buildNumber: any) {
+        try {
+            let url = `${this._jenkinsUri}/job/${jobName}/${buildNumber}/replay`;
+            let r = await request.get(url);
+
+            const dps = require('DOMParser');
+            const dp = new dps.DOMParser();
+            let doc = dp.parseFromString(r, 'text/html');
+            let source = doc.getElementsByTagName('textarea')[0].textContent;
+            return source;            
+        } catch (err) {
+            console.log(err);
+            vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
+            return undefined;
+        }
+    }
+
+    /**
      * Deletes a build from Jenkins. "Found" status (302)
      * is considered success.
      * @param jobName The name of the job
@@ -230,13 +254,13 @@ export class JenkinsService {
             }
             console.log(err);
             vscode.window.showWarningMessage(this._cantConnectMessage);
-            return undefined;
         }
     }
 
     /**
      * Retrieves a list of Jenkins 'job' objects.
      * @param rootUrl Root jenkins url for the request.
+     * @returns Jobs json object or undefined.
      */
     public async getJobsFromUrl(rootUrl: string) {
         try {
@@ -258,6 +282,7 @@ export class JenkinsService {
      * the remote Jenkins.
      * @param source Groovy source.
      * @param node Optional targeted machine.
+     * @returns Output of abort POST request or undefined.
      */
     public async runConsoleScript(
         source: string,

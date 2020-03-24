@@ -19,6 +19,11 @@ export class BuildJack extends JackBase {
                 label: "$(circle-slash)  Build: Delete",
                 description: "Select a job and builds to delete.",
                 target: async () => await this.delete()
+            },
+            {
+                label: "$(desktop-download)  Build: Pipeline Replay Script Download",
+                description: "Pulls a pipeline replay script of a previous build into the editor.",
+                target: async () => await this.downloadReplayScript()
             }
         ];
     }
@@ -108,5 +113,38 @@ export class BuildJack extends JackBase {
 
         // Stream it. Stream it until the editor crashes.
         await JenkinsHostManager.host.streamBuildOutput(job.label, buildNumber.target, this.outputChannel);
+    }
+
+    /**
+     * Downloads a build log for the user by first presenting a list
+     * of jobs to select from, and then a list of build numbers for
+     * the selected job.
+     */
+    public async downloadReplayScript() {
+        let jobs = await JenkinsHostManager.host.getJobs(undefined);
+        // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
+        jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
+                                            job.buildable
+        );
+        for (let job of jobs) {
+            job.label = job.fullName;
+        }
+
+        // Ask which job they want to target.
+        let job = await vscode.window.showQuickPick(jobs);
+        if (undefined === job) { return; }
+
+        // Ask what build they want to download.
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(job.url);
+        let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
+        if (undefined === buildNumber) { return; }
+
+        // Pull script and display as an Untitled document
+        let script = await JenkinsHostManager.host.getReplayScript(job.fullName, buildNumber.target);
+        let doc = await vscode.workspace.openTextDocument({
+            content: script,
+            language: 'groovy'
+        });
+        await vscode.window.showTextDocument(doc);
     }
 }

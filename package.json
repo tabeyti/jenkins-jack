@@ -70,12 +70,11 @@
           "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry"
         },
         {
-          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptButton",
-          "when": "view == pipelineJobTree",
-          "group": "inline"
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext",
+          "when": "view == pipelineJobTree"
         },
         {
-          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext",
+          "command": "extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext",
           "when": "view == pipelineJobTree"
         }
       ]
@@ -261,19 +260,15 @@
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext",
-        "title": "Open script"
-      },
-      {
-        "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptButton",
-        "title": "Pull script",
-        "icon": {
-          "light": "images/pull_script-light.svg",
-          "dark": "images/pull_script-dark.svg"
-        }
+        "title": "Open local script"
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext",
-        "title": "Pull script"
+        "title": "Pull job script"
+      },
+      {
+        "command": "extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext",
+        "title": "Pull replay script"
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.refresh",
@@ -339,6 +334,7 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
+    "domparser": "^0.1.1",
     "jenkins": "^0.27.0",
     "open": "^6.2.0",
     "request": "^2.88.0",

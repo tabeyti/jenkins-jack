@@ -38,14 +38,14 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             await this.refresh();
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptButton', async (node: PipelineJob) => {
-            await this.pullScriptFromHost(node);
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJob) => {
+            await this.pullJobScript(node);
             await this.saveTreeItemsConfig();
             await this.refresh();
         });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJob) => {
-            await this.pullScriptFromHost(node);
+        
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext', async (node: PipelineJob) => {
+            await this.pullReplayScript(node);
             await this.saveTreeItemsConfig();
             await this.refresh();
         });
@@ -112,17 +112,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
     }
 
-    private async pullScriptFromHost(node: PipelineJob) {
-
-        // Prompt user for folder location to save script
-        let folderResult = await vscode.window.showOpenDialog({
-            canSelectFiles: false,
-            canSelectMany: false,
-            canSelectFolders: true,
-        });
-
-        if (undefined === folderResult) { return; }
-        let folderUri = folderResult[0];
+    private async pullJobScript(node: PipelineJob) {
 
         // See if script source exists on job
         let xml = await JenkinsHostManager.host.client.job.config(node.label).then((data: any) => {
@@ -136,36 +126,71 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         let root = parsed['flow-definition'];
         let script = root.definition[0].script;
         if (undefined === script) {
-            vscode.window.showInformationMessage(`Pipeline job "${node.label} has no script to pull.`);
+            vscode.window.showInformationMessage(`Pipeline job "${node.label}" has no script to pull.`);
             return;
         }
+
+        await this.saveAndEditScript(script[0], node);
+    }
+
+    private async pullReplayScript(node: PipelineJob) {
+
+        // Ask what build they want to download.
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(node.job.url);
+        let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
+        if (undefined === buildNumber) { return; }
+
+        // Pull replay script from build number
+        let script = await JenkinsHostManager.host.getReplayScript(node.job.fullName, buildNumber.target);
+
+        await this.saveAndEditScript(script, node);
+    }
+
+    private async saveAndEditScript(script: string, node: PipelineJob) {
+
+         // Prompt user for folder location to save script
+         let folderResult = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectMany: false,
+            canSelectFolders: true,
+        });
+        if (undefined === folderResult) { return; }
+        let folderUri = folderResult[0];
 
         // Check for files of the same name, even with extension .groovy, and
         // ask user if they want to overwrite
         let jobName = node.job.type === JobType.Folder ? path.parse(node.job.fullName).base : node.job.fullName;
-        let scriptPath = `${folderUri.fsPath}/${jobName}`
-        if (fs.existsSync(scriptPath)) {
+
+        // Ensure filepath slashes are standard, otherwise vscode.window.showTextDocument will create
+        // a new document instead of refreshing the existing one.
+        let filepath = `${folderUri.fsPath.replace(/\\/g, '/')}/${jobName}`
+        if (fs.existsSync(filepath)) {
             let r = await vscode.window.showInformationMessage(
-                `File ${scriptPath} already exists. Overwrite?`, { modal: true }, { title: "Yes"} );
+                `File ${filepath} already exists. Overwrite?`, { modal: true }, { title: "Yes"} );
              if (undefined === r) { return; }
         }
 
-        // Create local script file
-        fs.writeFileSync(scriptPath, script[0], 'utf-8');
+        // Create local script file.
+        try {
+            fs.writeFileSync(filepath, script, 'utf-8');
+        } catch (err) {
+            vscode.window.showInformationMessage(err);
+            return
+        }
 
-        // Create associated pipeline script config, with folder location if present
-        let pipelineJobConfig = new PipelineConfig(scriptPath);
+        // Create associated jenkins-jack pipeline script config, with folder location if present.
+        let pipelineJobConfig = new PipelineConfig(filepath);
         if (JobType.Folder === node.job.type) {
             pipelineJobConfig.folder = path.dirname(node.job.fullName);
         }
         pipelineJobConfig.save();
 
-        // Open it in vscode with supported language id
-        let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${scriptPath}`));
+        // Open script in vscode with supported language id
+        let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${filepath}`));
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
 
-        // update the filepath of this tree item's config, save it globally, and refresh tree items
-        this.getTreeItemConfig(node.label).filepath = scriptPath;
+        // Update the filepath of this tree item's config, save it globally, and refresh tree items.
+        this.getTreeItemConfig(node.label).filepath = filepath;
     }
 
 	refresh(): void {
@@ -210,7 +235,12 @@ export class PipelineJob extends vscode.TreeItem {
     }
 
 	get tooltip(): string {
-		return `${this.label} - ${this.job.description}`;
+        if (undefined === this.job.description || '' === this.job.description) {
+            return this.label;
+        }
+        else {
+            return `${this.label} - ${this.job.description}`;
+        }	
 	}
 
 	get description(): string {
