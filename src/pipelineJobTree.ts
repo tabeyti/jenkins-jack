@@ -9,16 +9,35 @@ import { JobType } from './jenkinsService';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
+export class PipelineJobTree {
+    private static _treeViewInstance: PipelineJobTree;
+    private readonly _treeView: vscode.TreeView<PipelineJob>;
+    private readonly _treeViewDataProvider: PipelineJobTreeProvider;
+
+    private constructor() {
+        this._treeViewDataProvider = new PipelineJobTreeProvider();
+        this._treeView = vscode.window.createTreeView('pipelineJobTree', { treeDataProvider: this._treeViewDataProvider });
+    }
+
+    public static get instance(): PipelineJobTree {
+        if (undefined === PipelineJobTree._treeViewInstance) {
+            PipelineJobTree._treeViewInstance = new PipelineJobTree();
+        }
+        return PipelineJobTree._treeViewInstance;
+    }
+
+    public refresh(host: string) {
+        this._treeView.title = host;
+        this._treeViewDataProvider.refresh();
+    }
+}
+
 export class PipelineJobTreeProvider implements vscode.TreeDataProvider<PipelineJob> {
-
-    // @ts-ignore
-    private static treeProviderInstance: PipelineJobTreeProvider;
-
-    private config: any;
+    private _config: any;
 	private _onDidChangeTreeData: vscode.EventEmitter<PipelineJob | undefined> = new vscode.EventEmitter<PipelineJob | undefined>();
     readonly onDidChangeTreeData: vscode.Event<PipelineJob | undefined> = this._onDidChangeTreeData.event;
 
-	private constructor() {
+	public constructor() {
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.pipeline.jobTree')) {
@@ -43,7 +62,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             await this.saveTreeItemsConfig();
             await this.refresh();
         });
-        
+
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext', async (node: PipelineJob) => {
             await this.pullReplayScript(node);
             await this.saveTreeItemsConfig();
@@ -59,34 +78,27 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         });
     }
 
-    public static get instance(): PipelineJobTreeProvider {
-        if (undefined === PipelineJobTreeProvider.treeProviderInstance) {
-            PipelineJobTreeProvider.treeProviderInstance = new PipelineJobTreeProvider();
-        }
-        return PipelineJobTreeProvider.treeProviderInstance;
-    }
-
     private updateSettings() {
-        this.config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.jobTree');
+        this._config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.jobTree');
     }
 
     private async saveTreeItemsConfig() {
         await vscode.workspace.getConfiguration().update(
             'jenkins-jack.pipeline.jobTree.items',
-            this.config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
+            this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
             vscode.ConfigurationTarget.Global);
     }
 
     private getTreeItemConfig(key: string): any {
-        if (undefined === this.config.items) { this.config.items = []; }
-        if (undefined === this.config.items || undefined === this.config.items.find((i: any) => i.jobName === key && i.hostId === JenkinsHostManager.host.id)) {
-            this.config.items.push({
+        if (undefined === this._config.items) { this._config.items = []; }
+        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === JenkinsHostManager.host.id)) {
+            this._config.items.push({
                 hostId: JenkinsHostManager.host.id,
                 jobName: key,
                 filepath: null,
             });
         }
-        return this.config.items.find((i: any) => i.jobName === key);
+        return this._config.items.find((i: any) => i.jobName === key);
     }
 
     private async openScript(node: PipelineJob) {
@@ -136,7 +148,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     private async pullReplayScript(node: PipelineJob) {
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(node.job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(node.job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
@@ -204,7 +216,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 	getChildren(element?: PipelineJob): Thenable<PipelineJob[]> {
         return new Promise(async resolve => {
 
-            let jobs = await JenkinsHostManager.host.getJobs(undefined);
+            let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
+             JenkinsHostManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                                 job.buildable &&
@@ -215,8 +228,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             for(let job of jobs) {
                 let pipelineJobTreeItem = new PipelineJob(job.fullName, job);
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
-                pipelineJobTreeItem.contextValue = (undefined !== this.config.items.find((i: any) => i.jobName === job.fullName)) ? 
-                                                    'pipelineJobTreeItemEntry' : 
+                pipelineJobTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName)) ?
+                                                    'pipelineJobTreeItemEntry' :
                                                     'pipelineJobTreeItemDefault';
                 list.push(pipelineJobTreeItem);
             }
@@ -240,7 +253,7 @@ export class PipelineJob extends vscode.TreeItem {
         }
         else {
             return `${this.label} - ${this.job.description}`;
-        }	
+        }
 	}
 
 	get description(): string {

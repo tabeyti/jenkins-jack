@@ -45,7 +45,7 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(job.url);
         let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: true }) as any;
         if (undefined === selections) { return; }
 
@@ -107,7 +107,7 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
@@ -135,7 +135,7 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrl(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(job.url);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 

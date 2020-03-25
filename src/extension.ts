@@ -13,7 +13,7 @@ import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
 import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
-import { PipelineJobTreeProvider } from './pipelineJobTree';
+import { PipelineJobTree } from './pipelineJobTree';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -51,7 +51,8 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    vscode.window.registerTreeDataProvider('pipelineJobTree', PipelineJobTreeProvider.instance);
+    // Create pipeline job tree view with active hosts' id in title
+    PipelineJobTree.instance.refresh(JenkinsHostManager.host.id);
 
     // Initialize the Jacks and their respective commands.
     let commandSets: CommandSet[] = [];

@@ -28,6 +28,10 @@ export class JenkinsService {
         'description'
     ].join(',')
 
+    private readonly messageItem: vscode.MessageItem = {
+        title: 'Okay'
+    };
+
     public constructor(
         public readonly id: string,
         public readonly uri: string,
@@ -90,7 +94,7 @@ export class JenkinsService {
         let url = `${this._jenkinsUri}/${endpoint}`;
         return request.get(url).catch(err => {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return undefined;
         });
     }
@@ -107,8 +111,26 @@ export class JenkinsService {
                 return undefined;
             }
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             throw err;
+        });
+    }
+
+    /**
+     * Wrapper around getJobs with progress notification.
+     */
+    public async getJobsWithProgress(job: any | undefined): Promise<any[]> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, token) => {
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+            });
+
+            progress.report({ message: 'Retrieving jenkins jobs.' });
+            return await this.getJobs(job);
         });
     }
 
@@ -119,7 +141,7 @@ export class JenkinsService {
      * @returns A list of Jenkins 'job' objects.
      */
     public async getJobs(job: any | undefined): Promise<any[]> {
-        // If this is the first call of the recursive function, retrieve all jobs from the 
+        // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
         let jobs = (undefined === job) ? await this.getJobsFromUrl(this._jenkinsUri) : await this.getJobsFromUrl(job['url']);
 
@@ -178,6 +200,20 @@ export class JenkinsService {
         return json.computer;
     }
 
+    public async getBuildNumbersFromUrlWithProgress(rootUrl: string): Promise<any[]> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, token) => {
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+            });
+            progress.report({ message: `Retrieving builds.` });
+            return await this.getBuildNumbersFromUrl(rootUrl);
+        });
+    }
+
     /**
      * Retrieves build numbers for the job url provided.
      * @param rootUrl Base 'job' url for the request.
@@ -210,7 +246,7 @@ export class JenkinsService {
             });
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return undefined;
         }
     }
@@ -230,7 +266,7 @@ export class JenkinsService {
             const dp = new dps.DOMParser();
             let doc = dp.parseFromString(r, 'text/html');
             let source = doc.getElementsByTagName('textarea')[0].textContent;
-            return source;            
+            return source;
         } catch (err) {
             console.log(err);
             vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
@@ -253,7 +289,7 @@ export class JenkinsService {
                 return `${jobName} #${buildNumber} deleted`
             }
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
         }
     }
 
@@ -272,7 +308,7 @@ export class JenkinsService {
             return json.jobs;
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return undefined;
         }
     }
@@ -304,7 +340,7 @@ export class JenkinsService {
             return output;
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return err.error;
         }
     }
@@ -419,5 +455,9 @@ export class JenkinsService {
             url = `${this._jenkinsUri}/${match[1]}`;
         }
         return url;
+    }
+
+    private showCantConnectMessage() {
+        vscode.window.showWarningMessage(this._cantConnectMessage);
     }
 }
