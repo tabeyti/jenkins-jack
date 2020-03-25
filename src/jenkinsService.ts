@@ -54,6 +54,12 @@ export class JenkinsService {
 
         this.updateSettings();
 
+        // Will error if no connection can be made to the remote host
+        this.client.info().catch((err: any) => {
+            if (this._disposed) { return; }
+            this.showCantConnectMessage();
+        });
+
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins')) {
                 this.updateSettings();
@@ -69,12 +75,6 @@ export class JenkinsService {
 
         this._config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this._config.strictTls ? '1' : '0';
-
-        // Will error if no connection can be made to the remote host
-        this.client.info().catch((err: any) => {
-            if (this._disposed) { return; }
-            vscode.window.showWarningMessage(this._cantConnectMessage);
-        });
     }
 
     public dispose() {
