@@ -11,7 +11,6 @@ import { BuildJack } from './buildJack';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
-// import { sleep } from './utils';
 import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
 import { PipelineJobTreeProvider } from './pipelineJobTree';
@@ -62,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
     commandSets.push(registerCommandSet(new BuildJack(),                 'extension.jenkins-jack.build',         context));
     commandSets.push(registerCommandSet(new JobJack(),                   'extension.jenkins-jack.job',           context));
 
-    // Grab host selection command
+    // Add the host selection command
     commandSets.push(registerCommandSet(JenkinsHostManager.instance,   'extension.jenkins-jack.connections',    context));
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance));
@@ -77,12 +76,8 @@ export function activate(context: vscode.ExtensionContext) {
             // visual label to divide up the jack sub commands
             selections.push({label: '$(kebab-horizontal)', description: ''});
         }
-        // Add in host selection command
-        selections.push({
-            label: "$(settings)  Host Selection",
-            description: "Select a jenkins host to connect to.",
-            target: async () => await JenkinsHostManager.instance.selectConnection()
-        })
+        // Remove last divider
+        selections.pop();
 
         // Display full list of all commands and execute selected target.
         let result = await vscode.window.showQuickPick(selections);
@@ -92,7 +87,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(jacksCommands);
 
     console.log('Extension Jenkins Jack now active!');
-
 
     /**
      * Registers a jack command to display all sub-commands within that Jack.
