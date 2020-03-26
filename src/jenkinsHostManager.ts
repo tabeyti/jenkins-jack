@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { JenkinsService } from './jenkinsService';
 import { CommandSet } from './commandSet';
-import { PipelineJobTreeProvider, PipelineJobTree } from './pipelineJobTree';
+import { PipelineJobTree } from './pipelineJobTree';
 
 export class JenkinsHostManager implements CommandSet {
     private host: JenkinsService;

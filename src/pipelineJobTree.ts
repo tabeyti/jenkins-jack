@@ -47,26 +47,18 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton', async (node: PipelineJob) => {
             await this.openScript(node);
-            await this.saveTreeItemsConfig();
-            await this.refresh();
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext', async (node: PipelineJob) => {
             await this.openScript(node);
-            await this.saveTreeItemsConfig();
-            await this.refresh();
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJob) => {
             await this.pullJobScript(node);
-            await this.saveTreeItemsConfig();
-            await this.refresh();
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext', async (node: PipelineJob) => {
             await this.pullReplayScript(node);
-            await this.saveTreeItemsConfig();
-            await this.refresh();
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.refresh', (node: PipelineJob) => {
@@ -87,6 +79,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             'jenkins-jack.pipeline.jobTree.items',
             this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
             vscode.ConfigurationTarget.Global);
+        await this.refresh():
     }
 
     private getTreeItemConfig(key: string): any {
@@ -116,6 +109,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             // Update the tree item config with the new file path and save global config
             let scriptUri = scriptResult[0];
             config.filepath = scriptUri.fsPath;
+
+            await this.saveTreeItemsConfig();
         }
 
         // Open the document in vscode
@@ -143,6 +138,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         }
 
         await this.saveAndEditScript(script[0], node);
+        await this.saveTreeItemsConfig();
     }
 
     private async pullReplayScript(node: PipelineJob) {
@@ -203,6 +199,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         // Update the filepath of this tree item's config, save it globally, and refresh tree items.
         this.getTreeItemConfig(node.label).filepath = filepath;
+
+        await this.saveTreeItemsConfig();
     }
 
 	refresh(): void {

@@ -121,7 +121,7 @@ export class JenkinsService {
      */
     public async getJobsWithProgress(job: any | undefined): Promise<any[]> {
         return await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
+            location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
             cancellable: true
         }, async (progress, token) => {
@@ -202,7 +202,7 @@ export class JenkinsService {
 
     public async getBuildNumbersFromUrlWithProgress(rootUrl: string): Promise<any[]> {
         return await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
+            location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
             cancellable: true
         }, async (progress, token) => {

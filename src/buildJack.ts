@@ -96,7 +96,7 @@ export class BuildJack extends JackBase {
      * the selected job.
      */
     public async downloadLog() {
-        let jobs = await JenkinsHostManager.host.getJobs(undefined);
+        let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
         if (undefined === jobs) { return; }
         for (let job of jobs) {
             job.label = job.fullName;
@@ -121,7 +121,7 @@ export class BuildJack extends JackBase {
      * the selected job.
      */
     public async downloadReplayScript() {
-        let jobs = await JenkinsHostManager.host.getJobs(undefined);
+        let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
         // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
         jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                             job.buildable
