@@ -226,7 +226,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             for(let job of jobs) {
                 let pipelineJobTreeItem = new PipelineJob(job.fullName, job);
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
-                pipelineJobTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName)) ?
+                pipelineJobTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === JenkinsHostManager.host.id)) ?
                                                     'pipelineJobTreeItemEntry' :
                                                     'pipelineJobTreeItemDefault';
                 list.push(pipelineJobTreeItem);
