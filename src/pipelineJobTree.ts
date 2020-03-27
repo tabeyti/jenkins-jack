@@ -129,6 +129,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             console.log(err);
             throw err;
         });
+
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
         let script = root.definition[0].script;
@@ -150,6 +151,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         // Pull replay script from build number
         let script = await JenkinsHostManager.host.getReplayScript(node.job.fullName, buildNumber.target);
+        if (undefined === script) { return; }
 
         await this.saveAndEditScript(script, node);
     }

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as jenkins from 'jenkins';
 import * as request from 'request-promise-native';
 import * as opn from 'open';
+import * as htmlParser from 'cheerio';
 
 import { sleep } from './utils';
 
@@ -262,10 +263,11 @@ export class JenkinsService {
             let url = `${this._jenkinsUri}/job/${jobName}/${buildNumber}/replay`;
             let r = await request.get(url);
 
-            const dps = require('DOMParser');
-            const dp = new dps.DOMParser();
-            let doc = dp.parseFromString(r, 'text/html');
-            let source = doc.getElementsByTagName('textarea')[0].textContent;
+            const root = htmlParser.load(r);
+            let source  = root('textarea')[0].childNodes[0].data?.toString();
+            if (undefined === source) {
+                throw new Error('Could not locate script text in <textarea>.');
+            }
             return source;
         } catch (err) {
             console.log(err);

@@ -318,8 +318,8 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
-    "typescript": "^3.1.4",
-    "vscode": "^1.1.25",
+    "typescript": "^3.8.3",
+    "vscode": "^1.1.36",
     "tslint": "^5.8.0",
     "xml2js": "0.4.3",
     "jenkins": "^0.27.0",
@@ -334,7 +334,6 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
-    "domparser": "^0.1.1",
     "jenkins": "^0.27.0",
     "open": "^6.2.0",
     "request": "^2.88.0",

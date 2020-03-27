@@ -140,7 +140,8 @@ export class BuildJack extends JackBase {
         if (undefined === buildNumber) { return; }
 
         // Pull script and display as an Untitled document
-        let script = await JenkinsHostManager.host.getReplayScript(job.fullName, buildNumber.target);
+        let script = await JenkinsHostManager.host.getReplayScript(job.fullName, buildNumber.target)
+        if (undefined === script) { return; }
         let doc = await vscode.workspace.openTextDocument({
             content: script,
             language: 'groovy'
