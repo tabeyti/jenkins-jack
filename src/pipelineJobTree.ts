@@ -79,7 +79,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             'jenkins-jack.pipeline.jobTree.items',
             this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
             vscode.ConfigurationTarget.Global);
-        await this.refresh():
+        await this.refresh();
     }
 
     private getTreeItemConfig(key: string): any {
