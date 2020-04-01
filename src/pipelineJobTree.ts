@@ -11,7 +11,7 @@ const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string
 
 export class PipelineJobTree {
     private static _treeViewInstance: PipelineJobTree;
-    private readonly _treeView: vscode.TreeView<PipelineJob>;
+    private readonly _treeView: vscode.TreeView<PipelineJobTreeItem>;
     private readonly _treeViewDataProvider: PipelineJobTreeProvider;
 
     private constructor() {
@@ -32,10 +32,10 @@ export class PipelineJobTree {
     }
 }
 
-export class PipelineJobTreeProvider implements vscode.TreeDataProvider<PipelineJob> {
+export class PipelineJobTreeProvider implements vscode.TreeDataProvider<PipelineJobTreeItem> {
     private _config: any;
-	private _onDidChangeTreeData: vscode.EventEmitter<PipelineJob | undefined> = new vscode.EventEmitter<PipelineJob | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<PipelineJob | undefined> = this._onDidChangeTreeData.event;
+	private _onDidChangeTreeData: vscode.EventEmitter<PipelineJobTreeItem | undefined> = new vscode.EventEmitter<PipelineJobTreeItem | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<PipelineJobTreeItem | undefined> = this._onDidChangeTreeData.event;
 
 	public constructor() {
         this.updateSettings();
@@ -45,27 +45,27 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             }
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton', async (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton', async (node: PipelineJobTreeItem) => {
             await this.openScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext', async (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext', async (node: PipelineJobTreeItem) => {
             await this.openScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJobTreeItem) => {
             await this.pullJobScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext', async (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext', async (node: PipelineJobTreeItem) => {
             await this.pullReplayScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.refresh', (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.refresh', (node: PipelineJobTreeItem) => {
             this.refresh();
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.settings', (node: PipelineJob) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.settings', (node: PipelineJobTreeItem) => {
             vscode.commands.executeCommand('workbench.action.openSettingsJson');
         });
     }
@@ -94,7 +94,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         return this._config.items.find((i: any) => i.jobName === key);
     }
 
-    private async openScript(node: PipelineJob) {
+    private async openScript(node: PipelineJobTreeItem) {
         let config = this.getTreeItemConfig(node.label);
 
         // If the script file path is not mapped, prompt the user to locate it.
@@ -119,7 +119,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
     }
 
-    private async pullJobScript(node: PipelineJob) {
+    private async pullJobScript(node: PipelineJobTreeItem) {
 
         // See if script source exists on job
         let xml = await JenkinsHostManager.host.client.job.config(node.label).then((data: any) => {
@@ -142,7 +142,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         await this.saveTreeItemsConfig();
     }
 
-    private async pullReplayScript(node: PipelineJob) {
+    private async pullReplayScript(node: PipelineJobTreeItem) {
 
         // Ask what build they want to download.
         let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(node.job.url);
@@ -156,7 +156,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         await this.saveAndEditScript(script, node);
     }
 
-    private async saveAndEditScript(script: string, node: PipelineJob) {
+    private async saveAndEditScript(script: string, node: PipelineJobTreeItem) {
 
          // Prompt user for folder location to save script
          let folderResult = await vscode.window.showOpenDialog({
@@ -209,11 +209,11 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 		this._onDidChangeTreeData.fire();
 	}
 
-	getTreeItem(element: PipelineJob): PipelineJob {
+	getTreeItem(element: PipelineJobTreeItem): PipelineJobTreeItem {
 		return element;
 	}
 
-	getChildren(element?: PipelineJob): Thenable<PipelineJob[]> {
+	getChildren(element?: PipelineJobTreeItem): Thenable<PipelineJobTreeItem[]> {
         return new Promise(async resolve => {
 
             let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
@@ -226,7 +226,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
             let list =  [];
             for(let job of jobs) {
-                let pipelineJobTreeItem = new PipelineJob(job.fullName, job);
+                let pipelineJobTreeItem = new PipelineJobTreeItem(job.fullName, job);
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
                 pipelineJobTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === JenkinsHostManager.host.id)) ?
                                                     'pipelineJobTreeItemEntry' :
@@ -238,11 +238,10 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     }
 }
 
-export class PipelineJob extends vscode.TreeItem {
+export class PipelineJobTreeItem extends vscode.TreeItem {
 	constructor(
         public readonly label: string,
-        public readonly job: any,
-        public readonly command?: vscode.Command
+        public readonly job: any
 	) {
 		super(label, vscode.TreeItemCollapsibleState.None);
     }

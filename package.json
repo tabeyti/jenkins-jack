@@ -260,15 +260,15 @@
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext",
-        "title": "Open local script"
+        "title": "Open Script"
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext",
-        "title": "Pull job script"
+        "title": "Pull Job Script"
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext",
-        "title": "Pull replay script"
+        "title": "Pull Replay Script"
       },
       {
         "command": "extension.jenkins-jack.pipeline.jobTree.refresh",
