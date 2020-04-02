@@ -3,6 +3,7 @@ import * as jenkins from 'jenkins';
 import * as request from 'request-promise-native';
 import * as opn from 'open';
 import * as htmlParser from 'cheerio';
+import * as Url from 'url-parse';
 
 import { sleep } from './utils';
 
@@ -10,7 +11,7 @@ export enum JobType {
     Default = "default",
     Folder = "folder",
     Multi = "multibranch",
-    Org = "org",
+    Org = "org"
 }
 
 export class JenkinsService {
@@ -102,7 +103,7 @@ export class JenkinsService {
 
     /**
      * Uses the jenkins client to retrieve a job.
-     * @param job The job JSON object.
+     * @param job The Jenkins job JSON object.
      */
     public async getJob(job: string) {
         return this.client.job.get(job).then((data: any) => {
@@ -120,7 +121,7 @@ export class JenkinsService {
     /**
      * Wrapper around getJobs with progress notification.
      */
-    public async getJobsWithProgress(job: any | undefined): Promise<any[]> {
+    public async getJobsWithProgress(job?: any): Promise<any[]> {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -201,7 +202,11 @@ export class JenkinsService {
         return json.computer;
     }
 
-    public async getBuildNumbersFromUrlWithProgress(rootUrl: string): Promise<any[]> {
+    /**
+     * Wrapper around getBuildNumbers with progress notification.
+     * @param job The Jenkins JSON job object
+     */
+    public async getBuildNumbersWithProgress(job: any) {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -211,7 +216,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
             });
             progress.report({ message: `Retrieving builds.` });
-            return await this.getBuildNumbersFromUrl(rootUrl);
+            return await this.getBuildNumbers(job);
         });
     }
 
@@ -220,25 +225,21 @@ export class JenkinsService {
      * @param rootUrl Base 'job' url for the request.
      * @returns List of showQuickPick build objects or undefined.
      */
-    public async getBuildNumbersFromUrl(rootUrl: string) {
+    public async getBuildNumbers(job: any) {
+        let resultIconMap = new Map([
+            ['SUCCESS', '$(check)'], 
+            ['FAILURE', '$(x)'], 
+            ['ABORTED', '$(alert)'], 
+            [undefined, '']]
+        )
+
         try {
-            rootUrl = this.fromUrlFormat(rootUrl);
+            let rootUrl = this.fromUrlFormat(job.url);
             let url = `${rootUrl}/api/json?tree=builds[number,result,description]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.builds.map((n: any) => {
-                let buildStatus = "";
-                switch(n.result) {
-                    case "SUCCESS":
-                        buildStatus = "$(check)";
-                        break;
-                    case "FAILURE":
-                        buildStatus = "$(x)";
-                        break;
-                    case "ABORTED":
-                        buildStatus = "$(alert)";
-                        break;
-                }
+                let buildStatus = resultIconMap.get(n.result);
                 return {
                     label: String(`${n.number} ${buildStatus}`),
                     description: n.description,
@@ -254,13 +255,13 @@ export class JenkinsService {
 
     /**
      * Returns a pipeline script from a previous build (replay).
-     * @param jobName The name of the Jenkins job
+     * @param job The Jenkins job JSON object
      * @param buildNumber The build number of the job to retrieve the script from
      * @returns Pipeline script as string or undefined.
      */
-    public async getReplayScript(jobName: string, buildNumber: any) {
+    public async getReplayScript(job: any, buildNumber: any) {
         try {
-            let url = `${this._jenkinsUri}/job/${jobName}/${buildNumber}/replay`;
+            let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${buildNumber}/replay`;
             let r = await request.get(url);
 
             const root = htmlParser.load(r);
@@ -279,16 +280,16 @@ export class JenkinsService {
     /**
      * Deletes a build from Jenkins. "Found" status (302)
      * is considered success.
-     * @param jobName The name of the job
+     * @param job The Jenkins job JSON object
      * @param buildNumber The build number to delete
      */
-    public async deleteBuild(jobName: string, buildNumber: any) {
+    public async deleteBuild(job: any, buildNumber: any) {
         try {
-            let url = `${this._jenkinsUri}/job/${jobName}/${buildNumber}/doDelete`;
+            let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${buildNumber}/doDelete`;
             await request.post(url);
         } catch (err) {
             if (302 == err.statusCode) {
-                return `${jobName} #${buildNumber} deleted`
+                return `${job.fullName} #${buildNumber} deleted`
             }
             console.log(err);
             this.showCantConnectMessage();

@@ -145,12 +145,12 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     private async pullReplayScript(node: PipelineJobTreeItem) {
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(node.job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(node.job);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
         // Pull replay script from build number
-        let script = await JenkinsHostManager.host.getReplayScript(node.job.fullName, buildNumber.target);
+        let script = await JenkinsHostManager.host.getReplayScript(node.job, buildNumber.target);
         if (undefined === script) { return; }
 
         await this.saveAndEditScript(script, node);
@@ -216,7 +216,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 	getChildren(element?: PipelineJobTreeItem): Thenable<PipelineJobTreeItem[]> {
         return new Promise(async resolve => {
 
-            let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
+            let jobs = await JenkinsHostManager.host.getJobsWithProgress();
              JenkinsHostManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&

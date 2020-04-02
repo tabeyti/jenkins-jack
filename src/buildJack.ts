@@ -45,7 +45,7 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(job);
         let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: true }) as any;
         if (undefined === selections) { return; }
 
@@ -65,7 +65,7 @@ export class BuildJack extends JackBase {
             for (let s of selections) {
                 let promise = new Promise(async (resolve) => {
                     try {
-                        let output = await JenkinsHostManager.host.deleteBuild(job.label, s.target);
+                        let output = await JenkinsHostManager.host.deleteBuild(job, s.target);
                         return resolve({ label: s.target, output: output })
                     } catch (err) {
                         return resolve({ label: s.target, output: err })
@@ -96,7 +96,7 @@ export class BuildJack extends JackBase {
      * the selected job.
      */
     public async downloadLog() {
-        let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
+        let jobs = await JenkinsHostManager.host.getJobsWithProgress();
         if (undefined === jobs) { return; }
         for (let job of jobs) {
             job.label = job.fullName;
@@ -107,7 +107,7 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(job);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
@@ -121,7 +121,7 @@ export class BuildJack extends JackBase {
      * the selected job.
      */
     public async downloadReplayScript() {
-        let jobs = await JenkinsHostManager.host.getJobsWithProgress(undefined);
+        let jobs = await JenkinsHostManager.host.getJobsWithProgress();
         // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
         jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                             job.buildable
@@ -135,12 +135,12 @@ export class BuildJack extends JackBase {
         if (undefined === job) { return; }
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersFromUrlWithProgress(job.url);
+        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(job);
         let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
         if (undefined === buildNumber) { return; }
 
         // Pull script and display as an Untitled document
-        let script = await JenkinsHostManager.host.getReplayScript(job.fullName, buildNumber.target)
+        let script = await JenkinsHostManager.host.getReplayScript(job, buildNumber.target);
         if (undefined === script) { return; }
         let doc = await vscode.workspace.openTextDocument({
             content: script,
