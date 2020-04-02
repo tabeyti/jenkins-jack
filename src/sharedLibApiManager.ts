@@ -33,7 +33,7 @@ export class SharedLibApiManager {
         this.sharedLibVars = [];
     }
 
-    public static instance() {
+    public static get instance() {
         if (undefined === SharedLibApiManager.sharedLibInstance) {
             SharedLibApiManager.sharedLibInstance = new SharedLibApiManager();
         }

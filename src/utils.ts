@@ -64,7 +64,7 @@ export function writejson(path: string, json: any) {
  * Returns some nasty hard-coded Jenkins Pipeline
  * XML as a Pipeline job config template.
  */
-export function getPipelineJobConfig() {
+export function pipelineJobConfigXml() {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <flow-definition plugin="workflow-job@2.10">
     <description />

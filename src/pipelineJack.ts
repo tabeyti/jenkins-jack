@@ -1,13 +1,12 @@
 import * as vscode from 'vscode';
 import * as xml2js from "xml2js";
 import * as util from 'util';
-import * as path from 'path';
-import * as fs from 'fs';
 
-import { getPipelineJobConfig, readjson, writejson, isGroovy } from './utils';
+import { pipelineJobConfigXml, isGroovy } from './utils';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
+import { PipelineConfig } from './pipelineJobConfig';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -28,7 +27,7 @@ export class PipelineJack extends JackBase {
                 this.updateSettings();
             }
         });
-        this.sharedLib = SharedLibApiManager.instance();
+        this.sharedLib = SharedLibApiManager.instance;
     }
 
     public get commands(): any[] {
@@ -57,7 +56,6 @@ export class PipelineJack extends JackBase {
                 target: async () => await this.abortPipeline(),
             });
         }
-
         commands = commands.concat([{
                 label: "$(file-text)  Pipeline: Shared Library Reference",
                 description: "Provides a list of steps from the Shares Library and global variables.",
@@ -86,15 +84,12 @@ export class PipelineJack extends JackBase {
         let groovyScriptPath = editor.document.uri.fsPath;
         let config = new PipelineConfig(groovyScriptPath);
 
-        // Grab filename to use as the Jenkins job name.
-        var jobName = path.parse(path.basename(editor.document.fileName)).name;
-
         // Grab source from active editor.
         let source = editor.document.getText();
         if ("" === source) { return; }
 
         // Build the pipeline.
-        this.activeJob = await this.build(source, jobName, config);
+        this.activeJob = await this.build(source, config);
         if (undefined === this.activeJob) { return; }
 
         // Stream the output. Yep.
@@ -110,7 +105,7 @@ export class PipelineJack extends JackBase {
     /**
      * Aborts the active pipeline build.
      */
-    public async abortPipeline() {
+    private async abortPipeline() {
         if (undefined === this.activeJob) { return; }
         await JenkinsHostManager.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
         this.activeJob = undefined;
@@ -125,31 +120,29 @@ export class PipelineJack extends JackBase {
             return;
         }
 
-        // Grab filename to use as (part of) the Jenkins job name.
-        var jobName = path.parse(path.basename(editor.document.fileName)).name;
+        let groovyScriptPath = editor.document.uri.fsPath;
+        let config = new PipelineConfig(groovyScriptPath);
+        config.save();
 
         // Grab source from active editor.
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.update(source, jobName);
+        await this.update(source, config.buildableName());
     }
 
     /**
      * Displays a list of Shared Library steps/vars for the user to select.
      * On selection, will display a web-view of the step's documentation.
      */
-    public async showSharedLibraryReference() {
+    private async showSharedLibraryReference() {
         let lib = await this.sharedLib.refresh(this.cachedJob) as SharedLibVar[];
         let result = await vscode.window.showQuickPick(lib);
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
-            if (undefined === this.cachedJob) {
-                JenkinsHostManager.host.openBrowserAt(`pipeline-syntax/globals#${result.label}`);
-            }
-            else {
-                JenkinsHostManager.host.openBrowserAt(`job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`);
-            }
+            let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
+                                                        `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`
+            JenkinsHostManager.host.openBrowserAt(uri);
         }
         else {
             const panel = vscode.window.createWebviewPanel(
@@ -165,11 +158,11 @@ export class PipelineJack extends JackBase {
     /**
      * Creates or update the provides job with the passed Pipeline source.
      * @param source The scripted Pipeline source.
-     * @param jobName The Jenkins Pipeline job name.
+     * @param jobName The Jenkins Pipeline true job name (including folder path).
      * @returns A Jenkins 'job' json object.
      */
-    public async createUpdate(source: string, jobName: string): Promise<any> {
-        let xml = getPipelineJobConfig();
+    private async createUpdate(source: string, jobName: string): Promise<any> {
+        let xml = pipelineJobConfigXml();
         let job = await JenkinsHostManager.host.getJob(jobName);
 
         // If job already exists, grab the job config xml from Jenkins.
@@ -187,6 +180,18 @@ export class PipelineJack extends JackBase {
         // Inject the provided script/source into the job configuration.
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
+
+        // If scm information is present, store this in the job json to be
+        // restored later.
+        if (undefined !== root.definition[0].scm) {
+            job.scm = root.definition;
+            delete root.definition;
+            root.definition = [{$:{
+                class: "org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition",
+                plugin: "workflow-cps@2.29"
+            }}];
+        }
+
         root.definition[0].script = source;
         root.quietPeriod = 0;
         xml = new xml2js.Builder().buildObject(parsed);
@@ -208,7 +213,7 @@ export class PipelineJack extends JackBase {
         return job;
     }
 
-    public async showParameterInput(param: any, prefillValue: string) {
+    private async showParameterInput(param: any, prefillValue: string) {
         let value: string | undefined;
         let title = param.name + (param.description != "" ? ` - ${param.description}` : '')
         switch(param._class) {
@@ -246,7 +251,7 @@ export class PipelineJack extends JackBase {
      *          Undefined if job has no parameters.
      *          An empty json if parameters are disabled.
      */
-    public async buildParameterInput(
+    private async buildParameterInput(
         job: any,
         config: PipelineConfig,
         progress: vscode.Progress<{ message?: string | undefined; increment?: number | undefined; }>): Promise<any> {
@@ -307,7 +312,7 @@ export class PipelineJack extends JackBase {
      * @param source The pipeline script source to update to.
      * @param job The name of the job to update.
      */
-    public async update(source: string, job: string) {
+    private async update(source: string, job: string) {
         if (undefined !== this.activeJob) {
             this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`);
             return;
@@ -335,6 +340,19 @@ export class PipelineJack extends JackBase {
         });
     }
 
+    private async restoreJobScm(job: any) {
+        if (undefined === job.scm) { return; }
+
+        let xml = await JenkinsHostManager.host.client.job.config(job.name);
+        let parsed = await parseXmlString(xml);
+        let root = parsed['flow-definition'];
+        delete root.definition;
+        root.definition = job.scm;
+        xml = new xml2js.Builder().buildObject(parsed);
+
+        await JenkinsHostManager.host.client.job.config(job.name, xml);
+    }
+
     /**
      * Builds the targeted job with the provided Pipeline script/source.
      * @param source Scripted Pipeline source.
@@ -344,12 +362,14 @@ export class PipelineJack extends JackBase {
      *          represents the active build number.
      *          Undefined if cancellation or failure to complete flow.
      */
-    public async build(source: string, job: string, config: PipelineConfig) {
+    private async build(source: string, config: PipelineConfig) {
 
         if (undefined !== this.activeJob) {
             this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`);
             return undefined;
         }
+
+        let job = config.buildableName();
 
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -392,7 +412,11 @@ export class PipelineJack extends JackBase {
             });
             if (token.isCancellationRequested) { return undefined;  }
 
-            progress.report({ increment: 30, message: 'Waiting for build to be ready...' });
+            // Restore any scm information
+            progress.report({ increment: 30, message: 'Restoring any SCM information...' });
+            await this.restoreJobScm(currentJob);
+
+            progress.report({ increment: 40, message: 'Waiting for build to be ready...' });
             try {
                 await JenkinsHostManager.host.buildReady(jobName, buildNum);
             } catch (err) {
@@ -400,68 +424,8 @@ export class PipelineJack extends JackBase {
                 return undefined;
             }
 
-            progress.report({ increment: 30, message: 'Build is ready!' });
+            progress.report({ increment: 50, message: 'Build is ready!' });
             return currentJob;
         });
-    }
-}
-
-class PipelineConfig {
-    public name: string;
-    public params: any;
-    public interactiveInputOverride: any;
-    private path: string;
-
-    constructor(scriptPath: string) {
-        let parsed = path.parse(scriptPath);
-        let configFileName = `.${parsed.name}.config.json`;
-        this.path = path.join(parsed.dir, configFileName);
-
-        // If config doesn't exist, write out defaults.
-        if (!fs.existsSync(this.path)) {
-            this.name = parsed.name;
-            this.params = null;
-            this.save();
-            return;
-        }
-        let json = readjson(this.path);
-        this.name = json.name;
-        this.params = json.params;
-        this.interactiveInputOverride = json.interactiveInputOverride;
-    }
-
-    toJSON(): any {
-        return {
-            name: this.name,
-            params: this.params,
-            interactiveInputOverride: this.interactiveInputOverride
-        };
-    }
-
-    fromJSON(json: any): PipelineConfig {
-        let pc = Object.create(PipelineConfig.prototype);
-        return Object.assign(pc, json, {
-            name: json.name,
-            params: json.params,
-            interactiveInputOverride: json.interactiveInputOverride
-        });
-    }
-
-    /**
-     * Saves the current pipeline configuration to disk.
-     */
-    public save() {
-        writejson(this.path, this);
-    }
-
-    /**
-     * Updates the class properties with the saved
-     * configuration values.
-     */
-    public update() {
-        let json = readjson(this.path);
-        this.name = json.name;
-        this.params = json.params;
-        this.interactiveInputOverride = json.interactiveInputOverride;
     }
 }
