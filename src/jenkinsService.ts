@@ -2,21 +2,42 @@ import * as vscode from 'vscode';
 import * as jenkins from 'jenkins';
 import * as request from 'request-promise-native';
 import * as opn from 'open';
+import * as htmlParser from 'cheerio';
 
 import { sleep } from './utils';
+
+export enum JobType {
+    Default = "default",
+    Folder = "folder",
+    Multi = "multibranch",
+    Org = "org",
+}
 
 export class JenkinsService {
     // @ts-ignore
     public client: any;
-    public readonly name: string;
 
     private _config: any;
     private _jenkinsUri: string;
     private readonly _cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
     private _disposed = false;
 
-    public constructor(name: string, uri: string, username: string, password: string) {
-        this.name = name;
+    private _jobProps = [
+        'fullName',
+        'url',
+        'buildable',
+        'description'
+    ].join(',')
+
+    private readonly messageItem: vscode.MessageItem = {
+        title: 'Okay'
+    };
+
+    public constructor(
+        public readonly id: string,
+        public readonly uri: string,
+        username: string,
+        password: string) {
 
         let protocol = 'http';
         let host = uri;
@@ -38,6 +59,12 @@ export class JenkinsService {
 
         this.updateSettings();
 
+        // Will error if no connection can be made to the remote host
+        this.client.info().catch((err: any) => {
+            if (this._disposed) { return; }
+            this.showCantConnectMessage();
+        });
+
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins')) {
                 this.updateSettings();
@@ -53,12 +80,6 @@ export class JenkinsService {
 
         this._config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this._config.strictTls ? '1' : '0';
-
-        // Will error if no connection can be made to the remote host
-        this.client.info().catch((err: any) => {
-            if (this._disposed) { return; }
-            vscode.window.showWarningMessage(this._cantConnectMessage);
-        });
     }
 
     public dispose() {
@@ -74,7 +95,7 @@ export class JenkinsService {
         let url = `${this._jenkinsUri}/${endpoint}`;
         return request.get(url).catch(err => {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return undefined;
         });
     }
@@ -91,8 +112,26 @@ export class JenkinsService {
                 return undefined;
             }
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             throw err;
+        });
+    }
+
+    /**
+     * Wrapper around getJobs with progress notification.
+     */
+    public async getJobsWithProgress(job: any | undefined): Promise<any[]> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, token) => {
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+            });
+
+            progress.report({ message: 'Retrieving jenkins jobs.' });
+            return await this.getJobs(job);
         });
     }
 
@@ -103,35 +142,49 @@ export class JenkinsService {
      * @returns A list of Jenkins 'job' objects.
      */
     public async getJobs(job: any | undefined): Promise<any[]> {
+        // If this is the first call of the recursive function, retrieve all jobs from the
+        // Jenkins API
         let jobs = (undefined === job) ? await this.getJobsFromUrl(this._jenkinsUri) : await this.getJobsFromUrl(job['url']);
 
         if (undefined === jobs) { return []; }
 
+        // Ineligant way of propogating the parent 'folder' type to the children
+        if (undefined !== job && JobType.Folder === job.type) {
+            for (let j of jobs) {
+                j.type = JobType.Folder;
+            }
+        }
+
         // Not all jobs are top level. Need to grab child jobs from certain class
         // types.
         let jobList: any[] = [];
-        for (let job of jobs) {
-            switch(job._class) {
+        for (let j of jobs) {
+            switch(j._class) {
                 case 'com.cloudbees.hudson.plugins.folder.Folder': {
-                    jobList = jobList.concat(await this.getJobs(job));
+                    // Propogate the the parent's job type to the child jobs. My babies!
+                    j.type = JobType.Folder;
+                    jobList = jobList.concat(await this.getJobs(j));
                     break;
                 }
                 case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
-                    for (let c of job.jobs) {
+                    for (let c of j.jobs) {
+                        c.type = JobType.Multi;
                         jobList.push(c);
                     }
                     break;
                 }
                 case 'jenkins.branch.OrganizationFolder': {
-                    for (var pc of job.jobs) {
+                    for (var pc of j.jobs) {
                         for (let c of pc.jobs) {
+                            c.type = JobType.Org;
                             jobList.push(c);
                         }
                     }
                     break;
                 }
                 default: {
-                    jobList.push(job);
+                    j.type = undefined === j.type ? JobType.Default : job.type;
+                    jobList.push(j);
                 }
             }
         }
@@ -148,9 +201,24 @@ export class JenkinsService {
         return json.computer;
     }
 
+    public async getBuildNumbersFromUrlWithProgress(rootUrl: string): Promise<any[]> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, token) => {
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+            });
+            progress.report({ message: `Retrieving builds.` });
+            return await this.getBuildNumbersFromUrl(rootUrl);
+        });
+    }
+
     /**
      * Retrieves build numbers for the job url provided.
      * @param rootUrl Base 'job' url for the request.
+     * @returns List of showQuickPick build objects or undefined.
      */
     public async getBuildNumbersFromUrl(rootUrl: string) {
         try {
@@ -179,7 +247,31 @@ export class JenkinsService {
             });
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
+            return undefined;
+        }
+    }
+
+    /**
+     * Returns a pipeline script from a previous build (replay).
+     * @param jobName The name of the Jenkins job
+     * @param buildNumber The build number of the job to retrieve the script from
+     * @returns Pipeline script as string or undefined.
+     */
+    public async getReplayScript(jobName: string, buildNumber: any) {
+        try {
+            let url = `${this._jenkinsUri}/job/${jobName}/${buildNumber}/replay`;
+            let r = await request.get(url);
+
+            const root = htmlParser.load(r);
+            let source  = root('textarea')[0].childNodes[0].data?.toString();
+            if (undefined === source) {
+                throw new Error('Could not locate script text in <textarea>.');
+            }
+            return source;
+        } catch (err) {
+            console.log(err);
+            vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
             return undefined;
         }
     }
@@ -199,26 +291,26 @@ export class JenkinsService {
                 return `${jobName} #${buildNumber} deleted`
             }
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
-            return undefined;
+            this.showCantConnectMessage();
         }
     }
 
     /**
      * Retrieves a list of Jenkins 'job' objects.
      * @param rootUrl Root jenkins url for the request.
+     * @returns Jobs json object or undefined.
      */
     public async getJobsFromUrl(rootUrl: string) {
         try {
             rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
             rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=jobs[fullName,url,buildable,jobs[fullName,url,buildable,jobs[fullName,url,buildable]]]`;
+            let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.jobs;
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return undefined;
         }
     }
@@ -228,6 +320,7 @@ export class JenkinsService {
      * the remote Jenkins.
      * @param source Groovy source.
      * @param node Optional targeted machine.
+     * @returns Output of abort POST request or undefined.
      */
     public async runConsoleScript(
         source: string,
@@ -249,7 +342,7 @@ export class JenkinsService {
             return output;
         } catch (err) {
             console.log(err);
-            vscode.window.showWarningMessage(this._cantConnectMessage);
+            this.showCantConnectMessage();
             return err.error;
         }
     }
@@ -364,5 +457,9 @@ export class JenkinsService {
             url = `${this._jenkinsUri}/${match[1]}`;
         }
         return url;
+    }
+
+    private showCantConnectMessage() {
+        vscode.window.showWarningMessage(this._cantConnectMessage);
     }
 }

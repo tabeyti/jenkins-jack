@@ -33,7 +33,7 @@ export abstract class JackBase implements CommandSet {
             this.outputChannel = vscode.window.createOutputChannel(this.name);
         }
         else if ("panel" === type) {
-            this.outputChannel = OutputPanelProvider.instance().get(`${this.name} Output`);
+            this.outputChannel = OutputPanelProvider.instance.get(`${this.name} Output`);
         }
         else {
             throw new Error("Invalid 'view' type for output.");

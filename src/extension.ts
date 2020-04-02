@@ -11,9 +11,9 @@ import { BuildJack } from './buildJack';
 import { JenkinsHostManager } from './jenkinsHostManager';
 import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
-// import { sleep } from './utils';
 import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
+import { PipelineJobTree } from './pipelineJobTree';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // We initialize the Jenkins service first in order to avoid
     // a race condition during onDidChangeConfiguration
-    JenkinsHostManager.instance();
+    JenkinsHostManager.instance;
 
     // Register Pipeline snippet definitions.
     var pipelineSnippets = new PipelineSnippets();
@@ -51,6 +51,9 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
+    // Create pipeline job tree view with active hosts' id in title
+    PipelineJobTree.instance.refresh(JenkinsHostManager.host.id);
+
     // Initialize the Jacks and their respective commands.
     let commandSets: CommandSet[] = [];
     commandSets.push(registerCommandSet(new PipelineJack(),              'extension.jenkins-jack.pipeline',      context));
@@ -59,10 +62,10 @@ export function activate(context: vscode.ExtensionContext) {
     commandSets.push(registerCommandSet(new BuildJack(),                 'extension.jenkins-jack.build',         context));
     commandSets.push(registerCommandSet(new JobJack(),                   'extension.jenkins-jack.job',           context));
 
-    // Grab host selection command
-    commandSets.push(registerCommandSet(JenkinsHostManager.instance(),   'extension.jenkins-jack.connections',    context));
+    // Add the host selection command
+    commandSets.push(registerCommandSet(JenkinsHostManager.instance,   'extension.jenkins-jack.connections',    context));
 
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance()));
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance));
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
 
         // Build up command list
@@ -74,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
             // visual label to divide up the jack sub commands
             selections.push({label: '$(kebab-horizontal)', description: ''});
         }
+        // Remove last divider
         selections.pop();
 
         // Display full list of all commands and execute selected target.
@@ -84,7 +88,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(jacksCommands);
 
     console.log('Extension Jenkins Jack now active!');
-
 
     /**
      * Registers a jack command to display all sub-commands within that Jack.
