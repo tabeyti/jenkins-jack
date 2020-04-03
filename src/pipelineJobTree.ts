@@ -91,7 +91,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
                 filepath: null,
             });
         }
-        return this._config.items.find((i: any) => i.jobName === key);
+        return this._config.items.find((i: any) => i.jobName === key && i.hostId === JenkinsHostManager.host.id);
     }
 
     private async openScript(node: PipelineJobTreeItem) {
@@ -139,7 +139,6 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         }
 
         await this.saveAndEditScript(script[0], node);
-        await this.saveTreeItemsConfig();
     }
 
     private async pullReplayScript(node: PipelineJobTreeItem) {
@@ -201,7 +200,6 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
         // Update the filepath of this tree item's config, save it globally, and refresh tree items.
         this.getTreeItemConfig(node.label).filepath = filepath;
-
         await this.saveTreeItemsConfig();
     }
 
