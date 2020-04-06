@@ -20,7 +20,7 @@ export class JenkinsService {
 
     private _config: any;
     private _jenkinsUri: string;
-    private readonly _cantConnectMessage = 'Jenkins Jack: Could not connect to the remote Jenkins';
+    private readonly _cantConnectMessage = `Jenkins Jack: Could not connect to the remote Jenkins "${this.id}"`;
     private _disposed = false;
 
     private _jobProps = [
@@ -243,7 +243,8 @@ export class JenkinsService {
                 return {
                     label: String(`${n.number} ${buildStatus}`),
                     description: n.description,
-                    target: n.number
+                    target: n.number,
+                    result: n.result
                 };
             });
         } catch (err) {

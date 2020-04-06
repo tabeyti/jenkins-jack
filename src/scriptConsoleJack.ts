@@ -5,8 +5,8 @@ import { isGroovy } from './utils';
 
 export class ScriptConsoleJack extends JackBase {
 
-    constructor() {
-        super('Script Console Jack');
+    constructor(context: vscode.ExtensionContext) {
+        super('Script Console Jack', context);
     }
 
     public get commands(): any[] {

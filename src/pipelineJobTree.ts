@@ -22,12 +22,13 @@ export class PipelineJobTree {
     public static get instance(): PipelineJobTree {
         if (undefined === PipelineJobTree._treeViewInstance) {
             PipelineJobTree._treeViewInstance = new PipelineJobTree();
+            PipelineJobTree._treeViewInstance.refresh();
         }
         return PipelineJobTree._treeViewInstance;
     }
 
-    public refresh(host: string) {
-        this._treeView.title = host;
+    public refresh() {
+        this._treeView.title = `Pipelines: ${JenkinsHostManager.host.id}`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -45,27 +46,23 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             }
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptButton', async (node: PipelineJobTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemOpenScript', async (node: PipelineJobTreeItem) => {
             await this.openScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemOpenScriptContext', async (node: PipelineJobTreeItem) => {
-            await this.openScript(node);
-        });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullScriptContext', async (node: PipelineJobTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemPullJobScript', async (node: PipelineJobTreeItem) => {
             await this.pullJobScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.itemPullReplayScriptContext', async (node: PipelineJobTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemPullReplayScript', async (node: PipelineJobTreeItem) => {
             await this.pullReplayScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.refresh', (node: PipelineJobTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.refresh', (node: PipelineJobTreeItem) => {
             this.refresh();
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.pipeline.jobTree.settings', (node: PipelineJobTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.settings', (node: PipelineJobTreeItem) => {
             vscode.commands.executeCommand('workbench.action.openSettingsJson');
         });
     }

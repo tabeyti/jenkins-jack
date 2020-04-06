@@ -4,8 +4,8 @@ import { JenkinsHostManager } from './jenkinsHostManager';
 
 export class NodeJack extends JackBase {
 
-    constructor() {
-        super('Node Jack');
+    constructor(context: vscode.ExtensionContext) {
+        super('Node Jack', context);
     }
 
     public get commands(): any[] {

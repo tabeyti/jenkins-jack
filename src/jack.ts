@@ -7,11 +7,13 @@ export abstract class JackBase implements CommandSet {
     outputChannel: vscode.OutputChannel;
     readonly name: string;
     protected readonly barrierLine: string = '-'.repeat(80);
+    protected readonly context: vscode.ExtensionContext;
 
     private outputViewType: string;
 
-    constructor(name: string) {
+    constructor(name: string, context: vscode.ExtensionContext) {
         this.name = name;
+        this.context = context;
 
         let config = vscode.workspace.getConfiguration('jenkins-jack.outputView');
         this.outputViewType = config.type;

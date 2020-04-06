@@ -14,6 +14,7 @@ import { JobJack } from './jobJack';
 import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
 import { PipelineJobTree } from './pipelineJobTree';
+import { JobTree } from './jobTree';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -51,16 +52,19 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    // Create pipeline job tree view with active hosts' id in title
-    PipelineJobTree.instance.refresh(JenkinsHostManager.host.id);
+    
+
+    // Create pipeline job tree view with the active Jenkins host
+    PipelineJobTree.instance.refresh();
+    JobTree.instance.refresh();
 
     // Initialize the Jacks and their respective commands.
     let commandSets: CommandSet[] = [];
-    commandSets.push(registerCommandSet(new PipelineJack(),              'extension.jenkins-jack.pipeline',      context));
-    commandSets.push(registerCommandSet(new ScriptConsoleJack(),         'extension.jenkins-jack.scriptConsole', context));
-    commandSets.push(registerCommandSet(new NodeJack(),                  'extension.jenkins-jack.node',          context));
-    commandSets.push(registerCommandSet(new BuildJack(),                 'extension.jenkins-jack.build',         context));
-    commandSets.push(registerCommandSet(new JobJack(),                   'extension.jenkins-jack.job',           context));
+    commandSets.push(registerCommandSet(new PipelineJack(context),              'extension.jenkins-jack.pipeline',      context));
+    commandSets.push(registerCommandSet(new ScriptConsoleJack(context),         'extension.jenkins-jack.scriptConsole', context));
+    commandSets.push(registerCommandSet(new NodeJack(context),                  'extension.jenkins-jack.node',          context));
+    commandSets.push(registerCommandSet(new BuildJack(context),                 'extension.jenkins-jack.build',         context));
+    commandSets.push(registerCommandSet(new JobJack(context),                   'extension.jenkins-jack.job',           context));
 
     // Add the host selection command
     commandSets.push(registerCommandSet(JenkinsHostManager.instance,   'extension.jenkins-jack.connections',    context));
