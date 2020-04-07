@@ -141,12 +141,11 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     private async pullReplayScript(node: PipelineJobTreeItem) {
 
         // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(node.job);
-        let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
-        if (undefined === buildNumber) { return; }
+        let build = await JenkinsHostManager.host.buildSelectionFlow(node.job);
+        if (undefined === build) { return; }
 
         // Pull replay script from build number
-        let script = await JenkinsHostManager.host.getReplayScript(node.job, buildNumber.target);
+        let script = await JenkinsHostManager.host.getReplayScript(node.job, build.number);
         if (undefined === script) { return; }
 
         await this.saveAndEditScript(script, node);

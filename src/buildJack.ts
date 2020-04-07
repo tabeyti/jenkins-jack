@@ -1,54 +1,129 @@
 import * as vscode from 'vscode';
 import { JackBase } from './jack';
+import { JobTreeItem, JobTree } from './jobTree';
 import { JenkinsHostManager } from './jenkinsHostManager';
+import * as Url from 'url-parse';
 
 export class BuildJack extends JackBase {
 
     constructor(context: vscode.ExtensionContext) {
         super('Build Jack', context);
+
+        vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (content?: any | JobTreeItem) => {
+            if (content instanceof JobTreeItem) {
+                await this.delete(content.job, [content.build]);
+                JobTree.instance.refresh();
+            }
+            else {
+                await this.delete();
+            }
+        });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
+            if (content instanceof JobTreeItem) {
+                await this.downloadLog(content.job, content.build);
+            }
+            else {
+                await this.downloadLog();
+            }
+        });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (content?: any | JobTreeItem) => {
+            if (content instanceof JobTreeItem) {
+                await this.downloadReplayScript(content.job, content.build);
+            }
+            else {
+                await this.downloadReplayScript();
+            }
+        });
+
+        vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (content?: any | JobTreeItem) => {
+            if (content instanceof JobTreeItem) {
+                JenkinsHostManager.host.openBrowserAt(new Url(content.build.url).pathname);
+            }
+            else {
+                let job =await JenkinsHostManager.host.jobSelectionFlow();
+                if (undefined === job) { return; }
+
+                let build = await JenkinsHostManager.host.buildSelectionFlow(job);
+                if (undefined === build) { return; }
+
+                JenkinsHostManager.host.openBrowserAt(new Url(build.url).pathname);
+            }
+        });
     }
 
     public get commands(): any[] {
         return [
             {
-                label: "$(cloud-download)  Build: Log Download",
-                description: "Select a job and build to download the log.",
-                target: async () => await this.downloadLog()
-            },
-            {
                 label: "$(circle-slash)  Build: Delete",
                 description: "Select a job and builds to delete.",
-                target: async () => await this.delete()
+                target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.delete')
             },
             {
-                label: "$(desktop-download)  Build: Pipeline Replay Script Download",
+                label: "$(cloud-download)  Build: Download Log",
+                description: "Select a job and build to download the log.",
+                target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadLog')
+            },
+            {
+                label: "$(desktop-download)  Build: Download Replay Script",
                 description: "Pulls a pipeline replay script of a previous build into the editor.",
-                target: async () => await this.downloadReplayScript()
+                target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadReplayScript')
             }
         ];
     }
 
-    /**
-     * Runs through the flow of deleting a build by providing
-     * a list of jobs to select from, then a list of build
-     * numbers related to that job to delete.
-     */
-    public async delete() {
-        let jobs = await JenkinsHostManager.host.getJobs(undefined);
-        if (undefined === jobs) { return; }
-        for (let job of jobs) {
-            job.label = job.fullName;
-        }
-
-        // Ask which job they want to target.
-        let job = await vscode.window.showQuickPick(jobs);
+    public async delete(job?: any, builds?: any[]) {
+        job = job ? job : await JenkinsHostManager.host.jobSelectionFlow();
         if (undefined === job) { return; }
 
-        // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(job);
-        let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: true }) as any;
-        if (undefined === selections) { return; }
+        builds = builds ? builds : await JenkinsHostManager.host.buildSelectionFlow(job, true);
+        if (undefined === builds) { return; }
 
+        return await this.deleteBuilds(job, builds);
+    }
+
+    /**
+     * Downloads a build log for the user by first presenting a list
+     * of jobs to select from, and then a list of build numbers for
+     * the selected job.
+     */
+    public async downloadLog(job?: any, build?: any) {
+        job = job ? job : await JenkinsHostManager.host.jobSelectionFlow();
+        if (undefined === job) { return; }
+
+        build = build ? build : await JenkinsHostManager.host.buildSelectionFlow(job);
+        if (undefined === build) { return; }
+
+        // Stream it. Stream it until the editor crashes.
+        await JenkinsHostManager.host.streamBuildOutput(job.fullName, build.number, this.outputChannel);
+    }
+
+     /**
+     * Downloads a build log for the user by first presenting a list
+     * of jobs to select from, and then a list of build numbers for
+     * the selected job.
+     */
+    public async downloadReplayScript(job?: any, build?: any) {
+
+        // Grab only pipeline jobs
+        job = job ? job : await JenkinsHostManager.host.jobSelectionFlow((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob");
+        if (undefined === job) { return; }
+
+        build = build ? build : await JenkinsHostManager.host.buildSelectionFlow(job);
+        if (undefined === build) { return; }
+
+        // Pull script and display as an Untitled document
+        let script = await JenkinsHostManager.host.getReplayScript(job, build.number);
+        if (undefined === script) { return; }
+        let doc = await vscode.workspace.openTextDocument({
+            content: script,
+            language: 'groovy'
+        });
+        await vscode.window.showTextDocument(doc);
+    }
+
+    public async deleteBuilds(job: any, builds: any[]) {
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: `Build Jack Output(s)`,
@@ -62,13 +137,13 @@ export class BuildJack extends JackBase {
             // and awaits across all.
             let tasks = [];
             progress.report({ increment: 50, message: "Deleting build(s)" });
-            for (let s of selections) {
+            for (let b of builds) {
                 let promise = new Promise(async (resolve) => {
                     try {
-                        let output = await JenkinsHostManager.host.deleteBuild(job, s.target);
-                        return resolve({ label: s.target, output: output })
+                        let output = await JenkinsHostManager.host.deleteBuild(job, b.number);
+                        return resolve({ label: b.number, output: output })
                     } catch (err) {
-                        return resolve({ label: s.target, output: err })
+                        return resolve({ label: b.number, output: err })
                     }
                 });
                 tasks.push(promise);
@@ -87,65 +162,7 @@ export class BuildJack extends JackBase {
                 this.outputChannel.appendLine(this.barrierLine);
             }
             progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
+            return true
         });
-    }
-
-    /**
-     * Downloads a build log for the user by first presenting a list
-     * of jobs to select from, and then a list of build numbers for
-     * the selected job.
-     */
-    public async downloadLog() {
-        let jobs = await JenkinsHostManager.host.getJobsWithProgress();
-        if (undefined === jobs) { return; }
-        for (let job of jobs) {
-            job.label = job.fullName;
-        }
-
-        // Ask which job they want to target.
-        let job = await vscode.window.showQuickPick(jobs);
-        if (undefined === job) { return; }
-
-        // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(job);
-        let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
-        if (undefined === buildNumber) { return; }
-
-        // Stream it. Stream it until the editor crashes.
-        await JenkinsHostManager.host.streamBuildOutput(job.label, buildNumber.target, this.outputChannel);
-    }
-
-    /**
-     * Downloads a build log for the user by first presenting a list
-     * of jobs to select from, and then a list of build numbers for
-     * the selected job.
-     */
-    public async downloadReplayScript() {
-        let jobs = await JenkinsHostManager.host.getJobsWithProgress();
-        // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
-        jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
-                                            job.buildable
-        );
-        for (let job of jobs) {
-            job.label = job.fullName;
-        }
-
-        // Ask which job they want to target.
-        let job = await vscode.window.showQuickPick(jobs);
-        if (undefined === job) { return; }
-
-        // Ask what build they want to download.
-        let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(job);
-        let buildNumber = await vscode.window.showQuickPick(buildNumbers) as any;
-        if (undefined === buildNumber) { return; }
-
-        // Pull script and display as an Untitled document
-        let script = await JenkinsHostManager.host.getReplayScript(job, buildNumber.target);
-        if (undefined === script) { return; }
-        let doc = await vscode.workspace.openTextDocument({
-            content: script,
-            language: 'groovy'
-        });
-        await vscode.window.showTextDocument(doc);
     }
 }

@@ -12,19 +12,19 @@ export class JobTree {
         this._treeView = vscode.window.createTreeView('jobTree', { treeDataProvider: this._treeViewDataProvider });
 
         vscode.commands.registerCommand('extension.jenkins-jack.tree.job.disable', async (element: JobTreeItem) => {
-            vscode.commands.executeCommand('extension.jenkins-jack.job.disable', [element.job]);
-            this.refresh();
+            let result = await vscode.commands.executeCommand('extension.jenkins-jack.job.disable', [element.job]);
+            if (result) { this.refresh(); }
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.tree.job.enable', async (element: JobTreeItem) => {
-            vscode.commands.executeCommand('extension.jenkins-jack.job.enable', [element.job]);
-            this.refresh();
+            let result = await vscode.commands.executeCommand('extension.jenkins-jack.job.enable', [element.job]);
+            if (result) { this.refresh(); }
         });
 
         vscode.commands.registerCommand('extension.jenkins-jack.tree.job.delete', async (element: JobTreeItem) => {
-            vscode.commands.executeCommand('extension.jenkins-jack.job.delete', [element.job]);
-            this.refresh();
-        });        
+            let result = await vscode.commands.executeCommand('extension.jenkins-jack.job.delete', [element.job]);
+            if (result) { this.refresh(); }
+        });
     }
 
     public static get instance(): JobTree {
@@ -64,9 +64,9 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
         return new Promise(async resolve => {
             let list =  [];
             if (element) {
-                let buildNumbers = await JenkinsHostManager.host.getBuildNumbersWithProgress(element.job);
-                for (let buildNumber of buildNumbers) {
-                    list.push(new JobTreeItem(`${buildNumber.target}`, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, buildNumber))
+                let builds = await JenkinsHostManager.host.getBuildsWithProgress(element.job);
+                for (let buildNumber of builds) {
+                    list.push(new JobTreeItem(`${buildNumber.number}`, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, buildNumber))
                 }
             } else {
                 let jobs = await JenkinsHostManager.host.getJobsWithProgress();

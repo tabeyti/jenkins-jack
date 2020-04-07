@@ -206,7 +206,7 @@ export class JenkinsService {
      * Wrapper around getBuildNumbers with progress notification.
      * @param job The Jenkins JSON job object
      */
-    public async getBuildNumbersWithProgress(job: any) {
+    public async getBuildsWithProgress(job: any) {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -216,7 +216,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
             });
             progress.report({ message: `Retrieving builds.` });
-            return await this.getBuildNumbers(job);
+            return await this.getBuilds(job);
         });
     }
 
@@ -225,7 +225,7 @@ export class JenkinsService {
      * @param rootUrl Base 'job' url for the request.
      * @returns List of showQuickPick build objects or undefined.
      */
-    public async getBuildNumbers(job: any) {
+    public async getBuilds(job: any) {
         let resultIconMap = new Map([
             ['SUCCESS', '$(check)'], 
             ['FAILURE', '$(x)'], 
@@ -235,17 +235,13 @@ export class JenkinsService {
 
         try {
             let rootUrl = this.fromUrlFormat(job.url);
-            let url = `${rootUrl}/api/json?tree=builds[number,result,description]`;
+            let url = `${rootUrl}/api/json?tree=builds[number,result,description,url]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.builds.map((n: any) => {
                 let buildStatus = resultIconMap.get(n.result);
-                return {
-                    label: String(`${n.number} ${buildStatus}`),
-                    description: n.description,
-                    target: n.number,
-                    result: n.result
-                };
+                n.label = String(`${n.number} ${buildStatus}`);
+                return n;
             });
         } catch (err) {
             console.log(err);
@@ -444,6 +440,31 @@ export class JenkinsService {
             throw new Error(`Timed out waiting waiting for build after ${timeoutSecs} seconds: ${jobName}`);
         }
         console.log('Build ready!');
+    }
+
+    /**
+     * Provides a quick pick selection of one or more jobs, returning the selected items.
+     * @param filter A function for filtering the job list retrieved from the Jenkins host.
+     */
+    public async jobSelectionFlow(filter?: ((job: any) => boolean)): Promise<any[]|undefined> {
+        let jobs = await this.getJobsWithProgress();
+        if (undefined === jobs) { return undefined; }
+        if (filter) {
+            jobs = jobs.filter(filter);
+        }
+        for (let job of jobs) { job.label = job.fullName; }
+
+        let selectedJob = await vscode.window.showQuickPick(jobs)
+        if (undefined === selectedJob) { return undefined; }
+        return selectedJob;
+    }
+
+    public async buildSelectionFlow(job: any, canPickMany: boolean = false): Promise<any[]|any|undefined> {
+        // Ask what build they want to download.
+        let buildNumbers = await this.getBuildsWithProgress(job);
+        let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: canPickMany }) as any;
+        if (undefined === selections) { return undefined; }
+        return selections;
     }
 
     /**

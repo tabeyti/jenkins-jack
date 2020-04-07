@@ -85,18 +85,43 @@
           "group": "z_commands"
         },
         {
-          "command": "extension.jenkins-jack.tree.job.delete",
+          "command": "extension.jenkins-jack.job.open",
+          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.jenkins-jack.job.delete",
           "when": "view == jobTree && viewItem == jobTreeItemJob",
           "group": "z_commands"
         },
         {
-          "command": "extension.jenkins-jack.tree.job.disable",
+          "command": "extension.jenkins-jack.job.disable",
           "when": "view == jobTree && viewItem == jobTreeItemJob",
           "group": "z_commands"
         },
         {
-          "command": "extension.jenkins-jack.tree.job.enable",
+          "command": "extension.jenkins-jack.job.enable",
           "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "group": "z_commands"
+        },
+        {
+          "command": "extension.jenkins-jack.build.open",
+          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.jenkins-jack.build.delete",
+          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "group": "z_commands"
+        },
+        {
+          "command": "extension.jenkins-jack.build.downloadLog",
+          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "group": "z_commands"
+        },
+        {
+          "command": "extension.jenkins-jack.build.downloadReplayScript",
+          "when": "view == jobTree && viewItem == jobTreeItemBuild",
           "group": "z_commands"
         }
       ]
@@ -258,6 +283,25 @@
         "category": "Jenkins Jack"
       },
       {
+        "command": "extension.jenkins-jack.build.open",
+        "title": "Open"
+      },
+      {
+        "command": "extension.jenkins-jack.build.delete",
+        "title": "Build: Delete",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.build.downloadLog",
+        "title": "Build: Download Log",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.build.downloadReplayScript",
+        "title": "Build: Download Replay Script",
+        "category": "Jenkins Jack"
+      },
+      {
         "command": "extension.jenkins-jack.node",
         "title": "Node Jack",
         "category": "Jenkins Jack"
@@ -283,6 +327,10 @@
         "category": "Jenkins Jack"
       },
       {
+        "command": "extension.jenkins-jack.job.open",
+        "title": "Open"
+      },
+      {
         "command": "extension.jenkins-jack.connections",
         "title": "Jenkins Host Connections",
         "category": "Jenkins Jack"
@@ -302,18 +350,6 @@
       {
         "command": "extension.jenkins-jack.tree.pipeline.itemPullReplayScript",
         "title": "Pull Replay Script"
-      },
-      {
-        "command": "extension.jenkins-jack.tree.job.disable",
-        "title": "Disable"
-      },
-      {
-        "command": "extension.jenkins-jack.tree.job.enable",
-        "title": "Enable"
-      },
-      {
-        "command": "extension.jenkins-jack.tree.job.delete",
-        "title": "Delete"
       },
       {
         "command": "extension.jenkins-jack.tree.pipeline.refresh",
