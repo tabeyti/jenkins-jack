@@ -20,7 +20,7 @@ export class JenkinsService {
 
     private _config: any;
     private _jenkinsUri: string;
-    private readonly _cantConnectMessage = `Jenkins Jack: Could not connect to the remote Jenkins "${this.id}"`;
+    private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.id}"`;
     private _disposed = false;
 
     private _jobProps = [
@@ -142,10 +142,10 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobs(job: any | undefined): Promise<any[]> {
+    public async getJobs(job?: any): Promise<any[]> {
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
-        let jobs = (undefined === job) ? await this.getJobsFromUrl(this._jenkinsUri) : await this.getJobsFromUrl(job['url']);
+        let jobs = job ? await this.getJobsFromUrl(job.url) : await this.getJobsFromUrl(this._jenkinsUri);
 
         if (undefined === jobs) { return []; }
 
@@ -192,6 +192,13 @@ export class JenkinsService {
         return jobList;
     }
 
+    public async getNodeCrumb() {
+        let r = await this.get('computer/api/json');
+        if (undefined === r) { return undefined; }
+        let json = JSON.parse(r);
+        return json.computer;
+    }
+
     /**
      * Retrieves the list of machines/nodes from Jenkins.
      */
@@ -228,7 +235,7 @@ export class JenkinsService {
     public async getBuilds(job: any) {
         let resultIconMap = new Map([
             ['SUCCESS', '$(check)'], 
-            ['FAILURE', '$(x)'], 
+            ['FAILURE', '$(x)'],
             ['ABORTED', '$(alert)'], 
             [undefined, '']]
         )
@@ -253,25 +260,35 @@ export class JenkinsService {
     /**
      * Returns a pipeline script from a previous build (replay).
      * @param job The Jenkins job JSON object
-     * @param buildNumber The build number of the job to retrieve the script from
+     * @param build The Jenkins build JSON object
      * @returns Pipeline script as string or undefined.
      */
-    public async getReplayScript(job: any, buildNumber: any) {
-        try {
-            let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${buildNumber}/replay`;
-            let r = await request.get(url);
-
-            const root = htmlParser.load(r);
-            let source  = root('textarea')[0].childNodes[0].data?.toString();
-            if (undefined === source) {
-                throw new Error('Could not locate script text in <textarea>.');
+    public async getReplayScript(job: any, build: any) {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, token) => {
+            token.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled script retrieval.`, this.messageItem);
+            });
+            progress.report({ message: `Pulling replay script from ${job.fullName} #${build.number}` });            
+            try {
+                let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${build.number}/replay`;
+                let r = await request.get(url);
+    
+                const root = htmlParser.load(r);
+                let source  = root('textarea')[0].childNodes[0].data?.toString();
+                if (undefined === source) {
+                    throw new Error('Could not locate script text in <textarea>.');
+                }
+                return source;
+            } catch (err) {
+                console.log(err);
+                vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
+                return undefined;
             }
-            return source;
-        } catch (err) {
-            console.log(err);
-            vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
-            return undefined;
-        }
+        });        
     }
 
     /**
@@ -323,7 +340,7 @@ export class JenkinsService {
     public async runConsoleScript(
         source: string,
         node: string | undefined = undefined,
-        token: vscode.CancellationToken | undefined = undefined) {
+        token?: vscode.CancellationToken) {
 
         try {
             let url = `${this._jenkinsUri}/scriptText`;
@@ -459,11 +476,40 @@ export class JenkinsService {
         return selectedJob;
     }
 
+    /**
+     * Provides a quick pick selection of one or more builds, returning the selected items.
+     * @param job The target job for retrieval the builds.
+     * @param canPickMany Optional flag for retrieving more than one build in the selection.
+     */
     public async buildSelectionFlow(job: any, canPickMany: boolean = false): Promise<any[]|any|undefined> {
         // Ask what build they want to download.
         let buildNumbers = await this.getBuildsWithProgress(job);
         let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: canPickMany }) as any;
         if (undefined === selections) { return undefined; }
+        return selections;
+    }
+
+    /**
+     * Provides a quick pick selection of one or more builds, returning the selected items.
+     * @param filter A function for filtering the nodes retrieved from the Jenkins host.
+     * @param job The target job for retrieval the builds.
+     * @param canPickMany Optional flag for retrieving more than one build in the selection.
+     */
+    public async nodeSelectionFlow(filter?: ((job: any) => boolean), canPickMany: boolean = false): Promise<any[]|any|undefined> {
+        let nodes = await this.getNodes();
+        if (undefined !== filter) { nodes = nodes.filter(filter); }
+        if (undefined === nodes) { return undefined; }
+        if (0 >= nodes.length) {
+            vscode.window.showInformationMessage('No nodes found outside of "master"');
+            return undefined;
+        }
+
+        for (let n of nodes) {
+            n.label = (n.offline ? "$(alert) " : "$(check) ") + n.displayName;
+        }
+
+        let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany }) as any;
+        if (undefined === selections) { return; }
         return selections;
     }
 

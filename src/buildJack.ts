@@ -69,6 +69,11 @@ export class BuildJack extends JackBase {
                 label: "$(desktop-download)  Build: Download Replay Script",
                 description: "Pulls a pipeline replay script of a previous build into the editor.",
                 target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadReplayScript')
+            },
+            {
+                label: "$(browser)  Build: Open",
+                description: "Opens the targeted builds in the user's browser.",
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.build.open')
             }
         ];
     }
@@ -114,7 +119,7 @@ export class BuildJack extends JackBase {
         if (undefined === build) { return; }
 
         // Pull script and display as an Untitled document
-        let script = await JenkinsHostManager.host.getReplayScript(job, build.number);
+        let script = await JenkinsHostManager.host.getReplayScript(job, build);
         if (undefined === script) { return; }
         let doc = await vscode.workspace.openTextDocument({
             content: script,

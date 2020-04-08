@@ -10,21 +10,6 @@ export class JobTree {
     private constructor() {
         this._treeViewDataProvider = new JobTreeProvider();
         this._treeView = vscode.window.createTreeView('jobTree', { treeDataProvider: this._treeViewDataProvider });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.job.disable', async (element: JobTreeItem) => {
-            let result = await vscode.commands.executeCommand('extension.jenkins-jack.job.disable', [element.job]);
-            if (result) { this.refresh(); }
-        });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.job.enable', async (element: JobTreeItem) => {
-            let result = await vscode.commands.executeCommand('extension.jenkins-jack.job.enable', [element.job]);
-            if (result) { this.refresh(); }
-        });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.job.delete', async (element: JobTreeItem) => {
-            let result = await vscode.commands.executeCommand('extension.jenkins-jack.job.delete', [element.job]);
-            if (result) { this.refresh(); }
-        });
     }
 
     public static get instance(): JobTree {

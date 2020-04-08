@@ -57,14 +57,6 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemPullReplayScript', async (node: PipelineJobTreeItem) => {
             await this.pullReplayScript(node);
         });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.refresh', (node: PipelineJobTreeItem) => {
-            this.refresh();
-        });
-
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.settings', (node: PipelineJobTreeItem) => {
-            vscode.commands.executeCommand('workbench.action.openSettingsJson');
-        });
     }
 
     private updateSettings() {
@@ -145,7 +137,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
         if (undefined === build) { return; }
 
         // Pull replay script from build number
-        let script = await JenkinsHostManager.host.getReplayScript(node.job, build.number);
+        let script = await JenkinsHostManager.host.getReplayScript(node.job, build);
         if (undefined === script) { return; }
 
         await this.saveAndEditScript(script, node);

@@ -15,6 +15,7 @@ import { OutputPanelProvider } from './outputProvider';
 import { CommandSet } from './commandSet';
 import { PipelineJobTree } from './pipelineJobTree';
 import { JobTree } from './jobTree';
+import { NodeTree } from './nodeTree';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -52,11 +53,19 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    
-
-    // Create pipeline job tree view with the active Jenkins host
     PipelineJobTree.instance.refresh();
     JobTree.instance.refresh();
+    NodeTree.instance.refresh();
+
+    vscode.commands.registerCommand('extension.jenkins-jack.tree.refresh', (content: any) => {
+        PipelineJobTree.instance.refresh();
+        JobTree.instance.refresh();
+        NodeTree.instance.refresh();
+    });
+
+    vscode.commands.registerCommand('extension.jenkins-jack.tree.settings', (content: any) => {
+        vscode.commands.executeCommand('workbench.action.openSettingsJson');
+    });
 
     // Initialize the Jacks and their respective commands.
     let commandSets: CommandSet[] = [];
@@ -70,6 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
     commandSets.push(registerCommandSet(JenkinsHostManager.instance,   'extension.jenkins-jack.connections',    context));
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme(), OutputPanelProvider.instance));
+
 	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
 
         // Build up command list
