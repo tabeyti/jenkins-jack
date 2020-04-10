@@ -78,12 +78,12 @@
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.itemPullJobScript",
-          "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry",
+          "when": "view == pipelineJobTree",
           "group": "z_commands"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.itemPullReplayScript",
-          "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry",
+          "when": "view == pipelineJobTree",
           "group": "z_commands"
         },
         {
