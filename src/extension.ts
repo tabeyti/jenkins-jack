@@ -13,7 +13,7 @@ import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
 import { OutputPanelProvider } from './outputProvider';
 import { QuickpickSet } from './quickpickSet';
-import { PipelineJobTree } from './pipelineJobTree';
+import { PipelineTree } from './pipelineTree';
 import { JobTree } from './jobTree';
 import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    ext.pipelineJobTree = new PipelineJobTree();
+    ext.pipelineJobTree = new PipelineTree();
     ext.jobTree = new JobTree();
     ext.nodeTree = new NodeTree();
 

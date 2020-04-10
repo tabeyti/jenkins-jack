@@ -1,6 +1,6 @@
 import { ExtensionContext } from "vscode";
 import { JobTree } from "./jobTree";
-import { PipelineJobTree } from "./pipelineJobTree";
+import { PipelineTree } from "./pipelineTree";
 import { NodeTree } from "./nodeTree";
 import { JenkinsHostManager } from "./jenkinsHostManager";
 
@@ -10,7 +10,7 @@ import { JenkinsHostManager } from "./jenkinsHostManager";
 export namespace ext {
     export let context: ExtensionContext;
     export let jobTree: JobTree;
-    export let pipelineJobTree: PipelineJobTree;
+    export let pipelineJobTree: PipelineTree;
     export let nodeTree: NodeTree;
     export let jenkinsHostManager: JenkinsHostManager;
 }

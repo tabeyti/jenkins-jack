@@ -41,7 +41,7 @@
     "views": {
       "jenkins-jack-explorer": [
         {
-          "id": "pipelineJobTree",
+          "id": "pipelineTree",
           "name": "Pipelines"
         },
         {
@@ -68,22 +68,22 @@
       "view/item/context": [
         {
           "command": "extension.jenkins-jack.tree.pipeline.itemOpenScript",
-          "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemEntry",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.itemOpenScript",
-          "when": "view == pipelineJobTree && viewItem == pipelineJobTreeItemEntry",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemEntry",
           "group": "navigation"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.itemPullJobScript",
-          "when": "view == pipelineJobTree",
+          "when": "view == pipelineTree",
           "group": "z_commands"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.itemPullReplayScript",
-          "when": "view == pipelineJobTree",
+          "when": "view == pipelineTree",
           "group": "z_commands"
         },
         {
@@ -253,7 +253,7 @@
             "default": true,
             "markdownDescription": "Enable Pipeline step snippets for `.groovy` files"
           },
-          "jenkins-jack.pipeline.jobTree.items": {
+          "jenkins-jack.pipeline.tree.items": {
             "type": "array",
             "items": {
               "type": "object",
