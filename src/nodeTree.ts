@@ -1,31 +1,21 @@
 import * as vscode from 'vscode';
-import { JenkinsHostManager } from './jenkinsHostManager';
+import { ext } from './extensionVariables';
 import * as path from 'path';
 
 export class NodeTree {
-    private static _treeViewInstance: NodeTree;
     private readonly _treeView: vscode.TreeView<NodeTreeItem>;
     private readonly _treeViewDataProvider: NodeTreeProvider;
 
-    private constructor() {
+    public constructor() {
         this._treeViewDataProvider = new NodeTreeProvider();
-        this._treeView = vscode.window.createTreeView('nodeTree', { treeDataProvider: this._treeViewDataProvider });
+        this._treeView = vscode.window.createTreeView('nodeTree', { treeDataProvider: this._treeViewDataProvider, canSelectMany: true });
         this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
             if (e.visible) { this.refresh(); }
-          });       
-        
-    }
-
-    public static get instance(): NodeTree {
-        if (undefined === NodeTree._treeViewInstance) {
-            NodeTree._treeViewInstance = new NodeTree();
-            NodeTree._treeViewInstance.refresh();
-        }
-        return NodeTree._treeViewInstance;
+          });
     }
 
     public refresh() {
-        this._treeView.title = `Nodes: ${JenkinsHostManager.host.id}`;
+        this._treeView.title = `Nodes: ${ext.jenkinsHostManager.host.id}`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -40,7 +30,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 
     private updateSettings() {
     }
-    
+
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
@@ -51,12 +41,12 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
-            let list =  [];            
-            let nodes = await JenkinsHostManager.host.getNodes();
+            let list =  [];
+            let nodes = await ext.jenkinsHostManager.host.getNodes();
             nodes = nodes.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
                 list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n))
-            }        
+            }
             resolve(list);
         })
     }
@@ -78,7 +68,7 @@ export class NodeTreeItem extends vscode.TreeItem {
         } else if (node.offline) {
             iconPrefix = 'node-disconnected';
         }
-        
+
         this.iconPath = {
             light: path.join(__filename, '..', '..', 'images', `${iconPrefix}-light.svg`),
             dark: path.join(__filename, '..', '..', 'images', `${iconPrefix}-dark.svg`),
@@ -95,8 +85,8 @@ export class NodeTreeItem extends vscode.TreeItem {
         //         return `${this.label} - ${this.job.description}`;
         //     }
         // }
-        // else {            
-        //     return this.build.label;            
+        // else {
+        //     return this.build.label;
         // }
 	}
 

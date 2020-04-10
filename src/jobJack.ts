@@ -1,56 +1,60 @@
 import * as vscode from 'vscode';
-import { JenkinsHostManager } from "./jenkinsHostManager";
 import { JackBase } from './jack';
-import { JobTreeItem, JobTree } from './jobTree';
+import { JobTreeItem, JobTreeItemType } from './jobTree';
 import * as Url from 'url-parse';
+import { ext } from './extensionVariables';
 
 export class JobJack extends JackBase {
 
     constructor(context: vscode.ExtensionContext) {
         super('Job Jack', context);
 
-        vscode.commands.registerCommand('extension.jenkins-jack.job.delete', async (content?: any[] | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                let result = await this.delete([content.job]);
-                if (result) { JobTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.delete', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+            if (item instanceof JobTreeItem) {
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
+                let result = await this.delete(jobs);
+                if (result) { ext.jobTree.refresh(); }
             }
             else {
-                await this.delete(content);
+                await this.delete(item);
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.job.enable', async (content?: any[] | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                let result = await this.enable([content.job]);
-                if (result) { JobTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.enable', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+            if (item instanceof JobTreeItem) {
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
+                let result = await this.enable(jobs);
+                if (result) { ext.jobTree.refresh(); }
             }
             else {
-                await this.enable(content);
+                await this.enable(item);
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.job.disable', async (content?: any[] | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                let result = await this.disable([content.job]);
-                if (result) { JobTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.disable', async (item?: any[] | JobTreeItem, items?: any[]) => {
+            if (item instanceof JobTreeItem) {
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
+                let result = await this.disable(jobs);
+                if (result) { ext.jobTree.refresh(); }
             }
             else {
-                await this.disable(content);
+                await this.disable(item);
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (content?: any | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                JenkinsHostManager.host.openBrowserAt(new Url(content.job.url).pathname);
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
+            let jobs = [];
+            if (item instanceof JobTreeItem) {
+                jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job]
             }
             else {
                 let jobs = await this.jobSelectionFlow();
                 if (undefined === jobs) { return false; }
-                for (let job of jobs) {
-                    JenkinsHostManager.host.openBrowserAt(new Url(job.url).pathname);
-                }
             }
-        });
+            for (let job of jobs) {
+                ext.jenkinsHostManager.host.openBrowserAt(new Url(job.url).pathname);
+            }
+        }));
     }
 
     public get commands(): any[] {
@@ -79,28 +83,28 @@ export class JobJack extends JackBase {
     }
 
     public async enable(jobs?: any[]) {
-        jobs = jobs ? jobs : await JenkinsHostManager.host.jobSelectionFlow((j: any) => !j.buildable);
+        jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow((j: any) => !j.buildable);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
-            await JenkinsHostManager.host.client.job.enable(job.fullName);
+            await ext.jenkinsHostManager.host.client.job.enable(job.fullName);
             return `"${job.fullName}" has been re-enabled`
         });
     }
 
     public async disable(jobs?: any[]) {
-        jobs = jobs ? jobs : await JenkinsHostManager.host.jobSelectionFlow((j: any) => j.buildable);
+        jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow((j: any) => j.buildable);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
-            await JenkinsHostManager.host.client.job.disable(job.fullName);
+            await ext.jenkinsHostManager.host.client.job.disable(job.fullName);
             return `"${job.fullName}" has been disabled`
         });
     }
 
     public async delete(jobs?: any[]) {
-        jobs = jobs ? jobs : await JenkinsHostManager.host.jobSelectionFlow();
+        jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow();
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
-            await JenkinsHostManager.host.client.job.destroy(job.fullName);
+            await ext.jenkinsHostManager.host.client.job.destroy(job.fullName);
             return `"${job.fullName}" has been deleted`
         });
     }
@@ -110,7 +114,7 @@ export class JobJack extends JackBase {
      * @param filter A function for filtering the job list retrieved from the Jenkins host.
      */
     private async jobSelectionFlow(filter?: ((job: any) => boolean)): Promise<any[]|undefined> {
-        let jobs = await JenkinsHostManager.host.getJobsWithProgress();
+        let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
         if (undefined === jobs) { return undefined; }
         if (filter) {
             jobs = jobs.filter(filter);
@@ -129,7 +133,7 @@ export class JobJack extends JackBase {
      * @param onJobAction The action to perform on the jobs.
      */
     private async actionOnJobs(
-        jobs: any[], 
+        jobs: any[],
         onJobAction: (job: string) => Promise<string>) {
         return vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,

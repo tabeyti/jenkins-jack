@@ -1,70 +1,70 @@
 import * as vscode from 'vscode';
 import { JackBase } from './jack';
-import { JenkinsHostManager } from './jenkinsHostManager';
-import { NodeTreeItem, NodeTree } from './nodeTree';
+import { NodeTreeItem } from './nodeTree';
 import { updateNodeLabelsScript } from './utils';
+import { ext } from './extensionVariables';
 
 export class NodeJack extends JackBase {
 
     constructor(context: vscode.ExtensionContext) {
         super('Node Jack', context);
 
-        vscode.commands.registerCommand('extension.jenkins-jack.node.setOffline', async (content?: any[] | NodeTreeItem) => {
-            if (content instanceof NodeTreeItem) {
-                let result = await this.setOffline([content.node]);
-                if (result) { NodeTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOffline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            if (item instanceof NodeTreeItem) {
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let result = await this.setOffline(nodes);
+                if (result) { ext.nodeTree.refresh(); }
             }
             else {
-                await this.setOffline(content);
+                await this.setOffline(item);
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.node.setOnline', async (content?: any[] | NodeTreeItem) => {
-            if (content instanceof NodeTreeItem) {
-                let result = await this.setOnline([content.node]);
-                if (result) { NodeTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOnline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            if (item instanceof NodeTreeItem) {
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let result = await this.setOnline(nodes);
+                if (result) { ext.nodeTree.refresh(); }
             }
             else {
-                await this.setOnline(content);
+                await this.setOnline(item);
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.node.disconnect', async (content?: any[] | NodeTreeItem) => {
-            if (content instanceof NodeTreeItem) {
-                let result = await this.disconnect([content.node]);
-                if (result) { NodeTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.disconnect', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            if (item instanceof NodeTreeItem) {
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let result = await this.disconnect(nodes);
+                if (result) { ext.nodeTree.refresh(); }
             }
             else {
-                await this.disconnect(content);
+                await this.disconnect(item);
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.node.updateLabels', async (content?: any[] | NodeTreeItem) => {
-            if (content instanceof NodeTreeItem) {
-                let result = await this.updateLabels(content.node);
-                if (result) { NodeTree.instance.refresh(); }
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.updateLabels', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            if (item instanceof NodeTreeItem) {
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                await this.updateLabels(nodes);
             }
             else {
                 await this.updateLabels();
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.node.open', async (content?: any | NodeTreeItem) => {
-            if (content instanceof NodeTreeItem) {
-                JenkinsHostManager.host.openBrowserAt(`computer/${content.node.displayName}`);
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.open', async (item?: any | NodeTreeItem, items?: NodeTreeItem[]) => {
+            let nodes = [];
+            if (item instanceof NodeTreeItem) {
+                nodes = items ? items.map((i: any) => i.node) : [item.node];
             }
             else {
-                let nodes = await JenkinsHostManager.host.nodeSelectionFlow(undefined, true);
+                let nodes = await ext.jenkinsHostManager.host.nodeSelectionFlow(undefined, true);
                 if (undefined === nodes) { return false; }
-                for (let n of nodes) {
-                    if ('master' === n.displayName) {
-                        // Uri for master node requires parenthesis *shrug*
-                        n.displayName = '(master)';
-                    }
-                    JenkinsHostManager.host.openBrowserAt(`computer/${n.displayName}`);
-                }
             }
-        });
+            for (let n of nodes) {
+                ext.jenkinsHostManager.host.openBrowserAt(`computer/${n.displayName}`);
+            }
+        }));
     }
 
     public get commands(): any[] {
@@ -85,14 +85,14 @@ export class NodeJack extends JackBase {
                 target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.disconnect')
             },
             {
+                label: "$(list-flat)  Node: Update Labels",
+                description: "Update targeted nodes' assigned labels.",
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.updateLabels')
+            },
+            {
                 label: "$(browser)  Node: Open",
                 description: "Opens the targeted nodes in the user's browser.",
                 target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.open')
-            },
-            {
-                label: "$(list-flat)  Node: Update Labels",
-                description: "Update a node's assigned labels.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.updateLabels')
             }
         ];
     }
@@ -102,11 +102,11 @@ export class NodeJack extends JackBase {
      * re-enabled.
      */
     public async setOnline(nodes?: any[]) {
-        nodes = nodes ? nodes : await JenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master' && n.offline, true);
+        nodes = nodes ? nodes : await ext.jenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master' && n.offline, true);
         if (undefined === nodes) { return undefined; }
 
         return await this.actionOnNodes(nodes, async (node: any) => {
-            await JenkinsHostManager.host.client.node.enable(node.displayName);
+            await ext.jenkinsHostManager.host.client.node.enable(node.displayName);
             return 'Node Online!';
         });
     }
@@ -119,13 +119,13 @@ export class NodeJack extends JackBase {
         if (!offlineMessage) {
             offlineMessage = await vscode.window.showInputBox({ prompt: 'Enter an offline message.' });
             if (undefined === offlineMessage) { return undefined; }
-        }        
+        }
 
-        nodes = nodes ? nodes : await JenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master' && !n.offline, true);
+        nodes = nodes ? nodes : await ext.jenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master' && !n.offline, true);
         if (undefined === nodes) { return undefined; }
 
         return await this.actionOnNodes(nodes, async (node: any) => {
-            await JenkinsHostManager.host.client.node.disable(node.displayName, offlineMessage);
+            await ext.jenkinsHostManager.host.client.node.disable(node.displayName, offlineMessage);
             return 'Node Offline';
         });
     }
@@ -135,39 +135,42 @@ export class NodeJack extends JackBase {
      * disconnected from the server.
      */
     public async disconnect(nodes?: any[]) {
-        nodes = nodes ? nodes : await JenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master', true);
+        nodes = nodes ? nodes : await ext.jenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master', true);
         if (undefined === nodes) { return undefined; }
 
         return await this.actionOnNodes(nodes, async (node: any) => {
-            await JenkinsHostManager.host.client.node.disconnect(node.displayName);
+            await ext.jenkinsHostManager.host.client.node.disconnect(node.displayName);
             return 'Disconnected';
         });
     }
 
-    public async updateLabels(node?: any) {
-        node = node ? node : await JenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master');
-        if (undefined === node) { return undefined; }
+    public async updateLabels(nodes?: any) {
+        nodes = nodes ? nodes : await ext.jenkinsHostManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master', true);
+        if (undefined === nodes) { return undefined; }
 
-        // Filter out the node name from the label list.
+        // Pull the labels from the first node to use as a pre-filled value
+        // for the input box.
+        let node = nodes[0];
         let labelList = node.assignedLabels.map((l: any) => l.name).filter(
             (l: string) => l.toUpperCase() !== node.displayName.toUpperCase()
         );
 
-        let labelString = await vscode.window.showInputBox({ 
+        let labelString = await vscode.window.showInputBox({
             prompt: 'Enter the labels you want assigned to the node.',
             value: labelList.join(' ')
         });
         if (undefined === labelString) { return undefined; }
 
-        let script =    updateNodeLabelsScript([node.displayName], labelString.split(' '));
-        let result = await JenkinsHostManager.host.runConsoleScript(script, undefined);
+        let nodeNames = nodes.map((n: any) => n.displayName);
+
+        let script =    updateNodeLabelsScript(nodeNames, labelString.split(' '));
+        let result = await ext.jenkinsHostManager.host.runConsoleScript(script, undefined);
 
         this.outputChannel.clear();
         this.outputChannel.show();
         this.outputChannel.appendLine(this.barrierLine);
-        this.outputChannel.appendLine(node.displayName);
-        this.outputChannel.appendLine('');
-        this.outputChannel.appendLine(result);
+        this.outputChannel.appendLine(`Nodes Updated: ${nodeNames.join(', ')}`);
+        this.outputChannel.appendLine(`Script Output: ${result}`);
         this.outputChannel.appendLine(this.barrierLine);
     }
 

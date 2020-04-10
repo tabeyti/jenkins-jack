@@ -1,27 +1,21 @@
 import * as vscode from 'vscode';
-import { JenkinsHostManager } from './jenkinsHostManager';
 import * as path from 'path';
+import { ext } from './extensionVariables';
 
 export class JobTree {
-    private static _treeViewInstance: JobTree;
     private readonly _treeView: vscode.TreeView<JobTreeItem>;
     private readonly _treeViewDataProvider: JobTreeProvider;
 
-    private constructor() {
+    public constructor() {
         this._treeViewDataProvider = new JobTreeProvider();
-        this._treeView = vscode.window.createTreeView('jobTree', { treeDataProvider: this._treeViewDataProvider });
-    }
-
-    public static get instance(): JobTree {
-        if (undefined === JobTree._treeViewInstance) {
-            JobTree._treeViewInstance = new JobTree();
-            JobTree._treeViewInstance.refresh();
-        }
-        return JobTree._treeViewInstance;
+        this._treeView = vscode.window.createTreeView('jobTree', { treeDataProvider: this._treeViewDataProvider, canSelectMany: true });
+        this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
+            if (e.visible) { this.refresh(); }
+          });
     }
 
     public refresh() {
-        this._treeView.title = `Jobs: ${JenkinsHostManager.host.id}`;
+        this._treeView.title = `Jobs: ${ext.jenkinsHostManager.host.id}`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -36,7 +30,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
 
     private updateSettings() {
     }
-    
+
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
@@ -49,12 +43,12 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
         return new Promise(async resolve => {
             let list =  [];
             if (element) {
-                let builds = await JenkinsHostManager.host.getBuildsWithProgress(element.job);
+                let builds = await ext.jenkinsHostManager.host.getBuildsWithProgress(element.job);
                 for (let buildNumber of builds) {
                     list.push(new JobTreeItem(`${buildNumber.number}`, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, buildNumber))
                 }
             } else {
-                let jobs = await JenkinsHostManager.host.getJobsWithProgress();
+                let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
                 jobs = jobs.filter((job: any) =>  job);
 
                 for(let job of jobs) {
@@ -87,18 +81,20 @@ export class JobTreeItem extends vscode.TreeItem {
             this.contextValue = 'jobTreeItemJob';
 
             if (!job.buildable) {
-                iconPrefix = 'job-disabled'
+                iconPrefix = 'job-disabled';
             }
         }
         else {
             this.contextValue = 'jobTreeItemBuild'
 
-            if ('SUCCESS' === build.result) {
-                iconPrefix = 'build-good';
-            } else if ('FAILURE' === build.result) {
+            if ('FAILURE' === build.result) {
                 iconPrefix = 'build-bad';
             } else if ('ABORTED' === build.result) {
                 iconPrefix = 'build-aborted';
+            } else if ('UNSTABLE' === build.result) {
+                iconPrefix = 'build-unstable';
+            } else {
+                iconPrefix = 'build-good';
             }
         }
         this.iconPath = {
@@ -116,8 +112,8 @@ export class JobTreeItem extends vscode.TreeItem {
                 return `${this.label} - ${this.job.description}`;
             }
         }
-        else {            
-            return this.build.label;            
+        else {
+            return this.label;
         }
 	}
 

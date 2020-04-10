@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { JenkinsHostManager } from './jenkinsHostManager';
+import { ext } from './extensionVariables';
 import * as util from 'util';
 import * as xml2js from "xml2js";
 import { PipelineConfig } from './pipelineJobConfig';
@@ -10,25 +10,19 @@ import { JobType } from './jenkinsService';
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
 export class PipelineJobTree {
-    private static _treeViewInstance: PipelineJobTree;
     private readonly _treeView: vscode.TreeView<PipelineJobTreeItem>;
     private readonly _treeViewDataProvider: PipelineJobTreeProvider;
 
-    private constructor() {
+    public constructor() {
         this._treeViewDataProvider = new PipelineJobTreeProvider();
         this._treeView = vscode.window.createTreeView('pipelineJobTree', { treeDataProvider: this._treeViewDataProvider });
-    }
-
-    public static get instance(): PipelineJobTree {
-        if (undefined === PipelineJobTree._treeViewInstance) {
-            PipelineJobTree._treeViewInstance = new PipelineJobTree();
-            PipelineJobTree._treeViewInstance.refresh();
-        }
-        return PipelineJobTree._treeViewInstance;
+        this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
+            if (e.visible) { this.refresh(); }
+          });
     }
 
     public refresh() {
-        this._treeView.title = `Pipelines: ${JenkinsHostManager.host.id}`;
+        this._treeView.title = `Pipelines: ${ext.jenkinsHostManager.host.id}`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -73,14 +67,14 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 
     private getTreeItemConfig(key: string): any {
         if (undefined === this._config.items) { this._config.items = []; }
-        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === JenkinsHostManager.host.id)) {
+        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id)) {
             this._config.items.push({
-                hostId: JenkinsHostManager.host.id,
+                hostId: ext.jenkinsHostManager.host.id,
                 jobName: key,
                 filepath: null,
             });
         }
-        return this._config.items.find((i: any) => i.jobName === key && i.hostId === JenkinsHostManager.host.id);
+        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id);
     }
 
     private async openScript(node: PipelineJobTreeItem) {
@@ -111,7 +105,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     private async pullJobScript(node: PipelineJobTreeItem) {
 
         // See if script source exists on job
-        let xml = await JenkinsHostManager.host.client.job.config(node.label).then((data: any) => {
+        let xml = await ext.jenkinsHostManager.host.client.job.config(node.label).then((data: any) => {
             return data;
         }).catch((err: any) => {
             // TODO: Handle better
@@ -133,11 +127,11 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
     private async pullReplayScript(node: PipelineJobTreeItem) {
 
         // Ask what build they want to download.
-        let build = await JenkinsHostManager.host.buildSelectionFlow(node.job);
+        let build = await ext.jenkinsHostManager.host.buildSelectionFlow(node.job);
         if (undefined === build) { return; }
 
         // Pull replay script from build number
-        let script = await JenkinsHostManager.host.getReplayScript(node.job, build);
+        let script = await ext.jenkinsHostManager.host.getReplayScript(node.job, build);
         if (undefined === script) { return; }
 
         await this.saveAndEditScript(script, node);
@@ -202,8 +196,8 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
 	getChildren(element?: PipelineJobTreeItem): Thenable<PipelineJobTreeItem[]> {
         return new Promise(async resolve => {
 
-            let jobs = await JenkinsHostManager.host.getJobsWithProgress();
-             JenkinsHostManager.host.id;
+            let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
+             ext.jenkinsHostManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                                 job.buildable &&
@@ -214,7 +208,7 @@ export class PipelineJobTreeProvider implements vscode.TreeDataProvider<Pipeline
             for(let job of jobs) {
                 let pipelineJobTreeItem = new PipelineJobTreeItem(job.fullName, job);
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
-                pipelineJobTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === JenkinsHostManager.host.id)) ?
+                pipelineJobTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.jenkinsHostManager.host.id)) ?
                                                     'pipelineJobTreeItemEntry' :
                                                     'pipelineJobTreeItemDefault';
                 list.push(pipelineJobTreeItem);

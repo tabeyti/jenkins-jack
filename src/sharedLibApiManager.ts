@@ -1,5 +1,5 @@
 import * as htmlParser from 'cheerio';
-import { JenkinsHostManager } from './jenkinsHostManager';
+import { ext } from './extensionVariables';
 
 export class SharedLibVar {
     label: string;
@@ -49,7 +49,7 @@ export class SharedLibApiManager {
         let url = undefined !== job ?   `job/${job.fullName}/pipeline-syntax/globals` :
                                         'pipeline-syntax/globals';
 
-        let html: string = await JenkinsHostManager.host.get(url);
+        let html: string = await ext.jenkinsHostManager.host.get(url);
         if (undefined === html) { return; }
 
         this.sharedLibVars = this.parseHtml(html);

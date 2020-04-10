@@ -234,9 +234,10 @@ export class JenkinsService {
      */
     public async getBuilds(job: any) {
         let resultIconMap = new Map([
-            ['SUCCESS', '$(check)'], 
+            ['SUCCESS', '$(check)'],
             ['FAILURE', '$(x)'],
-            ['ABORTED', '$(alert)'], 
+            ['ABORTED', '$(issues)'],
+            ['UNSTABLE', '$(warning)'],
             [undefined, '']]
         )
 
@@ -272,11 +273,11 @@ export class JenkinsService {
             token.onCancellationRequested(() => {
                 vscode.window.showWarningMessage(`User canceled script retrieval.`, this.messageItem);
             });
-            progress.report({ message: `Pulling replay script from ${job.fullName} #${build.number}` });            
+            progress.report({ message: `Pulling replay script from ${job.fullName} #${build.number}` });
             try {
                 let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${build.number}/replay`;
                 let r = await request.get(url);
-    
+
                 const root = htmlParser.load(r);
                 let source  = root('textarea')[0].childNodes[0].data?.toString();
                 if (undefined === source) {
@@ -288,7 +289,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
                 return undefined;
             }
-        });        
+        });
     }
 
     /**

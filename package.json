@@ -311,7 +311,7 @@
       },
       {
         "command": "extension.jenkins-jack.build.open",
-        "title": "Node: Open",
+        "title": "Build: Open",
         "category": "Jenkins Jack"
       },
       {

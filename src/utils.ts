@@ -98,60 +98,70 @@ export function addeNodeLabelsScript(nodes: string[], labels: string[]): string 
 
     let labelsToken = '';
     let nodesToken = '';
-    for (let l of labels) { labelsToken += ` "${l}",`; }    
+    for (let l of labels) { labelsToken += ` "${l}",`; }
     for (let n of nodes) { nodesToken += ` "${n}",` }
 
     return `import jenkins.model.*;
     import jenkins.model.Jenkins;
-    
+
     // Labels you want to add
     def additionalLabels = [ <<LABELS>> ];
-    
+
     // Target machines to update
-    def slaveNames = [ <<NODES>> ];
-    
+    def nodeNames = [ <<NODES>> ];
+
     jenkins = Jenkins.instance;
-    for (slave in slaveNames) {
-        println jenkins.getSlave(slave);
-        def node = jenkins.getNode(slave);
+    for (node in nodeNames) {
+        println jenkins.getSlave(node);
+        def node = jenkins.getNode(node);
         def labelsStr = node.labelString;
-    
+
         validLabels = additionalLabels.findAll { l -> !labelsStr.contains(l) };
         if (validLabels.isEmpty()) {
           continue;
         }
         def validLabels = validLabels.join(' ');
-        jenkins.getNode(slave).setLabelString(labelsStr + ' ' + validLabels);
+        jenkins.getNode(node).setLabelString(labelsStr + ' ' + validLabels);
     }
-    
+
     jenkins.setNodes(jenkins.getNodes());
     jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken)
+}
+
+export async function parallelTasks<T>(items: any, action: ((item: any) => Promise<T>)): Promise<T[]> {
+    let tasks: Promise<T>[] = [];
+    for (let item of items) {
+        let t = new Promise<T>(async (resolve) => {
+            return resolve(action(item))
+        });
+        tasks.push(t)
+    }
+    return await Promise.all<T>(tasks);
 }
 
 export function updateNodeLabelsScript(nodes: string[], labels: string[]): string {
     let labelsToken = '';
     let nodesToken = '';
-    for (let l of labels) { labelsToken += ` "${l}",`; }    
+    for (let l of labels) { labelsToken += ` "${l}",`; }
     for (let n of nodes) { nodesToken += ` "${n}",` }
 
     return `import jenkins.model.*;
     import jenkins.model.Jenkins;
-    
+
     // Labels you want to add
     def newLabels = [ <<LABELS>> ];
-    
+
     // Target machines to update
-    def slaveNames = [ <<NODES>> ];
-    
+    def nodeNames = [ <<NODES>> ];
+
     jenkins = Jenkins.instance;
-    for (slave in slaveNames) {
-        println jenkins.getSlave(slave);
-        def node = jenkins.getNode(slave);
+    for (nodeName in nodeNames) {
+        def node = jenkins.getNode(nodeName);
         def labelsStr = node.labelString;
-    
-        jenkins.getNode(slave).setLabelString(newLabels.join(' '));
+
+        jenkins.getNode(nodeName).setLabelString(newLabels.join(' '));
     }
-    
+
     jenkins.setNodes(jenkins.getNodes());
     jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken)
 }

@@ -1,56 +1,82 @@
 import * as vscode from 'vscode';
 import { JackBase } from './jack';
-import { JobTreeItem, JobTree } from './jobTree';
-import { JenkinsHostManager } from './jenkinsHostManager';
+import { JobTreeItem, JobTreeItemType } from './jobTree';
+import { ext } from './extensionVariables';
 import * as Url from 'url-parse';
+import { parallelTasks } from './utils';
 
 export class BuildJack extends JackBase {
+
+    static JobBuild = class {
+        public build: any;
+        public job: any;
+    }
 
     constructor(context: vscode.ExtensionContext) {
         super('Build Jack', context);
 
-        vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (content?: any | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                await this.delete(content.job, [content.build]);
-                JobTree.instance.refresh();
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
+            if (item instanceof JobTreeItem) {
+                items = !items ? [item.build] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
+                // TODO: bug, need to parallel task this bitch because associated job is needed
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Window,
+                    title: `Build Jack Output(s)`,
+                    cancellable: true
+                }, async (progress, token) => {
+                    token.onCancellationRequested(() => {
+                        this.showWarningMessage("User canceled command.");
+                    });
+                    let results = await parallelTasks(items, async (item: any) => {
+                        return await ext.jenkinsHostManager.host.deleteBuild(item.job, item.build.number);
+                    })
+                    this.outputChannel.clear();
+                    this.outputChannel.show();
+                    for (let r of results as any[]) {
+                        this.outputChannel.appendLine(this.barrierLine);
+                        this.outputChannel.appendLine(r);
+                        this.outputChannel.appendLine(this.barrierLine);
+                    }
+                    ext.jobTree.refresh();
+
+                });
             }
             else {
                 await this.delete();
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
             if (content instanceof JobTreeItem) {
                 await this.downloadLog(content.job, content.build);
             }
             else {
                 await this.downloadLog();
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (content?: any | JobTreeItem) => {
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (content?: any | JobTreeItem) => {
             if (content instanceof JobTreeItem) {
                 await this.downloadReplayScript(content.job, content.build);
             }
             else {
                 await this.downloadReplayScript();
             }
-        });
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (content?: any | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                JenkinsHostManager.host.openBrowserAt(new Url(content.build.url).pathname);
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
+            let builds = [];
+            if (item instanceof JobTreeItem) {
+                builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build]
             }
             else {
-                let job =await JenkinsHostManager.host.jobSelectionFlow();
-                if (undefined === job) { return; }
-
-                let build = await JenkinsHostManager.host.buildSelectionFlow(job);
-                if (undefined === build) { return; }
-
-                JenkinsHostManager.host.openBrowserAt(new Url(build.url).pathname);
+                let jobs = await this.jobSelectionFlow();
+                if (undefined === jobs) { return false; }
             }
-        });
+            for (let build of builds) {
+                ext.jenkinsHostManager.host.openBrowserAt(new Url(build.url).pathname);
+            }
+        }));
     }
 
     public get commands(): any[] {
@@ -78,11 +104,18 @@ export class BuildJack extends JackBase {
         ];
     }
 
+    /**
+     * Downloads a build log for the user by first presenting a list
+     * of jobs to select from, and then a list of build numbers for
+     * the selected job.
+     * @param job Optional job to target. If none, job selection will be presented.
+     * @param builds Optional builds to target. If none, build selection will be presented.
+     */
     public async delete(job?: any, builds?: any[]) {
-        job = job ? job : await JenkinsHostManager.host.jobSelectionFlow();
+        job = job ? job : await ext.jenkinsHostManager.host.jobSelectionFlow();
         if (undefined === job) { return; }
 
-        builds = builds ? builds : await JenkinsHostManager.host.buildSelectionFlow(job, true);
+        builds = builds ? builds : await ext.jenkinsHostManager.host.buildSelectionFlow(job, true);
         if (undefined === builds) { return; }
 
         return await this.deleteBuilds(job, builds);
@@ -92,34 +125,38 @@ export class BuildJack extends JackBase {
      * Downloads a build log for the user by first presenting a list
      * of jobs to select from, and then a list of build numbers for
      * the selected job.
+     * @param job Optional job to target. If none, job selection will be presented.
+     * @param build Optional build to target. If none, build selection will be presented.
      */
     public async downloadLog(job?: any, build?: any) {
-        job = job ? job : await JenkinsHostManager.host.jobSelectionFlow();
+        job = job ? job : await ext.jenkinsHostManager.host.jobSelectionFlow();
         if (undefined === job) { return; }
 
-        build = build ? build : await JenkinsHostManager.host.buildSelectionFlow(job);
+        build = build ? build : await ext.jenkinsHostManager.host.buildSelectionFlow(job);
         if (undefined === build) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await JenkinsHostManager.host.streamBuildOutput(job.fullName, build.number, this.outputChannel);
+        await ext.jenkinsHostManager.host.streamBuildOutput(job.fullName, build.number, this.outputChannel);
     }
 
-     /**
-     * Downloads a build log for the user by first presenting a list
+    /**
+     * Downloads a pipeline replay scripts for the user by first presenting a list
      * of jobs to select from, and then a list of build numbers for
      * the selected job.
+     * @param job Optional job to target. If none, job selection will be presented.
+     * @param build Optional build to target. If none, build selection will be presented.
      */
     public async downloadReplayScript(job?: any, build?: any) {
 
         // Grab only pipeline jobs
-        job = job ? job : await JenkinsHostManager.host.jobSelectionFlow((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob");
+        job = job ? job : await ext.jenkinsHostManager.host.jobSelectionFlow((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob");
         if (undefined === job) { return; }
 
-        build = build ? build : await JenkinsHostManager.host.buildSelectionFlow(job);
+        build = build ? build : await ext.jenkinsHostManager.host.buildSelectionFlow(job);
         if (undefined === build) { return; }
 
         // Pull script and display as an Untitled document
-        let script = await JenkinsHostManager.host.getReplayScript(job, build);
+        let script = await ext.jenkinsHostManager.host.getReplayScript(job, build);
         if (undefined === script) { return; }
         let doc = await vscode.workspace.openTextDocument({
             content: script,
@@ -129,7 +166,7 @@ export class BuildJack extends JackBase {
     }
 
     public async deleteBuilds(job: any, builds: any[]) {
-        vscode.window.withProgress({
+        return vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: `Build Jack Output(s)`,
             cancellable: true
@@ -145,7 +182,7 @@ export class BuildJack extends JackBase {
             for (let b of builds) {
                 let promise = new Promise(async (resolve) => {
                     try {
-                        let output = await JenkinsHostManager.host.deleteBuild(job, b.number);
+                        let output = await ext.jenkinsHostManager.host.deleteBuild(job, b.number);
                         return resolve({ label: b.number, output: output })
                     } catch (err) {
                         return resolve({ label: b.number, output: err })

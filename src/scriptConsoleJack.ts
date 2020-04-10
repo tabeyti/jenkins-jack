@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { JenkinsHostManager } from "./jenkinsHostManager";
+import { ext } from './extensionVariables';
 import { JackBase } from './jack';
 import { isGroovy } from './utils';
 
@@ -36,7 +36,7 @@ export class ScriptConsoleJack extends JackBase {
     }
 
     public async execute(source: string) {
-        let nodes = await JenkinsHostManager.host.getNodes();
+        let nodes = await ext.jenkinsHostManager.host.getNodes();
         nodes = nodes.filter((n: any) => n.displayName !== 'master');
 
         if (undefined === nodes) { return; }
@@ -108,13 +108,13 @@ export class ScriptConsoleJack extends JackBase {
                 let promise = undefined;
                 if ('System' === m) {
                     promise = new Promise(async (resolve) => {
-                        let result = await JenkinsHostManager.host.runConsoleScript(source, undefined, token);
+                        let result = await ext.jenkinsHostManager.host.runConsoleScript(source, undefined, token);
                         return resolve({ node: 'System', output: result });
                     });
                 }
                 else {
                     promise = new Promise(async (resolve) => {
-                        let result = await JenkinsHostManager.host.runConsoleScript(source, m, token);
+                        let result = await ext.jenkinsHostManager.host.runConsoleScript(source, m, token);
                         return resolve({ node: m, output: result });
                     });
                 }

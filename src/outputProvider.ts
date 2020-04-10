@@ -32,7 +32,7 @@ export class OutputPanel implements vscode.OutputChannel {
      */
     public async show() {
         let editor = vscode.window.visibleTextEditors.find((e: vscode.TextEditor) =>
-                e.document.uri.scheme === OutputPanelProvider.scheme() &&
+                e.document.uri.scheme === OutputPanelProvider.scheme &&
                 e.document.uri.path === this.uri.path)
 
         // Only display the default view column for the editor if the editor
@@ -92,7 +92,7 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
         this._panelMap = new Map();
     }
 
-    public static scheme(): string {
+    public static get scheme(): string {
         return 'jenkins-jack';
     }
 
@@ -106,7 +106,7 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
 
     public get(key: string): OutputPanel {
         if (!this._panelMap.has(key)) {
-            this._panelMap.set(key, new OutputPanel(vscode.Uri.parse(`${OutputPanelProvider.scheme()}:${key}`)));
+            this._panelMap.set(key, new OutputPanel(vscode.Uri.parse(`${OutputPanelProvider.scheme}:${key}`)));
         }
 
         // @ts-ignore
@@ -123,7 +123,7 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
     }
 
     async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
-        if (uri.scheme !== OutputPanelProvider.scheme()) {
+        if (uri.scheme !== OutputPanelProvider.scheme) {
             return '';
         }
         let panel = this.get(uri.path);

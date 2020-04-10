@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { OutputPanelProvider } from './outputProvider';
-import { CommandSet } from './commandSet';
+import { QuickpickSet } from './quickpickSet';
 
-export abstract class JackBase implements CommandSet {
+export abstract class JackBase implements QuickpickSet {
     [key: string]: any;
     outputChannel: vscode.OutputChannel;
     readonly name: string;
