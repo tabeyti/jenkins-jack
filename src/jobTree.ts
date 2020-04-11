@@ -113,7 +113,7 @@ export class JobTreeItem extends vscode.TreeItem {
             }
         }
         else {
-            return this.label;
+            return `${this.label}: ${this.build.result}`;
         }
 	}
 

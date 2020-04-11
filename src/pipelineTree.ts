@@ -40,15 +40,15 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             }
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemOpenScript', async (node: PipelineTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.openScript', async (node: PipelineTreeItem) => {
             await this.openScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemPullJobScript', async (node: PipelineTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullJobScript', async (node: PipelineTreeItem) => {
             await this.pullJobScript(node);
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.itemPullReplayScript', async (node: PipelineTreeItem) => {
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullReplayScript', async (node: PipelineTreeItem) => {
             await this.pullReplayScript(node);
         });
     }

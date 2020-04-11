@@ -91,7 +91,7 @@ export class JenkinsHostManager implements QuickpickSet {
         }
 
         // Update our job view with the new host title and jobs
-        ext.pipelineJobTree.refresh();
+        ext.pipelineTree.refresh();
         ext.jobTree.refresh();
         ext.nodeTree.refresh();
 

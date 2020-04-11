@@ -10,7 +10,7 @@ import { JenkinsHostManager } from "./jenkinsHostManager";
 export namespace ext {
     export let context: ExtensionContext;
     export let jobTree: JobTree;
-    export let pipelineJobTree: PipelineTree;
+    export let pipelineTree: PipelineTree;
     export let nodeTree: NodeTree;
     export let jenkinsHostManager: JenkinsHostManager;
 }

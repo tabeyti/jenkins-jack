@@ -103,6 +103,13 @@ export class JobJack extends JackBase {
     public async delete(jobs?: any[]) {
         jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow();
         if (undefined === jobs) { return; }
+
+        let jobNames = jobs.map((j: any) => j.fullName);
+        let r = await this.showInformationModal(
+            `Are you sure you want to delete these jobs?\n\n${jobNames.join('\n')}`,
+            { title: "Yes"} );
+        if (undefined === r) { return undefined; }
+
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.jenkinsHostManager.host.client.job.destroy(job.fullName);
             return `"${job.fullName}" has been deleted`

@@ -18,6 +18,14 @@ export class BuildJack extends JackBase {
         context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 items = !items ? [item.build] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
+
+                let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`)
+
+                let r = await this.showInformationModal(
+                    `Are you sure you want to delete these builds?\n\n${buildNames.join('\n')}`,
+                    { title: "Yes"} );
+                if (undefined === r) { return undefined; }
+
                 // TODO: bug, need to parallel task this bitch because associated job is needed
                 vscode.window.withProgress({
                     location: vscode.ProgressLocation.Window,
@@ -92,7 +100,7 @@ export class BuildJack extends JackBase {
                 target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadLog')
             },
             {
-                label: "$(desktop-download)  Build: Download Replay Script",
+                label: "$(cloud-download)  Build: Download Replay Script",
                 description: "Pulls a pipeline replay script of a previous build into the editor.",
                 target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadReplayScript')
             },

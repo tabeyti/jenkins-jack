@@ -54,12 +54,12 @@ export function activate(context: vscode.ExtensionContext) {
     });
     context.subscriptions.push(snippetsDisposable);
 
-    ext.pipelineJobTree = new PipelineTree();
+    ext.pipelineTree = new PipelineTree();
     ext.jobTree = new JobTree();
     ext.nodeTree = new NodeTree();
 
     vscode.commands.registerCommand('extension.jenkins-jack.tree.refresh', (content: any) => {
-        ext.pipelineJobTree.refresh();
+        ext.pipelineTree.refresh();
         ext.jobTree.refresh();
         ext.nodeTree.refresh();
     });

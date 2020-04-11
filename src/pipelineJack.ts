@@ -92,6 +92,7 @@ export class PipelineJack extends JackBase {
         this.activeJob = await this.build(source, config);
         if (undefined === this.activeJob) { return; }
 
+        ext.pipelineTree.refresh();
         ext.jobTree.refresh();
 
         // Stream the output. Yep.

@@ -67,24 +67,29 @@
       ],
       "view/item/context": [
         {
-          "command": "extension.jenkins-jack.tree.pipeline.itemOpenScript",
+          "command": "extension.jenkins-jack.tree.pipeline.openScript",
           "when": "view == pipelineTree && viewItem == pipelineTreeItemEntry",
           "group": "inline"
         },
         {
-          "command": "extension.jenkins-jack.tree.pipeline.itemOpenScript",
+          "command": "extension.jenkins-jack.tree.pipeline.openScript",
           "when": "view == pipelineTree && viewItem == pipelineTreeItemEntry",
           "group": "navigation"
         },
         {
-          "command": "extension.jenkins-jack.tree.pipeline.itemPullJobScript",
+          "command": "extension.jenkins-jack.tree.pipeline.pullJobScript",
           "when": "view == pipelineTree",
           "group": "z_commands"
         },
         {
-          "command": "extension.jenkins-jack.tree.pipeline.itemPullReplayScript",
+          "command": "extension.jenkins-jack.tree.pipeline.pullReplayScript",
           "when": "view == pipelineTree",
           "group": "z_commands"
+        },
+        {
+          "command": "extension.jenkins-jack.job.open",
+          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.job.open",
@@ -112,6 +117,11 @@
           "group": "navigation"
         },
         {
+          "command": "extension.jenkins-jack.build.open",
+          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "group": "inline"
+        },
+        {
           "command": "extension.jenkins-jack.build.delete",
           "when": "view == jobTree && viewItem == jobTreeItemBuild",
           "group": "1_modification"
@@ -122,9 +132,19 @@
           "group": "z_commands"
         },
         {
+          "command": "extension.jenkins-jack.build.downloadLog",
+          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "group": "inline"
+        },
+        {
           "command": "extension.jenkins-jack.build.downloadReplayScript",
           "when": "view == jobTree && viewItem == jobTreeItemBuild",
           "group": "z_commands"
+        },
+        {
+          "command": "extension.jenkins-jack.node.open",
+          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.node.open",
@@ -312,7 +332,11 @@
       {
         "command": "extension.jenkins-jack.build.open",
         "title": "Build: Open",
-        "category": "Jenkins Jack"
+        "category": "Jenkins Jack",
+        "icon": {
+          "light": "images/open-light.svg",
+          "dark": "images/open-dark.svg"
+        }
       },
       {
         "command": "extension.jenkins-jack.build.delete",
@@ -322,7 +346,11 @@
       {
         "command": "extension.jenkins-jack.build.downloadLog",
         "title": "Build: Download Log",
-        "category": "Jenkins Jack"
+        "category": "Jenkins Jack",
+        "icon": {
+          "light": "images/build-log-light.svg",
+          "dark": "images/build-log-dark.svg"
+        }
       },
       {
         "command": "extension.jenkins-jack.build.downloadReplayScript",
@@ -352,7 +380,11 @@
       {
         "command": "extension.jenkins-jack.node.open",
         "title": "Node: Open",
-        "category": "Jenkins Jack"
+        "category": "Jenkins Jack",
+        "icon": {
+          "light": "images/open-light.svg",
+          "dark": "images/open-dark.svg"
+        }
       },
       {
         "command": "extension.jenkins-jack.node.updateLabels",
@@ -382,7 +414,11 @@
       {
         "command": "extension.jenkins-jack.job.open",
         "title": "Job: Open",
-        "category": "Jenkins Jack"
+        "category": "Jenkins Jack",
+        "icon": {
+          "light": "images/open-light.svg",
+          "dark": "images/open-dark.svg"
+        }
       },
       {
         "command": "extension.jenkins-jack.connections",
@@ -390,20 +426,20 @@
         "category": "Jenkins Jack"
       },
       {
-        "command": "extension.jenkins-jack.tree.pipeline.itemOpenScript",
+        "command": "extension.jenkins-jack.tree.pipeline.openScript",
         "title": "Open script",
         "icon": {
-          "light": "images/open_script-light.svg",
-          "dark": "images/open_script-dark.svg"
+          "light": "images/open-script-light.svg",
+          "dark": "images/open-script-dark.svg"
         }
       },
       {
-        "command": "extension.jenkins-jack.tree.pipeline.itemPullJobScript",
+        "command": "extension.jenkins-jack.tree.pipeline.pullJobScript",
         "title": "Pull Job Script",
         "category": "Jenkins Jack"
       },
       {
-        "command": "extension.jenkins-jack.tree.pipeline.itemPullReplayScript",
+        "command": "extension.jenkins-jack.tree.pipeline.pullReplayScript",
         "title": "Pull Replay Script",
         "category": "Jenkins Jack"
       },
