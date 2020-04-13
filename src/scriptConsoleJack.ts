@@ -7,6 +7,10 @@ export class ScriptConsoleJack extends JackBase {
 
     constructor(context: vscode.ExtensionContext) {
         super('Script Console Jack', context);
+
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole.execute', async () => {
+            await this.executeScriptConsole();
+        }));
     }
 
     public get commands(): any[] {
@@ -15,7 +19,7 @@ export class ScriptConsoleJack extends JackBase {
         return [{
             label: "$(terminal)  Script Console: Execute",
             description: "Executes the current view's groovy script as a system/node console script (script console).",
-            target: async () => await this.executeScriptConsole(),
+            target: async () => vscode.commands.executeCommand('extension.jenkins-jack.scriptConsole.execute')
         }];
     }
 

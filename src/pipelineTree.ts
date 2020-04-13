@@ -25,6 +25,10 @@ export class PipelineTree {
         this._treeView.title = `Pipelines: ${ext.jenkinsHostManager.host.id}`;
         this._treeViewDataProvider.refresh();
     }
+
+    public get provider(): PipelineTreeProvider {
+        return this._treeViewDataProvider;
+    }
 }
 
 export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTreeItem> {
@@ -53,31 +57,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         });
     }
 
-    private updateSettings() {
-        this._config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.tree');
-    }
-
-    private async saveTreeItemsConfig() {
-        await vscode.workspace.getConfiguration().update(
-            'jenkins-jack.pipeline.tree.items',
-            this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
-            vscode.ConfigurationTarget.Global);
-        await this.refresh();
-    }
-
-    private getTreeItemConfig(key: string): any {
-        if (undefined === this._config.items) { this._config.items = []; }
-        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id)) {
-            this._config.items.push({
-                hostId: ext.jenkinsHostManager.host.id,
-                jobName: key,
-                filepath: null,
-            });
-        }
-        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id);
-    }
-
-    private async openScript(node: PipelineTreeItem) {
+    public async openScript(node: PipelineTreeItem) {
         let config = this.getTreeItemConfig(node.label);
 
         // If the script file path is not mapped, prompt the user to locate it.
@@ -100,6 +80,30 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         let uri = vscode.Uri.parse(`file:${config.filepath}`);
         let editor = await vscode.window.showTextDocument(uri);
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
+    }
+
+    private updateSettings() {
+        this._config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.tree');
+    }
+
+    private async saveTreeItemsConfig() {
+        await vscode.workspace.getConfiguration().update(
+            'jenkins-jack.pipeline.tree.items',
+            this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
+            vscode.ConfigurationTarget.Global);
+        await this.refresh();
+    }
+
+    private getTreeItemConfig(key: string): any {
+        if (undefined === this._config.items) { this._config.items = []; }
+        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id)) {
+            this._config.items.push({
+                hostId: ext.jenkinsHostManager.host.id,
+                jobName: key,
+                filepath: null,
+            });
+        }
+        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id);
     }
 
     private async pullJobScript(node: PipelineTreeItem) {
@@ -206,11 +210,8 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
             let list =  [];
             for(let job of jobs) {
-                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job);
+                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job, this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.jenkinsHostManager.host.id));
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
-                pipelineTreeItem.contextValue = (undefined !== this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.jenkinsHostManager.host.id)) ?
-                                                    'pipelineTreeItemEntry' :
-                                                    'pipelineTreeItemDefault';
                 list.push(pipelineTreeItem);
             }
             resolve(list);
@@ -221,12 +222,24 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 export class PipelineTreeItem extends vscode.TreeItem {
 	constructor(
         public readonly label: string,
-        public readonly job: any
+        public readonly job: any,
+        public readonly config: any
 	) {
-		super(label, vscode.TreeItemCollapsibleState.None);
+        super(label, vscode.TreeItemCollapsibleState.None);
+
+        let iconPrefix = (this.config) ? 'pipe-icon-linked' : 'pipe-icon-default';
+        this.contextValue = (this.config) ? 'pipelineTreeItemLinked' : 'pipelineTreeItemDefault'
+        this.iconPath = {
+            light: path.join(__filename, '..', '..', 'images', `${iconPrefix}-light.svg`),
+		    dark: path.join(__filename, '..', '..', 'images', `${iconPrefix}-dark.svg`)
+        }
     }
 
 	get tooltip(): string {
+        if (this.config) {
+            return this.config.filepath;
+        }
+
         if (undefined === this.job.description || '' === this.job.description) {
             return this.label;
         }
@@ -238,11 +251,6 @@ export class PipelineTreeItem extends vscode.TreeItem {
 	get description(): string {
 		return this.job.description;
     }
-
-	iconPath = {
-		light: path.join(__filename, '..', '..', 'images', 'pipe_icon.svg'),
-		dark: path.join(__filename, '..', '..', 'images', 'pipe_icon.svg')
-	};
 
 	contextValue = 'pipelineTreeItemDefault';
 }

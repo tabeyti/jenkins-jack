@@ -7,6 +7,7 @@ import { ext } from './extensionVariables';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 import { PipelineConfig } from './pipelineJobConfig';
+import { PipelineTreeItem } from './pipelineTree';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -21,6 +22,14 @@ export class PipelineJack extends JackBase {
 
     constructor(context: vscode.ExtensionContext) {
         super('Pipeline Jack', context);
+
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.execute', async (item?: PipelineTreeItem) => {
+            if (item) {
+                await ext.pipelineTree.provider.openScript(item);
+            }
+            await this.executePipeline();
+        });
+
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.pipeline')) {
