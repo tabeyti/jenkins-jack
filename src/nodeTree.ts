@@ -76,18 +76,20 @@ export class NodeTreeItem extends vscode.TreeItem {
     }
 
 	get tooltip(): string {
-        return '';
-        // if (NodeTreeIteType.Job === this.type) {
-        //     if (undefined === this.job.description || '' === this.job.description) {
-        //         return this.label;
-        //     }
-        //     else {
-        //         return `${this.label} - ${this.job.description}`;
-        //     }
-        // }
-        // else {
-        //     return this.build.label;
-        // }
+        let tooltip = this.label;
+
+        if (this.node.temporarilyOffline) {
+            tooltip += ' (OFFLINE)';
+        } else if (this.node.offline) {
+            tooltip += ' (DISCONNECTED)';
+        } else {
+            tooltip += ' (ONLINE)';
+        }
+
+        if (this.node.temporarilyOffline) {
+            return `${tooltip}: ${this.node.offlineCauseReason}`;
+        }
+        return tooltip
 	}
 
 	get description(): string {

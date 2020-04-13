@@ -243,7 +243,7 @@ export class JenkinsService {
 
         try {
             let rootUrl = this.fromUrlFormat(job.url);
-            let url = `${rootUrl}/api/json?tree=builds[number,result,description,url]`;
+            let url = `${rootUrl}/api/json?tree=builds[number,result,description,url,timestamp]`;
             let r = await request.get(url);
             let json = JSON.parse(r);
             return json.builds.map((n: any) => {

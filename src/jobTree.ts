@@ -44,8 +44,10 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
             let list =  [];
             if (element) {
                 let builds = await ext.jenkinsHostManager.host.getBuildsWithProgress(element.job);
-                for (let buildNumber of builds) {
-                    list.push(new JobTreeItem(`${buildNumber.number}`, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, buildNumber))
+                for (let build of builds) {
+                    let dateOptions = { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                    let label = `${build.number}    ${new Date(build.timestamp).toLocaleString('en-US', dateOptions)}`;
+                    list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build))
                 }
             } else {
                 let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();

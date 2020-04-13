@@ -55,6 +55,12 @@
       ]
     },
     "menus": {
+      "commandPalette": [
+        {
+          "command": "extension.jenkins-jack.tree.pipeline.execute",
+          "when": "editorLangId == groovy"
+        }
+      ],
       "view/title": [
         {
           "command": "extension.jenkins-jack.tree.refresh",
@@ -67,13 +73,23 @@
       ],
       "view/item/context": [
         {
+          "command": "extension.jenkins-jack.tree.pipeline.execute",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "group": "inline"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.pipeline.execute",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "group": "action"
+        },
+        {
           "command": "extension.jenkins-jack.tree.pipeline.openScript",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemEntry",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.openScript",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemEntry",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
           "group": "navigation"
         },
         {
@@ -320,8 +336,41 @@
         "category": "Jenkins Jack"
       },
       {
+        "command": "extension.jenkins-jack.tree.pipeline.execute",
+        "title": "Pipeline: Execute",
+        "category": "Jenkins Jack",
+        "icon": {
+          "light": "images/pipeline-execute-light.svg",
+          "dark": "images/pipeline-execute-dark.svg"
+        }
+      },
+      {
+        "command": "extension.jenkins-jack.tree.pipeline.openScript",
+        "title": "Open script",
+        "category": "Jenkins Jack",
+        "icon": {
+          "light": "images/pipeline-open-script-light.svg",
+          "dark": "images/pipeline-open-script-dark.svg"
+        }
+      },
+      {
+        "command": "extension.jenkins-jack.tree.pipeline.pullJobScript",
+        "title": "Pull Job Script",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.tree.pipeline.pullReplayScript",
+        "title": "Pull Replay Script",
+        "category": "Jenkins Jack"
+      },
+      {
         "command": "extension.jenkins-jack.scriptConsole",
         "title": "Script Console Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.scriptConsole.execute",
+        "title": "Script Console: Execute",
         "category": "Jenkins Jack"
       },
       {
@@ -423,24 +472,6 @@
       {
         "command": "extension.jenkins-jack.connections",
         "title": "Jenkins Host Connections",
-        "category": "Jenkins Jack"
-      },
-      {
-        "command": "extension.jenkins-jack.tree.pipeline.openScript",
-        "title": "Open script",
-        "icon": {
-          "light": "images/open-script-light.svg",
-          "dark": "images/open-script-dark.svg"
-        }
-      },
-      {
-        "command": "extension.jenkins-jack.tree.pipeline.pullJobScript",
-        "title": "Pull Job Script",
-        "category": "Jenkins Jack"
-      },
-      {
-        "command": "extension.jenkins-jack.tree.pipeline.pullReplayScript",
-        "title": "Pull Replay Script",
         "category": "Jenkins Jack"
       },
       {
