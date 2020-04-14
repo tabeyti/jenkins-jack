@@ -529,7 +529,10 @@ export class JenkinsService {
         return url;
     }
 
-    private showCantConnectMessage() {
-        vscode.window.showWarningMessage(this._cantConnectMessage);
+    private async showCantConnectMessage() {
+        let result = await vscode.window.showWarningMessage(this._cantConnectMessage, { title: 'Okay' }, { title: 'Open Settings' });
+        if ('Open Settings' === result?.title) {
+            vscode.commands.executeCommand('workbench.action.openSettingsJson');
+        }
     }
 }
