@@ -49,7 +49,9 @@ export class JenkinsService {
             host = match[2];
         }
 
-        this._jenkinsUri = `${protocol}://${username}:${password}@${host}`;
+        this._jenkinsUri = (null === username || null === password) ?   `${protocol}://${host}` :
+                                                                        `${protocol}://${username}:${password}@${host}`;
+
         console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
 
         this.client = jenkins({

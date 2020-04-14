@@ -29,8 +29,8 @@ export async function activate(context: vscode.ExtensionContext) {
             {
                 "name": "default",
                 "uri": undefined === jenkinsConfig.uri ? 'http://127.0.0.1:8080' : jenkinsConfig.uri,
-                "username": undefined === jenkinsConfig.username ? 'default' : jenkinsConfig.username,
-                "password": undefined === jenkinsConfig.password ? 'default' : jenkinsConfig.password,
+                "username": undefined === jenkinsConfig.username ? null : jenkinsConfig.username,
+                "password": undefined === jenkinsConfig.password ? null : jenkinsConfig.password,
                 "active": true
             }
         ]
