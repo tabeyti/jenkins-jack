@@ -76,7 +76,7 @@ export class JenkinsHostManager implements QuickpickSet {
 
         // If edit was selected, open settings.json
         if (result.label.indexOf('Edit Hosts') >= 0) {
-            vscode.commands.executeCommand('workbench.action.openSettingsJson');
+            await vscode.commands.executeCommand('workbench.action.openSettingsJson');
             return;
         }
 

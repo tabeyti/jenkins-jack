@@ -18,7 +18,7 @@ import { JobTree } from './jobTree';
 import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
     // Applies default host or the legacy host connection info to the
     // list of jenkins hosts.
@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
                 "active": true
             }
         ]
-        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
+        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
     }
 
     // We initialize the Jenkins service first in order to avoid
