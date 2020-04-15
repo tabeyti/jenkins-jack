@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
-import { JenkinsHostManager } from "./jenkinsHostManager";
+import { ext } from './extensionVariables';
 import { JackBase } from './jack';
 import { isGroovy } from './utils';
 
 export class ScriptConsoleJack extends JackBase {
 
-    constructor() {
-        super('Script Console Jack');
+    constructor(context: vscode.ExtensionContext) {
+        super('Script Console Jack', context);
+
+        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole.execute', async () => {
+            await this.executeScriptConsole();
+        }));
     }
 
     public get commands(): any[] {
@@ -15,7 +19,7 @@ export class ScriptConsoleJack extends JackBase {
         return [{
             label: "$(terminal)  Script Console: Execute",
             description: "Executes the current view's groovy script as a system/node console script (script console).",
-            target: async () => await this.executeScriptConsole(),
+            target: async () => vscode.commands.executeCommand('extension.jenkins-jack.scriptConsole.execute')
         }];
     }
 
@@ -36,7 +40,7 @@ export class ScriptConsoleJack extends JackBase {
     }
 
     public async execute(source: string) {
-        let nodes = await JenkinsHostManager.host.getNodes();
+        let nodes = await ext.jenkinsHostManager.host.getNodes();
         nodes = nodes.filter((n: any) => n.displayName !== 'master');
 
         if (undefined === nodes) { return; }
@@ -108,13 +112,13 @@ export class ScriptConsoleJack extends JackBase {
                 let promise = undefined;
                 if ('System' === m) {
                     promise = new Promise(async (resolve) => {
-                        let result = await JenkinsHostManager.host.runConsoleScript(source, undefined, token);
+                        let result = await ext.jenkinsHostManager.host.runConsoleScript(source, undefined, token);
                         return resolve({ node: 'System', output: result });
                     });
                 }
                 else {
                     promise = new Promise(async (resolve) => {
-                        let result = await JenkinsHostManager.host.runConsoleScript(source, m, token);
+                        let result = await ext.jenkinsHostManager.host.runConsoleScript(source, m, token);
                         return resolve({ node: m, output: result });
                     });
                 }

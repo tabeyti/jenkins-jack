@@ -1,15 +1,12 @@
 import * as vscode from 'vscode';
 import { JenkinsService } from './jenkinsService';
-import { CommandSet } from './commandSet';
-import { PipelineJobTree } from './pipelineJobTree';
+import { QuickpickSet } from './quickpickSet';
+import { ext } from './extensionVariables';
 
-export class JenkinsHostManager implements CommandSet {
-    private host: JenkinsService;
+export class JenkinsHostManager implements QuickpickSet {
+    private _host: JenkinsService;
 
-    // @ts-ignore
-    private static jsmInstance: JenkinsHostManager;
-
-    private constructor() {
+    public constructor() {
         this.updateSettings();
 
         vscode.workspace.onDidChangeConfiguration(event => {
@@ -19,15 +16,8 @@ export class JenkinsHostManager implements CommandSet {
         });
     }
 
-    public static get instance(): JenkinsHostManager {
-        if (undefined === JenkinsHostManager.jsmInstance) {
-          JenkinsHostManager.jsmInstance = new JenkinsHostManager();
-        }
-        return JenkinsHostManager.jsmInstance;
-    }
-
-    public static get host(): JenkinsService {
-        return JenkinsHostManager.instance.host;
+    public get host(): JenkinsService {
+        return this._host;
     }
 
     public get commands(): any[] {
@@ -63,7 +53,7 @@ export class JenkinsHostManager implements CommandSet {
         if (undefined !== this.host) {
             this.host.dispose();
         }
-        this.host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
+        this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
     }
 
     public async selectConnection() {
@@ -86,11 +76,11 @@ export class JenkinsHostManager implements CommandSet {
 
         // If edit was selected, open settings.json
         if (result.label.indexOf('Edit Hosts') >= 0) {
-            vscode.commands.executeCommand('workbench.action.openSettingsJson');
+            await vscode.commands.executeCommand('workbench.action.openSettingsJson');
             return;
         }
 
-        this.host = new JenkinsService(result.target.name, result.target.uri, result.target.username, result.target.password);
+        this._host = new JenkinsService(result.target.name, result.target.uri, result.target.username, result.target.password);
 
         // Update settings with active host.
         for (let c of config.connections) {
@@ -100,10 +90,12 @@ export class JenkinsHostManager implements CommandSet {
                 result.target.password === c.password);
         }
 
-        // Update our job view with the new host's pipeline jobs
-        PipelineJobTree.instance.refresh(result.target.name);
+        // Update our job view with the new host title and jobs
+        ext.pipelineTree.refresh();
+        ext.jobTree.refresh();
+        ext.nodeTree.refresh();
 
         vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
-        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${result.target.uri}`);
+        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${result.target.name}: ${result.target.uri}`);
     }
 }

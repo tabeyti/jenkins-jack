@@ -3,10 +3,11 @@ import * as xml2js from "xml2js";
 import * as util from 'util';
 
 import { pipelineJobConfigXml, isGroovy } from './utils';
-import { JenkinsHostManager } from './jenkinsHostManager';
+import { ext } from './extensionVariables';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 import { PipelineConfig } from './pipelineJobConfig';
+import { PipelineTreeItem } from './pipelineTree';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -19,8 +20,16 @@ export class PipelineJack extends JackBase {
         title: 'Okay'
     };
 
-    constructor() {
-        super('Pipeline Jack');
+    constructor(context: vscode.ExtensionContext) {
+        super('Pipeline Jack', context);
+
+        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.execute', async (item?: PipelineTreeItem) => {
+            if (item) {
+                await ext.pipelineTree.provider.openScript(item);
+            }
+            await this.executePipeline();
+        });
+
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.pipeline')) {
@@ -92,8 +101,11 @@ export class PipelineJack extends JackBase {
         this.activeJob = await this.build(source, config);
         if (undefined === this.activeJob) { return; }
 
+        ext.pipelineTree.refresh();
+        ext.jobTree.refresh();
+
         // Stream the output. Yep.
-        await JenkinsHostManager.host.streamBuildOutput(
+        await ext.jenkinsHostManager.host.streamBuildOutput(
             this.activeJob.fullName,
             this.activeJob.nextBuildNumber,
             this.outputChannel);
@@ -107,7 +119,7 @@ export class PipelineJack extends JackBase {
      */
     private async abortPipeline() {
         if (undefined === this.activeJob) { return; }
-        await JenkinsHostManager.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
+        await ext.jenkinsHostManager.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
         this.activeJob = undefined;
     }
 
@@ -142,7 +154,7 @@ export class PipelineJack extends JackBase {
         if (this.config.browserSharedLibraryRef) {
             let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
                                                         `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`
-            JenkinsHostManager.host.openBrowserAt(uri);
+            ext.jenkinsHostManager.host.openBrowserAt(uri);
         }
         else {
             const panel = vscode.window.createWebviewPanel(
@@ -163,12 +175,12 @@ export class PipelineJack extends JackBase {
      */
     private async createUpdate(source: string, jobName: string): Promise<any> {
         let xml = pipelineJobConfigXml();
-        let job = await JenkinsHostManager.host.getJob(jobName);
+        let job = await ext.jenkinsHostManager.host.getJob(jobName);
 
         // If job already exists, grab the job config xml from Jenkins.
         if (job) {
             // Grab job's xml configuration.
-            xml = await JenkinsHostManager.host.client.job.config(jobName).then((data: any) => {
+            xml = await ext.jenkinsHostManager.host.client.job.config(jobName).then((data: any) => {
                 return data;
             }).catch((err: any) => {
                 // TODO: Handle better
@@ -202,12 +214,12 @@ export class PipelineJack extends JackBase {
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
-            await JenkinsHostManager.host.client.job.create(jobName, xml);
-            job = await JenkinsHostManager.host.getJob(jobName);
+            await ext.jenkinsHostManager.host.client.job.create(jobName, xml);
+            job = await ext.jenkinsHostManager.host.getJob(jobName);
         }
         else {
             console.log(`${jobName} already exists. Updating...`);
-            await JenkinsHostManager.host.client.job.config(jobName, xml);
+            await ext.jenkinsHostManager.host.client.job.config(jobName, xml);
         }
         console.log(`Successfully updated Pipeline: ${jobName}`);
         return job;
@@ -343,14 +355,14 @@ export class PipelineJack extends JackBase {
     private async restoreJobScm(job: any) {
         if (undefined === job.scm) { return; }
 
-        let xml = await JenkinsHostManager.host.client.job.config(job.name);
+        let xml = await ext.jenkinsHostManager.host.client.job.config(job.name);
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
         delete root.definition;
         root.definition = job.scm;
         xml = new xml2js.Builder().buildObject(parsed);
 
-        await JenkinsHostManager.host.client.job.config(job.name, xml);
+        await ext.jenkinsHostManager.host.client.job.config(job.name, xml);
     }
 
     /**
@@ -406,7 +418,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 20, message: `Building "${jobName}" #${buildNum}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
-            await JenkinsHostManager.host.client.job.build(buildOptions).catch((err: any) => {
+            await ext.jenkinsHostManager.host.client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
@@ -418,7 +430,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 40, message: 'Waiting for build to be ready...' });
             try {
-                await JenkinsHostManager.host.buildReady(jobName, buildNum);
+                await ext.jenkinsHostManager.host.buildReady(jobName, buildNum);
             } catch (err) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
                 return undefined;
