@@ -471,7 +471,12 @@
       },
       {
         "command": "extension.jenkins-jack.connections",
-        "title": "Jenkins Host Connections",
+        "title": "Select Jenkins Host",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.addConnection",
+        "title": "Add Jenkins Host",
         "category": "Jenkins Jack"
       },
       {
