@@ -5,10 +5,10 @@ import { isGroovy } from './utils';
 
 export class ScriptConsoleJack extends JackBase {
 
-    constructor(context: vscode.ExtensionContext) {
-        super('Script Console Jack', context);
+    constructor() {
+        super('Script Console Jack', 'extension.jenkins-jack.scriptConsole');
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole.execute', async () => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole.execute', async () => {
             await this.executeScriptConsole();
         }));
     }

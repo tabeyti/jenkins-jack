@@ -20,15 +20,14 @@ export class PipelineJack extends JackBase {
         title: 'Okay'
     };
 
-    constructor(context: vscode.ExtensionContext) {
-        super('Pipeline Jack', context);
-
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.execute', async (item?: PipelineTreeItem) => {
+    constructor() {
+        super('Pipeline Jack', 'extension.jenkins-jack.pipeline');
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.execute', async (item?: PipelineTreeItem) => {
             if (item) {
                 await ext.pipelineTree.provider.openScript(item);
             }
             await this.executePipeline();
-        });
+        }));
 
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {

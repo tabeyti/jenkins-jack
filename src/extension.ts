@@ -17,71 +17,44 @@ import { PipelineTree } from './pipelineTree';
 import { JobTree } from './jobTree';
 import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
+import { applyDefaultHost } from './utils';
 
 export async function activate(context: vscode.ExtensionContext) {
 
-    // Applies default host or the legacy host connection info to the
-    // list of jenkins hosts.
-    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+    await applyDefaultHost();
 
-    if (0 === jenkinsConfig.connections.length) {
-        let conns = [
-            {
-                "name": "default",
-                "uri": undefined === jenkinsConfig.uri ? 'http://127.0.0.1:8080' : jenkinsConfig.uri,
-                "username": undefined === jenkinsConfig.username ? null : jenkinsConfig.username,
-                "password": undefined === jenkinsConfig.password ? null : jenkinsConfig.password,
-                "active": true
-            }
-        ]
-        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
-    }
+    ext.context = context;
 
     // We initialize the Jenkins service first in order to avoid
     // a race condition during onDidChangeConfiguration
+    let commandSets: QuickpickSet[] = [];
     ext.jenkinsHostManager = new JenkinsHostManager();
 
-    // Register Pipeline snippet definitions.
-    var pipelineSnippets = new PipelineSnippets();
-    let snippetsDisposable = vscode.languages.registerCompletionItemProvider('groovy', {
-        provideCompletionItems(
-            document: vscode.TextDocument,
-            position: vscode.Position,
-            token: vscode.CancellationToken,
-            context: vscode.CompletionContext) {
-            return pipelineSnippets.completionItems;
-        }
-    });
-    context.subscriptions.push(snippetsDisposable);
+    ext.pipelineSnippets = new PipelineSnippets();
 
-    ext.pipelineTree = new PipelineTree();
-    ext.jobTree = new JobTree();
-    ext.nodeTree = new NodeTree();
+    // Initialize the output panel provider for jack command output
+    ext.outputPanelProvider = new OutputPanelProvider();
 
-    vscode.commands.registerCommand('extension.jenkins-jack.tree.refresh', (content: any) => {
-        ext.pipelineTree.refresh();
-        ext.jobTree.refresh();
-        ext.nodeTree.refresh();
-    });
+    // Initialize top level jacks and gather their subcommands for the Jack command
+    // quickpick display
+    ext.pipelineJack = new PipelineJack();
+    commandSets.push(ext.pipelineJack);
 
-    vscode.commands.registerCommand('extension.jenkins-jack.tree.settings', (content: any) => {
-        vscode.commands.executeCommand('workbench.action.openSettingsJson');
-    });
+    ext.scriptConsoleJack = new ScriptConsoleJack();
+    commandSets.push(ext.scriptConsoleJack);
 
-    // Initialize top Jack's and the top level command quick picks.
-    let commandSets: QuickpickSet[] = [];
-    commandSets.push(registerCommandSet(new PipelineJack(context),              'extension.jenkins-jack.pipeline',      context));
-    commandSets.push(registerCommandSet(new ScriptConsoleJack(context),         'extension.jenkins-jack.scriptConsole', context));
-    commandSets.push(registerCommandSet(new NodeJack(context),                  'extension.jenkins-jack.node',          context));
-    commandSets.push(registerCommandSet(new BuildJack(context),                 'extension.jenkins-jack.build',         context));
-    commandSets.push(registerCommandSet(new JobJack(context),                   'extension.jenkins-jack.job',           context));
+    ext.jobJack = new JobJack();
+    commandSets.push(ext.jobJack);
 
-    // Add the host selection command
-    commandSets.push(registerCommandSet(ext.jenkinsHostManager,   'extension.jenkins-jack.connections',    context));
+    ext.buildJack = new BuildJack();
+    commandSets.push(ext.buildJack);
 
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(OutputPanelProvider.scheme, OutputPanelProvider.instance));
+    ext.nodeJack = new NodeJack();
+    commandSets.push(ext.nodeJack);
 
-	let jacksCommands = vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
+    commandSets.push(ext.jenkinsHostManager);
+
+    ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
 
         // Build up quick pick list
         let selections: any[] = [];
@@ -99,29 +72,24 @@ export async function activate(context: vscode.ExtensionContext) {
         let result = await vscode.window.showQuickPick(selections);
         if (undefined === result || undefined === result.target) { return; }
         await result.target();
-	});
-    context.subscriptions.push(jacksCommands);
+	}));
+
+    // Initialize tree views
+    ext.pipelineTree = new PipelineTree();
+    ext.jobTree = new JobTree();
+    ext.nodeTree = new NodeTree();
+
+    ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.refresh', (content: any) => {
+        ext.pipelineTree.refresh();
+        ext.jobTree.refresh();
+        ext.nodeTree.refresh();
+    }));
+
+    ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.settings', (content: any) => {
+        vscode.commands.executeCommand('workbench.action.openSettingsJson');
+    }));
 
     console.log('Extension Jenkins Jack now active!');
-
-    /**
-     * Registers a jack command to display all sub-commands within that Jack.
-     */
-    function registerCommandSet(
-        commandSet: QuickpickSet,
-        registerCommandString: string,
-        context: vscode.ExtensionContext) {
-
-        let disposable = vscode.commands.registerCommand(registerCommandString, async () => {
-            try {
-                await commandSet.display();
-            } catch (err) {
-                vscode.window.showWarningMessage(`Could not display ${registerCommandString} commands.`);
-            }
-        });
-        context.subscriptions.push(disposable);
-        return commandSet;
-    }
 }
 
 export function deactivate() {}

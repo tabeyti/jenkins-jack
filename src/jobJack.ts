@@ -6,10 +6,10 @@ import { ext } from './extensionVariables';
 
 export class JobJack extends JackBase {
 
-    constructor(context: vscode.ExtensionContext) {
-        super('Job Jack', context);
+    constructor() {
+        super('Job Jack', 'extension.jenkins-jack.job');
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.delete', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.delete', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
                 let result = await this.delete(jobs);
@@ -20,7 +20,7 @@ export class JobJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.enable', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.enable', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
                 let result = await this.enable(jobs);
@@ -31,7 +31,7 @@ export class JobJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.disable', async (item?: any[] | JobTreeItem, items?: any[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.disable', async (item?: any[] | JobTreeItem, items?: any[]) => {
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
                 let result = await this.disable(jobs);
@@ -42,7 +42,7 @@ export class JobJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             let jobs = [];
             if (item instanceof JobTreeItem) {
                 jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job]
@@ -72,12 +72,12 @@ export class JobJack extends JackBase {
             {
                 label: "$(circle-slash)  Job: Delete",
                 description: "Deletes targeted jobs from the remote Jenkins.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.job.delete')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.job.delete')
             },
             {
                 label: "$(browser)  Job: Open",
                 description: "Opens the targeted jobs in the user's browser.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.job.open')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.job.open')
             }
         ];
     }

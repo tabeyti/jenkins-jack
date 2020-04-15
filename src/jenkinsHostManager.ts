@@ -7,8 +7,11 @@ export class JenkinsHostManager implements QuickpickSet {
     private _host: JenkinsService;
 
     public constructor() {
-        this.updateSettings();
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections', async () => {
+            await this.selectConnection();
+        }));
 
+        this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins.connections')) {
                 this.updateSettings();
@@ -16,16 +19,16 @@ export class JenkinsHostManager implements QuickpickSet {
         });
     }
 
-    public get host(): JenkinsService {
-        return this._host;
-    }
-
     public get commands(): any[] {
         return [{
             label: "$(settings)  Host Selection",
             description: "Select a jenkins host to connect to.",
-            target: async () => await this.selectConnection()
+            target: async () =>vscode.commands.executeCommand('extension.jenkins-jack.connections')
         }];
+    }
+
+    public get host(): JenkinsService {
+        return this._host;
     }
 
     public async display() {
@@ -56,6 +59,10 @@ export class JenkinsHostManager implements QuickpickSet {
         this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
     }
 
+    /**
+     * Displays the quicpick host/connection selection list for the user.
+     * Active connection is updated in the global config upon selection.
+     */
     public async selectConnection() {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         let hosts = []

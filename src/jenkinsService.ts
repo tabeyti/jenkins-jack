@@ -194,13 +194,6 @@ export class JenkinsService {
         return jobList;
     }
 
-    public async getNodeCrumb() {
-        let r = await this.get('computer/api/json');
-        if (undefined === r) { return undefined; }
-        let json = JSON.parse(r);
-        return json.computer;
-    }
-
     /**
      * Retrieves the list of machines/nodes from Jenkins.
      */
