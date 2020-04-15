@@ -12,10 +12,10 @@ export class BuildJack extends JackBase {
         public job: any;
     }
 
-    constructor(context: vscode.ExtensionContext) {
-        super('Build Jack', context);
+    constructor() {
+        super('Build Jack', 'extension.jenkins-jack.build');
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 items = !items ? [item.build] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
 
@@ -54,7 +54,7 @@ export class BuildJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
             if (content instanceof JobTreeItem) {
                 await this.downloadLog(content.job, content.build);
             }
@@ -63,7 +63,7 @@ export class BuildJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (content?: any | JobTreeItem) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (content?: any | JobTreeItem) => {
             if (content instanceof JobTreeItem) {
                 await this.downloadReplayScript(content.job, content.build);
             }
@@ -72,7 +72,7 @@ export class BuildJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             let builds = [];
             if (item instanceof JobTreeItem) {
                 builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build]
@@ -92,22 +92,22 @@ export class BuildJack extends JackBase {
             {
                 label: "$(circle-slash)  Build: Delete",
                 description: "Select a job and builds to delete.",
-                target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.delete')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.build.delete')
             },
             {
                 label: "$(cloud-download)  Build: Download Log",
                 description: "Select a job and build to download the log.",
-                target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadLog')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.build.downloadLog')
             },
             {
                 label: "$(cloud-download)  Build: Download Replay Script",
                 description: "Pulls a pipeline replay script of a previous build into the editor.",
-                target: async () => await vscode.commands.executeCommand('extension.jenkins-jack.build.downloadReplayScript')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.build.downloadReplayScript')
             },
             {
                 label: "$(browser)  Build: Open",
                 description: "Opens the targeted builds in the user's browser.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.build.open')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.build.open')
             }
         ];
     }

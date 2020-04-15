@@ -27,6 +27,30 @@ export async function showQuicPick(items: any[], ): Promise<void> {
 }
 
 /**
+ * Applies a default host config if one doesn't exist.
+ * NOTE: also for backwards compatability for older host settings found in v0.0.*
+ */
+export async function applyDefaultHost() {
+
+    // Applies default host or the legacy host connection info to the
+    // list of jenkins hosts.
+    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+
+    if (0 === jenkinsConfig.connections.length) {
+        let conns = [
+            {
+                "name": "default",
+                "uri": undefined === jenkinsConfig.uri ? 'http://127.0.0.1:8080' : jenkinsConfig.uri,
+                "username": undefined === jenkinsConfig.username ? null : jenkinsConfig.username,
+                "password": undefined === jenkinsConfig.password ? null : jenkinsConfig.password,
+                "active": true
+            }
+        ]
+        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
+    }
+}
+
+/**
  * Utility for parsing a json file and returning
  * its contents.
  * @param path The path to the json file.

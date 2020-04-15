@@ -11,6 +11,17 @@ export class PipelineSnippets {
      * Constructor.
      */
     constructor() {
+
+        ext.context.subscriptions.push(vscode.languages.registerCompletionItemProvider('groovy', {
+            provideCompletionItems(
+                document: vscode.TextDocument,
+                position: vscode.Position,
+                token: vscode.CancellationToken,
+                context: vscode.CompletionContext) {
+                return ext.pipelineSnippets.completionItems;
+            }
+        }));
+
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.snippets') ||
                 event.affectsConfiguration('jenkins-jack.jenkins.connections')) {

@@ -6,10 +6,10 @@ import { ext } from './extensionVariables';
 
 export class NodeJack extends JackBase {
 
-    constructor(context: vscode.ExtensionContext) {
-        super('Node Jack', context);
+    constructor() {
+        super('Node Jack', 'extension.jenkins-jack.node');
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOffline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOffline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node)
                 let result = await this.setOffline(nodes);
@@ -20,7 +20,7 @@ export class NodeJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOnline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOnline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node)
                 let result = await this.setOnline(nodes);
@@ -31,7 +31,7 @@ export class NodeJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.disconnect', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.disconnect', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node)
                 let result = await this.disconnect(nodes);
@@ -42,7 +42,7 @@ export class NodeJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.updateLabels', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.updateLabels', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node)
                 await this.updateLabels(nodes);
@@ -52,7 +52,7 @@ export class NodeJack extends JackBase {
             }
         }));
 
-        context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.open', async (item?: any | NodeTreeItem, items?: NodeTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.open', async (item?: any | NodeTreeItem, items?: NodeTreeItem[]) => {
             let nodes = [];
             if (item instanceof NodeTreeItem) {
                 nodes = items ? items.map((i: any) => i.node) : [item.node];
@@ -72,27 +72,27 @@ export class NodeJack extends JackBase {
             {
                 label: "$(stop)  Node: Set Offline",
                 description: "Mark targeted nodes offline with a message.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.setOffline')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.setOffline')
             },
             {
                 label: "$(check)  Node: Set Online",
                 description: "Mark targeted nodes online.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.setOnline')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.setOnline')
             },
             {
                 label: "$(circle-slash)  Node: Disconnect",
                 description: "Disconnects targeted nodes from the host.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.disconnect')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.disconnect')
             },
             {
                 label: "$(list-flat)  Node: Update Labels",
                 description: "Update targeted nodes' assigned labels.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.updateLabels')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.updateLabels')
             },
             {
                 label: "$(browser)  Node: Open",
                 description: "Opens the targeted nodes in the user's browser.",
-                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.node.open')
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.open')
             }
         ];
     }

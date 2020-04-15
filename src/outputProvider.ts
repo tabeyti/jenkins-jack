@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ext } from './extensionVariables';
 
 export class OutputPanel implements vscode.OutputChannel {
     name: string;
@@ -32,7 +33,7 @@ export class OutputPanel implements vscode.OutputChannel {
      */
     public async show() {
         let editor = vscode.window.visibleTextEditors.find((e: vscode.TextEditor) =>
-                e.document.uri.scheme === OutputPanelProvider.scheme &&
+                e.document.uri.scheme === ext.outputPanelProvider.scheme &&
                 e.document.uri.path === this.uri.path)
 
         // Only display the default view column for the editor if the editor
@@ -56,7 +57,7 @@ export class OutputPanel implements vscode.OutputChannel {
             return;
         }
         this._text += text;
-        OutputPanelProvider.instance.update(this.uri);
+        ext.outputPanelProvider.update(this.uri);
     }
 
     public async appendLine(value: string) {
@@ -73,7 +74,7 @@ export class OutputPanel implements vscode.OutputChannel {
 
     public clear() {
         this._text = '';
-        OutputPanelProvider.instance.update(this.uri);
+        ext.outputPanelProvider.update(this.uri);
     }
 
     public text(): string {
@@ -85,28 +86,21 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
     private _eventEmitter: vscode.EventEmitter<vscode.Uri>;
     private _panelMap: Map<string, OutputPanel>;
 
-    private static _instance: OutputPanelProvider;
-
-    private constructor() {
+    public constructor() {
         this._eventEmitter = new vscode.EventEmitter<vscode.Uri>();
+
+        ext.context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(this.scheme, this));
+
         this._panelMap = new Map();
     }
 
-    public static get scheme(): string {
+    public get scheme(): string {
         return 'jenkins-jack';
-    }
-
-    public static get instance() {
-        if (null === this._instance || undefined == this._instance) {
-            this._instance = new OutputPanelProvider();
-        }
-
-        return this._instance;
     }
 
     public get(key: string): OutputPanel {
         if (!this._panelMap.has(key)) {
-            this._panelMap.set(key, new OutputPanel(vscode.Uri.parse(`${OutputPanelProvider.scheme}:${key}`)));
+            this._panelMap.set(key, new OutputPanel(vscode.Uri.parse(`${this.scheme}:${key}`)));
         }
 
         // @ts-ignore
@@ -123,7 +117,7 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
     }
 
     async provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): Promise<string> {
-        if (uri.scheme !== OutputPanelProvider.scheme) {
+        if (uri.scheme !== this.scheme) {
             return '';
         }
         let panel = this.get(uri.path);

@@ -1,19 +1,25 @@
 import * as vscode from 'vscode';
-import { OutputPanelProvider } from './outputProvider';
 import { QuickpickSet } from './quickpickSet';
+import { ext } from './extensionVariables';
 
 export abstract class JackBase implements QuickpickSet {
     [key: string]: any;
     outputChannel: vscode.OutputChannel;
     readonly name: string;
     protected readonly barrierLine: string = '-'.repeat(80);
-    protected readonly context: vscode.ExtensionContext;
 
     private outputViewType: string;
 
-    constructor(name: string, context: vscode.ExtensionContext) {
+    constructor(name: string, command: string) {
         this.name = name;
-        this.context = context;
+        let disposable = vscode.commands.registerCommand(command, async () => {
+            try {
+                await this.display();
+            } catch (err) {
+                vscode.window.showWarningMessage(`Could not display ${command} commands.`);
+            }
+        });
+        ext.context.subscriptions.push(disposable);
 
         let config = vscode.workspace.getConfiguration('jenkins-jack.outputView');
         this.outputViewType = config.type;
@@ -35,7 +41,7 @@ export abstract class JackBase implements QuickpickSet {
             this.outputChannel = vscode.window.createOutputChannel(this.name);
         }
         else if ("panel" === type) {
-            this.outputChannel = OutputPanelProvider.instance.get(`${this.name} Output`);
+            this.outputChannel = ext.outputPanelProvider.get(`${this.name} Output`);
         }
         else {
             throw new Error("Invalid 'view' type for output.");
