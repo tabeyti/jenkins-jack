@@ -18,6 +18,7 @@ import { JobTree } from './jobTree';
 import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
 import { applyDefaultHost } from './utils';
+import { ConnectionsTree } from './connectionsTree';
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -75,6 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	}));
 
     // Initialize tree views
+    ext.connectionsTree = new ConnectionsTree();
     ext.pipelineTree = new PipelineTree();
     ext.jobTree = new JobTree();
     ext.nodeTree = new NodeTree();

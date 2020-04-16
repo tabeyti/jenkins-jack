@@ -19,6 +19,10 @@ export class PipelineTree {
         this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
             if (e.visible) { this.refresh(); }
           });
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.refresh', (content: any) => {
+            this.refresh();
+        }));
     }
 
     public refresh() {

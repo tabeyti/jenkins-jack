@@ -2,16 +2,17 @@ import * as vscode from 'vscode';
 import { JenkinsService } from './jenkinsService';
 import { QuickpickSet } from './quickpickSet';
 import { ext } from './extensionVariables';
+import { ConnectionsTreeItem } from './connectionsTree';
 
 export class JenkinsHostManager implements QuickpickSet {
     private _host: JenkinsService;
 
     public constructor() {
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections', async () => {
-            await this.selectConnection();
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections.select', async (item?: ConnectionsTreeItem) => {
+            await this.selectConnection(item?.connection);
         }));
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.addConnection', async () => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections.add', async () => {
             await this.addConnection();
         }));
 
@@ -28,12 +29,12 @@ export class JenkinsHostManager implements QuickpickSet {
             {
                 label: "$(settings)  Host Selection",
                 description: "Select a jenkins host to connect to.",
-                target: async () =>vscode.commands.executeCommand('extension.jenkins-jack.connections')
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.select')
             },
             {
                 label: "$(add)  Add Host Connection",
                 description: "Add a jenkins host via input prompts.",
-                target: async () =>vscode.commands.executeCommand('extension.jenkins-jack.addConnection')
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.add')
             }
         ];
     }
@@ -106,6 +107,8 @@ export class JenkinsHostManager implements QuickpickSet {
         });
         if (undefined === password) { return undefined; }
 
+        this._host = new JenkinsService(hostName, hostUri, username, password);
+
         // Add the connection to the list and make it the active one
         config.connections.forEach((c: any) => c.active = false);
         config.connections.push({
@@ -116,59 +119,67 @@ export class JenkinsHostManager implements QuickpickSet {
             "active": true
         });
 
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${hostName}: ${hostUri}`);
+
         // Update our job view with the new host title and jobs
+        ext.connectionsTree.refresh();
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
         ext.nodeTree.refresh();
-
-        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
-        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${hostName}: ${hostUri}`);
     }
 
     /**
      * Displays the quicpick host/connection selection list for the user.
      * Active connection is updated in the global config upon selection.
+     * If connection already provided, config is just updated and associated
+     * treeViews are refreshed.
      */
-    public async selectConnection() {
+    public async selectConnection(conn?: any) {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-        let hosts = []
-        for (let c of config.connections) {
-            let activeIcon = c.active ? "$(primitive-dot)" : "$(dash)";
+        if (!conn) {
+            let hosts = []
+            for (let c of config.connections) {
+                let activeIcon = c.active ? "$(primitive-dot)" : "$(dash)";
+                hosts.push({
+                    label: `${activeIcon} ${c.name}`,
+                    description: `${c.uri} (${c.username})`,
+                    target: c
+                })
+            }
             hosts.push({
-                label: `${activeIcon} ${c.name}`,
-                description: `${c.uri} (${c.username})`,
-                target: c
+                label: "$(settings) Edit Hosts"
             })
+
+            let result = await vscode.window.showQuickPick(hosts);
+            if (undefined === result) { return undefined; }
+
+            // If edit was selected, open settings.json
+            if (result.label.indexOf('Edit Hosts') >= 0) {
+                await vscode.commands.executeCommand('workbench.action.openSettingsJson');
+                return;
+            }
+
+            conn = result.target;
         }
-        hosts.push({
-            label: "$(settings) Edit Hosts"
-        })
 
-        let result = await vscode.window.showQuickPick(hosts);
-        if (undefined === result) { return undefined; }
-
-        // If edit was selected, open settings.json
-        if (result.label.indexOf('Edit Hosts') >= 0) {
-            await vscode.commands.executeCommand('workbench.action.openSettingsJson');
-            return;
-        }
-
-        this._host = new JenkinsService(result.target.name, result.target.uri, result.target.username, result.target.password);
+        this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
 
         // Update settings with active host.
         for (let c of config.connections) {
-            c.active  = (result.target.name === c.name &&
-                result.target.uri === c.uri &&
-                result.target.username === c.username &&
-                result.target.password === c.password);
+            c.active  = (conn.name === c.name &&
+                conn.uri === c.uri &&
+                conn.username === c.username &&
+                conn.password === c.password);
         }
 
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${conn.name}: ${conn.uri}`);
+
         // Update our job view with the new host title and jobs
+        ext.connectionsTree.refresh();
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
         ext.nodeTree.refresh();
-
-        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
-        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${result.target.name}: ${result.target.uri}`);
     }
 }

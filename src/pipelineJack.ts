@@ -22,11 +22,16 @@ export class PipelineJack extends JackBase {
 
     constructor() {
         super('Pipeline Jack', 'extension.jenkins-jack.pipeline');
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.execute', async (item?: PipelineTreeItem) => {
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.pipeline.execute', async (item?: PipelineTreeItem) => {
             if (item) {
                 await ext.pipelineTree.provider.openScript(item);
             }
             await this.executePipeline();
+        }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.pipeline.sharedLibrary', async () => {
+            await this.showSharedLibraryReference();
         }));
 
         this.updateSettings();
@@ -48,12 +53,12 @@ export class PipelineJack extends JackBase {
             commands.push({
                 label: "$(play)  Pipeline: Execute",
                 description: "Executes the current groovy file as a pipeline job.",
-                target: async () => await this.executePipeline(),
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.pipeline.execute')
             });
             commands.push ({
                 label: "$(repo-sync)  Pipeline: Update",
                 description: "Updates the current view's associated pipeline job configuration.",
-                target: async () => await this.updatePipeline(),
+                target: () => this.updatePipeline(),
             });
         }
         else {
@@ -61,13 +66,13 @@ export class PipelineJack extends JackBase {
                 label: "$(primitive-square)  Pipeline: Abort",
                 description: "Aborts the active pipeline job initiated by Execute.",
                 alwaysShow: false,
-                target: async () => await this.abortPipeline(),
+                target: () => this.abortPipeline(),
             });
         }
         commands = commands.concat([{
                 label: "$(file-text)  Pipeline: Shared Library Reference",
                 description: "Provides a list of steps from the Shares Library and global variables.",
-                target: async () => await this.showSharedLibraryReference(),
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.pipeline.sharedLibrary')
             }
         ]);
         return commands;
