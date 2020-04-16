@@ -565,15 +565,6 @@
         }
       },
       {
-        "command": "extension.jenkins-jack.tree.refresh",
-        "title": "Refresh",
-        "category": "Jenkins Jack: Trees",
-        "icon": {
-          "light": "images/refresh-light.svg",
-          "dark": "images/refresh-dark.svg"
-        }
-      },
-      {
         "command": "extension.jenkins-jack.connections.select",
         "title": "Select",
         "category": "Jenkins Jack: Connections"

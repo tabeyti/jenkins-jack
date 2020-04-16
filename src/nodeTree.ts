@@ -47,6 +47,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
         return new Promise(async resolve => {
             let list =  [];
             let nodes = await ext.jenkinsHostManager.host.getNodes();
+            if (undefined === nodes) { resolve([]) }
             nodes = nodes.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
                 list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n))

@@ -122,11 +122,8 @@ export class JenkinsHostManager implements QuickpickSet {
         vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
         vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${hostName}: ${hostUri}`);
 
-        // Update our job view with the new host title and jobs
-        ext.connectionsTree.refresh();
-        ext.pipelineTree.refresh();
-        ext.jobTree.refresh();
-        ext.nodeTree.refresh();
+        // Refresh the connection tree and it's dependent tree views
+        vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
     }
 
     /**
@@ -176,10 +173,7 @@ export class JenkinsHostManager implements QuickpickSet {
         vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
         vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${conn.name}: ${conn.uri}`);
 
-        // Update our job view with the new host title and jobs
-        ext.connectionsTree.refresh();
-        ext.pipelineTree.refresh();
-        ext.jobTree.refresh();
-        ext.nodeTree.refresh();
+        // Refresh the connection tree and it's dependent tree views
+        vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
     }
 }

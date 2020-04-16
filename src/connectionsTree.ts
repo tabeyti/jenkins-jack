@@ -19,6 +19,9 @@ export class ConnectionsTree {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.connections.refresh', () => {
             this.refresh();
+            ext.pipelineTree.refresh();
+            ext.jobTree.refresh();
+            ext.nodeTree.refresh();
         }));
     }
 
