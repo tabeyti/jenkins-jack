@@ -8,10 +8,11 @@ import * as Url from 'url-parse';
 import { sleep } from './utils';
 
 export enum JobType {
-    Default = "default",
-    Folder = "folder",
-    Multi = "multibranch",
-    Org = "org"
+    Default = 'default',
+    Pipeline = 'pipeline',
+    Folder = 'folder',
+    Multi = 'multibranch',
+    Org = 'org'
 }
 
 export class JenkinsService {
@@ -183,6 +184,11 @@ export class JenkinsService {
                             jobList.push(c);
                         }
                     }
+                    break;
+                }
+                case 'org.jenkinsci.plugins.workflow.job.WorkflowJob': {
+                    j.type = JobType.Pipeline;
+                    jobList.push(j);
                     break;
                 }
                 default: {

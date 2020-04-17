@@ -104,6 +104,11 @@
           "group": "navigation"
         },
         {
+          "command": "extension.jenkins-jack.tree.connections.delete",
+          "when": "view == connectionsTree",
+          "group": "navigation"
+        },
+        {
           "command": "extension.jenkins-jack.tree.connections.settings",
           "when": "view == connectionsTree",
           "group": "navigation"
@@ -192,32 +197,32 @@
         },
         {
           "command": "extension.jenkins-jack.build.open",
-          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
           "group": "navigation"
         },
         {
           "command": "extension.jenkins-jack.build.open",
-          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.build.delete",
-          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
           "group": "1_modification"
         },
         {
           "command": "extension.jenkins-jack.build.downloadLog",
-          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
           "group": "z_commands"
         },
         {
           "command": "extension.jenkins-jack.build.downloadLog",
-          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.build.downloadReplayScript",
-          "when": "view == jobTree && viewItem == jobTreeItemBuild",
+          "when": "view == jobTree && viewItem == jobTreeItemBuildPipeline",
           "group": "z_commands"
         },
         {
@@ -577,6 +582,11 @@
           "light": "images/connection-add-light.svg",
           "dark": "images/connection-add-dark.svg"
         }
+      },
+      {
+        "command": "extension.jenkins-jack.tree.connections.delete",
+        "title": "Delete Entry",
+        "category": "Jenkins Jack: Connections Tree"
       },
       {
         "command": "extension.jenkins-jack.tree.connections.settings",

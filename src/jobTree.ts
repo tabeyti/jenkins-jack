@@ -91,7 +91,7 @@ export class JobTreeItem extends vscode.TreeItem {
             }
         }
         else {
-            this.contextValue = 'jobTreeItemBuild'
+            this.contextValue = "default" !== job.type ? 'jobTreeItemBuildPipeline' : 'jobTreeItemBuild';
 
             if ('FAILURE' === build.result) {
                 iconPrefix = 'build-bad';
