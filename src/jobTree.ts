@@ -23,6 +23,8 @@ export class JobTree {
 export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<JobTreeItem | undefined> = new vscode.EventEmitter<JobTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<JobTreeItem | undefined> = this._onDidChangeTreeData.event;
+    private cancellationTokenSource: vscode.CancellationTokenSource = new vscode.CancellationTokenSource();
+    private cancelToken: vscode.CancellationToken;
 
 	public constructor() {
         this.updateSettings();
@@ -40,7 +42,16 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
 	}
 
 	getChildren(element?: JobTreeItem): Thenable<JobTreeItem[]> {
+        if (undefined !== this.cancelToken) {
+            this.cancellationTokenSource.cancel();
+        }
+        this.cancelToken = this.cancellationTokenSource.token;
+
         return new Promise(async resolve => {
+            this.cancelToken.onCancellationRequested((e: any) => {
+                throw Error('HAM KING!');
+            });
+
             let list =  [];
             if (element) {
                 let builds = await ext.jenkinsHostManager.host.getBuildsWithProgress(element.job);
