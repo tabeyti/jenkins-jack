@@ -26,7 +26,7 @@ export class PipelineTree {
     }
 
     public refresh() {
-        this._treeView.title = `Pipelines: ${ext.jenkinsHostManager.host.id}`;
+        this._treeView.title = `Pipelines (${ext.jenkinsHostManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 

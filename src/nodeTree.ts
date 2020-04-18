@@ -19,7 +19,7 @@ export class NodeTree {
     }
 
     public refresh() {
-        this._treeView.title = `Nodes: ${ext.jenkinsHostManager.host.id}`;
+        this._treeView.title = `Nodes (${ext.jenkinsHostManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 }

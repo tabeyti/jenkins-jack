@@ -19,7 +19,7 @@ export class JobTree {
     }
 
     public refresh() {
-        this._treeView.title = `Jobs: ${ext.jenkinsHostManager.host.id}`;
+        this._treeView.title = `Jobs (${ext.jenkinsHostManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 }
