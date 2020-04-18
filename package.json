@@ -104,11 +104,6 @@
           "group": "navigation"
         },
         {
-          "command": "extension.jenkins-jack.tree.connections.delete",
-          "when": "view == connectionsTree",
-          "group": "navigation"
-        },
-        {
           "command": "extension.jenkins-jack.tree.connections.settings",
           "when": "view == connectionsTree",
           "group": "navigation"
@@ -138,6 +133,11 @@
         {
           "command": "extension.jenkins-jack.connections.select",
           "when": "view == connectionsTree && viewItem == connectionsTreeItemInactive",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.jenkins-jack.connections.delete",
+          "when": "view == connectionsTree",
           "group": "action"
         },
         {
@@ -576,7 +576,7 @@
       },
       {
         "command": "extension.jenkins-jack.connections.add",
-        "title": "Add Jenkins Host",
+        "title": "Add",
         "category": "Jenkins Jack: Connections",
         "icon": {
           "light": "images/connection-add-light.svg",
@@ -584,9 +584,9 @@
         }
       },
       {
-        "command": "extension.jenkins-jack.tree.connections.delete",
-        "title": "Delete Entry",
-        "category": "Jenkins Jack: Connections Tree"
+        "command": "extension.jenkins-jack.connections.delete",
+        "title": "Delete",
+        "category": "Jenkins Jack: Connections"
       },
       {
         "command": "extension.jenkins-jack.tree.connections.settings",

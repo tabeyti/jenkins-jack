@@ -95,12 +95,21 @@ export class JenkinsService {
      * Initiates a 'get' request at the desired path from the Jenkins host.
      * @param path The targeted path from the Jenkins host.
      */
-    public async get(endpoint: string) {
-        let url = `${this._jenkinsUri}/${endpoint}`;
-        return request.get(url).catch(err => {
-            console.log(err);
-            this.showCantConnectMessage();
-            return undefined;
+    public async get(endpoint: string, token?: vscode.CancellationToken) {
+        return new Promise<any>(async (resolve) => {
+            try {
+                let url = `${this._jenkinsUri}/${endpoint}`;
+                let requestPromise = request.get(url);
+                token?.onCancellationRequested(() => {
+                    requestPromise.abort();
+                    resolve(undefined);
+                })
+                resolve(await requestPromise);
+            } catch (err) {
+                console.log(err);
+                this.showCantConnectMessage();
+                return undefined;
+            }
         });
     }
 
@@ -190,7 +199,7 @@ export class JenkinsService {
                     break;
                 }
                 case 'org.jenkinsci.plugins.workflow.job.WorkflowJob': {
-                    j.type = JobType.Pipeline;
+                    j.type = undefined === j.type ? JobType.Pipeline : j.type;
                     jobList.push(j);
                     break;
                 }
@@ -207,7 +216,7 @@ export class JenkinsService {
      * Retrieves the list of machines/nodes from Jenkins.
      */
     public async getNodes(token?: vscode.CancellationToken) {
-        let r = await this.get('computer/api/json');
+        let r = await this.get('computer/api/json', token);
         if (undefined === r) { return undefined; }
         let json = JSON.parse(r);
         return json.computer;
@@ -217,7 +226,7 @@ export class JenkinsService {
      * Wrapper around getBuildNumbers with progress notification.
      * @param job The Jenkins JSON job object
      */
-    public async getBuildsWithProgress(job: any) {
+    public async getBuildsWithProgress(job: any, token?: vscode.CancellationToken) {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -227,7 +236,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
             });
             progress.report({ message: `Retrieving builds.` });
-            return await this.getBuilds(job);
+            return await this.getBuilds(job, token);
         });
     }
 
@@ -236,7 +245,7 @@ export class JenkinsService {
      * @param rootUrl Base 'job' url for the request.
      * @returns List of showQuickPick build objects or undefined.
      */
-    public async getBuilds(job: any) {
+    public async getBuilds(job: any, token?: vscode.CancellationToken) {
         let resultIconMap = new Map([
             ['SUCCESS', '$(check)'],
             ['FAILURE', '$(x)'],
@@ -245,21 +254,28 @@ export class JenkinsService {
             [undefined, '']]
         )
 
-        try {
-            let rootUrl = this.fromUrlFormat(job.url);
-            let url = `${rootUrl}/api/json?tree=builds[number,result,description,url,timestamp]`;
-            let r = await request.get(url);
-            let json = JSON.parse(r);
-            return json.builds.map((n: any) => {
-                let buildStatus = resultIconMap.get(n.result);
-                n.label = String(`${n.number} ${buildStatus}`);
-                return n;
-            });
-        } catch (err) {
-            console.log(err);
-            this.showCantConnectMessage();
-            return undefined;
-        }
+        return new Promise<any>(async resolve => {
+            try {
+                let rootUrl = this.fromUrlFormat(job.url);
+                let url = `${rootUrl}/api/json?tree=builds[number,result,description,url,timestamp]`;
+                let requestPromise = request.get(url);
+                token?.onCancellationRequested(() => {
+                    requestPromise.abort();
+                    resolve([]);
+                })
+                let r = await requestPromise;
+                let json = JSON.parse(r);
+                resolve(json.builds.map((n: any) => {
+                    let buildStatus = resultIconMap.get(n.result);
+                    n.label = String(`${n.number} ${buildStatus}`);
+                    return n;
+                }));
+            } catch (err) {
+                console.log(err);
+                this.showCantConnectMessage();
+                return undefined;
+            }
+        });
     }
 
     /**

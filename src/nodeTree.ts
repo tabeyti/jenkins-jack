@@ -30,7 +30,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
     private _cancelTokenSource: vscode.CancellationTokenSource;
 
 	public constructor() {
-        this._cancelTokenSource = new vscode.CancellationTokenSource():
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
         this.updateSettings();
     }
 
@@ -51,8 +51,11 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            let nodes = await ext.jenkinsHostManager.host.getNodes();
-            if (undefined === nodes) { resolve([]) }
+            let nodes = await ext.jenkinsHostManager.host.getNodes(this._cancelTokenSource.token);
+            if (undefined === nodes) {
+                resolve([]);
+                return;
+            }
             nodes = nodes.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
                 list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n))

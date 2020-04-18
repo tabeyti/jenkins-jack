@@ -82,6 +82,6 @@ export class ConnectionsTreeItem extends vscode.TreeItem {
 	}
 
 	get description(): string {
-		return this.connection.uri;
+		return `${this.connection.uri} (${this.connection.username})`;
     }
 }

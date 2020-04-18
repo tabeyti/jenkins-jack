@@ -16,6 +16,10 @@ export class JenkinsHostManager implements QuickpickSet {
             await this.addConnection();
         }));
 
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections.delete', async (item?: ConnectionsTreeItem) => {
+            await this.deleteConnection(item?.connection)
+        }));
+
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins.connections')) {
@@ -35,6 +39,11 @@ export class JenkinsHostManager implements QuickpickSet {
                 label: "$(add)  Add Host Connection",
                 description: "Add a jenkins host via input prompts.",
                 target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.add')
+            },
+            {
+                label: "$(circle-slash)  Delete Host Connection",
+                description: "Delete a jenkins host connection from settings.",
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.delete')
             }
         ];
     }
@@ -126,6 +135,40 @@ export class JenkinsHostManager implements QuickpickSet {
         vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
     }
 
+    public async deleteConnection(conn?: any) {
+        let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+        if (!conn) {
+            let hosts = []
+            for (let c of config.connections) {
+                hosts.push({
+                    label: c.name,
+                    description: `${c.uri} (${c.username})`,
+                    target: c
+                });
+            }
+
+            let result = await vscode.window.showQuickPick(hosts);
+            if (undefined === result) { return undefined; }
+            conn = result.target;
+        }
+
+        // Remove connection and update global config.
+        let modifiedConnections = config.connections.filter((c: any) => {
+            return c.name !== conn.name;
+        });
+        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', modifiedConnections, vscode.ConfigurationTarget.Global);
+
+        vscode.window.showInformationMessage(`Host "${conn.name} ${conn.uri}" removed`);
+
+        // If this host was active, make the first host in the list active.
+        if (conn.active) {
+            return await this.selectConnection(modifiedConnections[0]);
+        }
+
+        // Refresh the connection tree and it's dependent tree views
+        vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
+    }
+
     /**
      * Displays the quicpick host/connection selection list for the user.
      * Active connection is updated in the global config upon selection.
@@ -149,7 +192,7 @@ export class JenkinsHostManager implements QuickpickSet {
             })
 
             let result = await vscode.window.showQuickPick(hosts);
-            if (undefined === result) { return undefined; }
+            if (undefined === result) { return; }
 
             // If edit was selected, open settings.json
             if (result.label.indexOf('Edit Hosts') >= 0) {
