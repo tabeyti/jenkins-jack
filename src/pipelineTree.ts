@@ -19,10 +19,14 @@ export class PipelineTree {
         this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
             if (e.visible) { this.refresh(); }
           });
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.refresh', (content: any) => {
+            this.refresh();
+        }));
     }
 
     public refresh() {
-        this._treeView.title = `Pipelines: ${ext.jenkinsHostManager.host.id}`;
+        this._treeView.title = `Pipelines (${ext.jenkinsHostManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 
@@ -35,8 +39,10 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private _config: any;
 	private _onDidChangeTreeData: vscode.EventEmitter<PipelineTreeItem | undefined> = new vscode.EventEmitter<PipelineTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<PipelineTreeItem | undefined> = this._onDidChangeTreeData.event;
+    private _cancelTokenSource: vscode.CancellationTokenSource;
 
 	public constructor() {
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.pipeline.tree.items')) {
@@ -84,6 +90,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
     private updateSettings() {
         this._config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.tree');
+        this.refresh();
     }
 
     private async saveTreeItemsConfig() {
@@ -158,11 +165,19 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
         // Ensure filepath slashes are standard, otherwise vscode.window.showTextDocument will create
         // a new document instead of refreshing the existing one.
-        let filepath = `${folderUri.fsPath.replace(/\\/g, '/')}/${jobName}`
+        let filepath = `${folderUri.fsPath.replace(/\\/g, '/')}/${jobName}`;
         if (fs.existsSync(filepath)) {
-            let r = await vscode.window.showInformationMessage(
-                `File ${filepath} already exists. Overwrite?`, { modal: true }, { title: "Yes"} );
-             if (undefined === r) { return; }
+
+            // If there is a folder present of the same name as file, add .groovy extension
+            if (fs.lstatSync(filepath).isDirectory()) {
+                vscode.window.showInformationMessage(
+                    `Folder of name "${filepath}" exists in this directory. Adding .groovy extension to file name.` );
+                filepath = `${filepath}.groovy`;
+            } else {
+                let r = await vscode.window.showInformationMessage(
+                    `File ${filepath} already exists. Overwrite?`, { modal: true }, { title: "Yes" } );
+                 if (undefined === r) { return; }
+            }
         }
 
         // Create local script file.
@@ -190,6 +205,9 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     }
 
 	refresh(): void {
+        this._cancelTokenSource.cancel();
+        this._cancelTokenSource.dispose();
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
 		this._onDidChangeTreeData.fire();
 	}
 
@@ -200,7 +218,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 	getChildren(element?: PipelineTreeItem): Thenable<PipelineTreeItem[]> {
         return new Promise(async resolve => {
 
-            let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
+            let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
              ext.jenkinsHostManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&

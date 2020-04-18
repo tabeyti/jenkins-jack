@@ -12,10 +12,14 @@ export class NodeTree {
         this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
             if (e.visible) { this.refresh(); }
           });
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.node.refresh', () => {
+            this.refresh();
+        }));
     }
 
     public refresh() {
-        this._treeView.title = `Nodes: ${ext.jenkinsHostManager.host.id}`;
+        this._treeView.title = `Nodes (${ext.jenkinsHostManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -23,8 +27,10 @@ export class NodeTree {
 export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<NodeTreeItem | undefined> = new vscode.EventEmitter<NodeTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<NodeTreeItem | undefined> = this._onDidChangeTreeData.event;
+    private _cancelTokenSource: vscode.CancellationTokenSource;
 
 	public constructor() {
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
         this.updateSettings();
     }
 
@@ -32,6 +38,9 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
     }
 
 	refresh(): void {
+        this._cancelTokenSource.cancel();
+        this._cancelTokenSource.dispose();
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
 		this._onDidChangeTreeData.fire();
 	}
 
@@ -42,7 +51,11 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            let nodes = await ext.jenkinsHostManager.host.getNodes();
+            let nodes = await ext.jenkinsHostManager.host.getNodes(this._cancelTokenSource.token);
+            if (undefined === nodes) {
+                resolve([]);
+                return;
+            }
             nodes = nodes.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
                 list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n))

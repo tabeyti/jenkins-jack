@@ -18,6 +18,7 @@ import { JobTree } from './jobTree';
 import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
 import { applyDefaultHost } from './utils';
+import { ConnectionsTree } from './connectionsTree';
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -75,19 +76,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	}));
 
     // Initialize tree views
+    ext.connectionsTree = new ConnectionsTree();
     ext.pipelineTree = new PipelineTree();
     ext.jobTree = new JobTree();
     ext.nodeTree = new NodeTree();
-
-    ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.refresh', (content: any) => {
-        ext.pipelineTree.refresh();
-        ext.jobTree.refresh();
-        ext.nodeTree.refresh();
-    }));
-
-    ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.settings', (content: any) => {
-        vscode.commands.executeCommand('workbench.action.openSettingsJson');
-    }));
 
     console.log('Extension Jenkins Jack now active!');
 }

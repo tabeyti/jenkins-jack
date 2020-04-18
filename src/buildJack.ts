@@ -17,7 +17,7 @@ export class BuildJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
-                items = !items ? [item.build] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
+                items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
 
                 let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`)
 
@@ -26,7 +26,6 @@ export class BuildJack extends JackBase {
                     { title: "Yes"} );
                 if (undefined === r) { return undefined; }
 
-                // TODO: bug, need to parallel task this bitch because associated job is needed
                 vscode.window.withProgress({
                     location: vscode.ProgressLocation.Window,
                     title: `Build Jack Output(s)`,
@@ -78,8 +77,10 @@ export class BuildJack extends JackBase {
                 builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build]
             }
             else {
-                let jobs = await this.jobSelectionFlow();
-                if (undefined === jobs) { return false; }
+                let job = await ext.jenkinsHostManager.host.jobSelectionFlow();
+                if (undefined === job) { return false; }
+
+                builds = await ext.jenkinsHostManager.host.buildSelectionFlow(job, true);
             }
             for (let build of builds) {
                 ext.jenkinsHostManager.host.openBrowserAt(new Url(build.url).pathname);
