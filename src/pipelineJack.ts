@@ -157,7 +157,7 @@ export class PipelineJack extends JackBase {
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
             let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
-                                                        `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`
+                                                        `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`;
             ext.connectionsManager.host.openBrowserAt(uri);
         }
         else {
@@ -231,7 +231,7 @@ export class PipelineJack extends JackBase {
 
     private async showParameterInput(param: any, prefillValue: string) {
         let value: string | undefined;
-        let title = param.name + (param.description != "" ? ` - ${param.description}` : '')
+        let title = param.name + (param.description !== "" ? ` - ${param.description}` : '');
         switch(param._class) {
             case "hudson.model.BooleanParameterDefinition":
                 let result = await vscode.window.showQuickPick([{
@@ -239,9 +239,9 @@ export class PipelineJack extends JackBase {
                         picked: (prefillValue === "true")
                     }], {
                     canPickMany: true
-                })
+                });
                 if (undefined === result) { return undefined; }
-                value = String(result.length === 1)
+                value = String(result.length === 1);
                 break;
             case "hudson.model.ChoiceParameterDefinition":
                 value = await vscode.window.showQuickPick(param.choices, {
@@ -253,7 +253,7 @@ export class PipelineJack extends JackBase {
                 value = await vscode.window.showInputBox({
                     placeHolder: title,
                     value: prefillValue
-                })
+                });
                 break;
         }
         return value;
@@ -305,7 +305,7 @@ export class PipelineJack extends JackBase {
         // for the user to fill values in (updates config param values)
         if (!this.config.params.interactiveInput) { return paramsJson; }
         for (let p of paramProperty.parameterDefinitions) {
-            let title = p.name + (p.description != "" ? ` - ${p.description}` : '')
+            let title = p.name + (p.description !== "" ? ` - ${p.description}` : '');
             let value: string | undefined = "";
 
             if (undefined !== config.interactiveInputOverride &&

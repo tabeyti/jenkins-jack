@@ -17,7 +17,7 @@ export class ConnectionsManager implements QuickpickSet {
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections.delete', async (item?: ConnectionsTreeItem) => {
-            await this.deleteConnection(item?.connection)
+            await this.deleteConnection(item?.connection);
         }));
 
         this.updateSettings();
@@ -70,7 +70,7 @@ export class ConnectionsManager implements QuickpickSet {
                 break;
             }
         }
-        if (undefined == conn) {
+        if (undefined === conn) {
             throw new Error("You must select a host connection to use the plugin's features");
         }
 
@@ -138,7 +138,7 @@ export class ConnectionsManager implements QuickpickSet {
     public async deleteConnection(conn?: any) {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         if (!conn) {
-            let hosts = []
+            let hosts = [];
             for (let c of config.connections) {
                 hosts.push({
                     label: c.name,
@@ -178,14 +178,14 @@ export class ConnectionsManager implements QuickpickSet {
     public async selectConnection(conn?: any) {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         if (!conn) {
-            let hosts = []
+            let hosts = [];
             for (let c of config.connections) {
                 let activeIcon = c.active ? "$(primitive-dot)" : "$(dash)";
                 hosts.push({
                     label: `${activeIcon} ${c.name}`,
                     description: `${c.uri} (${c.username})`,
                     target: c
-                })
+                });
             }
 
             let result = await vscode.window.showQuickPick(hosts);

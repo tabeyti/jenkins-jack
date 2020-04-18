@@ -11,7 +11,7 @@ export class NodeJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOffline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
-                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node);
                 let result = await this.setOffline(nodes);
                 if (result) { ext.nodeTree.refresh(); }
             }
@@ -22,7 +22,7 @@ export class NodeJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOnline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
-                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node);
                 let result = await this.setOnline(nodes);
                 if (result) { ext.nodeTree.refresh(); }
             }
@@ -33,7 +33,7 @@ export class NodeJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.disconnect', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
-                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node);
                 let result = await this.disconnect(nodes);
                 if (result) { ext.nodeTree.refresh(); }
             }
@@ -44,7 +44,7 @@ export class NodeJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.updateLabels', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
             if (item instanceof NodeTreeItem) {
-                let nodes = !items ? [item.node] : items.map((item: any) => item.node)
+                let nodes = !items ? [item.node] : items.map((item: any) => item.node);
                 await this.updateLabels(nodes);
             }
             else {
@@ -201,9 +201,9 @@ export class NodeJack extends JackBase {
                 let promise = new Promise(async (resolve) => {
                     try {
                         let output = await onNodeAction(n);
-                        return resolve({ node: n.displayName, output: output })
+                        return resolve({ node: n.displayName, output: output });
                     } catch (err) {
-                        return resolve({ node: n.displayName, output: err })
+                        return resolve({ node: n.displayName, output: err });
                     }
                 });
                 tasks.push(promise);

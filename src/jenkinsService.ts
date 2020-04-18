@@ -29,7 +29,7 @@ export class JenkinsService {
         'url',
         'buildable',
         'description'
-    ].join(',')
+    ].join(',');
 
     private readonly messageItem: vscode.MessageItem = {
         title: 'Okay'
@@ -103,7 +103,7 @@ export class JenkinsService {
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve(undefined);
-                })
+                });
                 resolve(await requestPromise);
             } catch (err) {
                 console.log(err);
@@ -252,7 +252,7 @@ export class JenkinsService {
             ['ABORTED', '$(issues)'],
             ['UNSTABLE', '$(warning)'],
             [undefined, '']]
-        )
+        );
 
         return new Promise<any>(async resolve => {
             try {
@@ -262,7 +262,7 @@ export class JenkinsService {
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
-                })
+                });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
                 resolve(json.builds.map((n: any) => {
@@ -323,8 +323,8 @@ export class JenkinsService {
             let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${buildNumber}/doDelete`;
             await request.post(url);
         } catch (err) {
-            if (302 == err.statusCode) {
-                return `${job.fullName} #${buildNumber} deleted`
+            if (302 === err.statusCode) {
+                return `${job.fullName} #${buildNumber} deleted`;
             }
             console.log(err);
             this.showCantConnectMessage();
@@ -346,7 +346,7 @@ export class JenkinsService {
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
-                })
+                });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
                 resolve(json.jobs);
@@ -499,7 +499,7 @@ export class JenkinsService {
         }
         for (let job of jobs) { job.label = job.fullName; }
 
-        let selectedJob = await vscode.window.showQuickPick(jobs)
+        let selectedJob = await vscode.window.showQuickPick(jobs);
         if (undefined === selectedJob) { return undefined; }
         return selectedJob;
     }

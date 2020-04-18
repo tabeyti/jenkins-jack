@@ -6,6 +6,7 @@ import * as util from 'util';
 import * as xml2js from "xml2js";
 import { PipelineConfig } from './pipelineJobConfig';
 import { JobType } from './jenkinsService';
+import { filepath } from './utils';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -185,7 +186,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             fs.writeFileSync(filepath, script, 'utf-8');
         } catch (err) {
             vscode.window.showInformationMessage(err);
-            return
+            return;
         }
 
         // Create associated jenkins-jack pipeline script config, with folder location if present.
@@ -219,7 +220,6 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         return new Promise(async resolve => {
 
             let jobs = await ext.connectionsManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
-             ext.connectionsManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                                 job.buildable &&
@@ -233,7 +233,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
                 list.push(pipelineTreeItem);
             }
             resolve(list);
-        })
+        });
     }
 }
 
@@ -246,11 +246,11 @@ export class PipelineTreeItem extends vscode.TreeItem {
         super(label, vscode.TreeItemCollapsibleState.None);
 
         let iconPrefix = (this.config) ? 'pipe-icon-linked' : 'pipe-icon-default';
-        this.contextValue = (this.config) ? 'pipelineTreeItemLinked' : 'pipelineTreeItemDefault'
+        this.contextValue = (this.config) ? 'pipelineTreeItemLinked' : 'pipelineTreeItemDefault';
         this.iconPath = {
-            light: path.join(__filename, '..', '..', 'images', `${iconPrefix}-light.svg`),
-		    dark: path.join(__filename, '..', '..', 'images', `${iconPrefix}-dark.svg`)
-        }
+            light: filepath('images', `${iconPrefix}-light.svg`),
+		    dark: filepath('images', `${iconPrefix}-dark.svg`)
+        };
     }
 
 	get tooltip(): string {

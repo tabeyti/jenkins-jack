@@ -34,11 +34,11 @@ export class OutputPanel implements vscode.OutputChannel {
     public async show() {
         let editor = vscode.window.visibleTextEditors.find((e: vscode.TextEditor) =>
                 e.document.uri.scheme === ext.outputPanelProvider.scheme &&
-                e.document.uri.path === this.uri.path)
+                e.document.uri.path === this.uri.path);
 
         // Only display the default view column for the editor if the editor
         // isn't already shown
-        let viewColumn = (undefined !== editor) ? editor.viewColumn : this._defaultViewColumn
+        let viewColumn = (undefined !== editor) ? editor.viewColumn : this._defaultViewColumn;
         this._activeEditor = await vscode.window.showTextDocument(this.uri, {
             viewColumn: viewColumn,
             preserveFocus: false,
@@ -48,7 +48,6 @@ export class OutputPanel implements vscode.OutputChannel {
             )
         });
 
-        this._activeEditor.setDecorations
         vscode.languages.setTextDocumentLanguage(this._activeEditor.document, 'pipeline-log');
     }
 
@@ -69,7 +68,7 @@ export class OutputPanel implements vscode.OutputChannel {
     }
 
     public dispose(): void {
-        this._text = ''
+        this._text = '';
     }
 
     public clear() {
@@ -124,4 +123,4 @@ export class OutputPanelProvider implements vscode.TextDocumentContentProvider {
         // @ts-ignore
         return panel.text();
     }
-};
+}

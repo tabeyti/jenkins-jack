@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
-import * as path from 'path';
+import { filepath } from './utils';
 
 export class ConnectionsTree {
     private readonly _treeView: vscode.TreeView<ConnectionsTreeItem>;
@@ -57,7 +57,7 @@ export class ConnectionsTreeProvider implements vscode.TreeDataProvider<Connecti
                 list.push(new ConnectionsTreeItem(c.name, c));
             }
             resolve(list);
-        })
+        });
     }
 }
 
@@ -72,9 +72,9 @@ export class ConnectionsTreeItem extends vscode.TreeItem {
 
         let iconPrefix = connection.active ? 'connection-active' : 'connection-inactive';
         this.iconPath = {
-            light: path.join(__filename, '..', '..', 'images', `${iconPrefix}-light.svg`),
-            dark: path.join(__filename, '..', '..', 'images', `${iconPrefix}-dark.svg`),
-        }
+            light: filepath('images', `${iconPrefix}-light.svg`),
+            dark: filepath('images', `${iconPrefix}-dark.svg`),
+        };
     }
 
 	get tooltip(): string {

@@ -10,7 +10,7 @@ export class BuildJack extends JackBase {
     static JobBuild = class {
         public build: any;
         public job: any;
-    }
+    };
 
     constructor() {
         super('Build Jack', 'extension.jenkins-jack.build');
@@ -19,7 +19,7 @@ export class BuildJack extends JackBase {
             if (item instanceof JobTreeItem) {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
 
-                let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`)
+                let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
 
                 let r = await this.showInformationModal(
                     `Are you sure you want to delete these builds?\n\n${buildNames.join('\n')}`,
@@ -36,7 +36,7 @@ export class BuildJack extends JackBase {
                     });
                     let results = await parallelTasks(items, async (item: any) => {
                         return await ext.connectionsManager.host.deleteBuild(item.job, item.build.number);
-                    })
+                    });
                     this.outputChannel.clear();
                     this.outputChannel.show();
                     for (let r of results as any[]) {
@@ -74,7 +74,7 @@ export class BuildJack extends JackBase {
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             let builds = [];
             if (item instanceof JobTreeItem) {
-                builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build]
+                builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build];
             }
             else {
                 let job = await ext.connectionsManager.host.jobSelectionFlow();
@@ -192,9 +192,9 @@ export class BuildJack extends JackBase {
                 let promise = new Promise(async (resolve) => {
                     try {
                         let output = await ext.connectionsManager.host.deleteBuild(job, b.number);
-                        return resolve({ label: b.number, output: output })
+                        return resolve({ label: b.number, output: output });
                     } catch (err) {
-                        return resolve({ label: b.number, output: err })
+                        return resolve({ label: b.number, output: err });
                     }
                 });
                 tasks.push(promise);
@@ -213,7 +213,7 @@ export class BuildJack extends JackBase {
                 this.outputChannel.appendLine(this.barrierLine);
             }
             progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
-            return true
+            return true;
         });
     }
 }
