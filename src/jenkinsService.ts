@@ -8,10 +8,11 @@ import * as Url from 'url-parse';
 import { sleep } from './utils';
 
 export enum JobType {
-    Default = "default",
-    Folder = "folder",
-    Multi = "multibranch",
-    Org = "org"
+    Default = 'default',
+    Pipeline = 'pipeline',
+    Folder = 'folder',
+    Multi = 'multibranch',
+    Org = 'org'
 }
 
 export class JenkinsService {
@@ -94,12 +95,21 @@ export class JenkinsService {
      * Initiates a 'get' request at the desired path from the Jenkins host.
      * @param path The targeted path from the Jenkins host.
      */
-    public async get(endpoint: string) {
-        let url = `${this._jenkinsUri}/${endpoint}`;
-        return request.get(url).catch(err => {
-            console.log(err);
-            this.showCantConnectMessage();
-            return undefined;
+    public async get(endpoint: string, token?: vscode.CancellationToken) {
+        return new Promise<any>(async (resolve) => {
+            try {
+                let url = `${this._jenkinsUri}/${endpoint}`;
+                let requestPromise = request.get(url);
+                token?.onCancellationRequested(() => {
+                    requestPromise.abort();
+                    resolve(undefined);
+                })
+                resolve(await requestPromise);
+            } catch (err) {
+                console.log(err);
+                this.showCantConnectMessage();
+                return undefined;
+            }
         });
     }
 
@@ -123,18 +133,18 @@ export class JenkinsService {
     /**
      * Wrapper around getJobs with progress notification.
      */
-    public async getJobsWithProgress(job?: any): Promise<any[]> {
+    public async getJobsWithProgress(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
             cancellable: true
-        }, async (progress, token) => {
-            token.onCancellationRequested(() => {
+        }, async (progress, t) => {
+            t.onCancellationRequested(() => {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
             });
 
             progress.report({ message: 'Retrieving jenkins jobs.' });
-            return await this.getJobs(job);
+            return await this.getJobs(job, token);
         });
     }
 
@@ -144,15 +154,18 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobs(job?: any): Promise<any[]> {
+    public async getJobs(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+        if (token?.isCancellationRequested) {
+            return [];
+        }
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
-        let jobs = job ? await this.getJobsFromUrl(job.url) : await this.getJobsFromUrl(this._jenkinsUri);
+        let jobs = job ? await this.getJobsFromUrl(job.url, token) : await this.getJobsFromUrl(this._jenkinsUri, token);
 
         if (undefined === jobs) { return []; }
 
         // Ineligant way of propogating the parent 'folder' type to the children
-        if (undefined !== job && JobType.Folder === job.type) {
+        if (undefined !== job && null !== job && JobType.Folder === job.type) {
             for (let j of jobs) {
                 j.type = JobType.Folder;
             }
@@ -166,7 +179,7 @@ export class JenkinsService {
                 case 'com.cloudbees.hudson.plugins.folder.Folder': {
                     // Propogate the the parent's job type to the child jobs. My babies!
                     j.type = JobType.Folder;
-                    jobList = jobList.concat(await this.getJobs(j));
+                    jobList = jobList.concat(await this.getJobs(j, token));
                     break;
                 }
                 case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
@@ -185,6 +198,11 @@ export class JenkinsService {
                     }
                     break;
                 }
+                case 'org.jenkinsci.plugins.workflow.job.WorkflowJob': {
+                    j.type = undefined === j.type ? JobType.Pipeline : j.type;
+                    jobList.push(j);
+                    break;
+                }
                 default: {
                     j.type = undefined === j.type ? JobType.Default : job.type;
                     jobList.push(j);
@@ -197,8 +215,8 @@ export class JenkinsService {
     /**
      * Retrieves the list of machines/nodes from Jenkins.
      */
-    public async getNodes() {
-        let r = await this.get('computer/api/json');
+    public async getNodes(token?: vscode.CancellationToken) {
+        let r = await this.get('computer/api/json', token);
         if (undefined === r) { return undefined; }
         let json = JSON.parse(r);
         return json.computer;
@@ -208,7 +226,7 @@ export class JenkinsService {
      * Wrapper around getBuildNumbers with progress notification.
      * @param job The Jenkins JSON job object
      */
-    public async getBuildsWithProgress(job: any) {
+    public async getBuildsWithProgress(job: any, token?: vscode.CancellationToken) {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -218,7 +236,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
             });
             progress.report({ message: `Retrieving builds.` });
-            return await this.getBuilds(job);
+            return await this.getBuilds(job, token);
         });
     }
 
@@ -227,7 +245,7 @@ export class JenkinsService {
      * @param rootUrl Base 'job' url for the request.
      * @returns List of showQuickPick build objects or undefined.
      */
-    public async getBuilds(job: any) {
+    public async getBuilds(job: any, token?: vscode.CancellationToken) {
         let resultIconMap = new Map([
             ['SUCCESS', '$(check)'],
             ['FAILURE', '$(x)'],
@@ -236,21 +254,28 @@ export class JenkinsService {
             [undefined, '']]
         )
 
-        try {
-            let rootUrl = this.fromUrlFormat(job.url);
-            let url = `${rootUrl}/api/json?tree=builds[number,result,description,url,timestamp]`;
-            let r = await request.get(url);
-            let json = JSON.parse(r);
-            return json.builds.map((n: any) => {
-                let buildStatus = resultIconMap.get(n.result);
-                n.label = String(`${n.number} ${buildStatus}`);
-                return n;
-            });
-        } catch (err) {
-            console.log(err);
-            this.showCantConnectMessage();
-            return undefined;
-        }
+        return new Promise<any>(async resolve => {
+            try {
+                let rootUrl = this.fromUrlFormat(job.url);
+                let url = `${rootUrl}/api/json?tree=builds[number,result,description,url,timestamp]`;
+                let requestPromise = request.get(url);
+                token?.onCancellationRequested(() => {
+                    requestPromise.abort();
+                    resolve([]);
+                })
+                let r = await requestPromise;
+                let json = JSON.parse(r);
+                resolve(json.builds.map((n: any) => {
+                    let buildStatus = resultIconMap.get(n.result);
+                    n.label = String(`${n.number} ${buildStatus}`);
+                    return n;
+                }));
+            } catch (err) {
+                console.log(err);
+                this.showCantConnectMessage();
+                return undefined;
+            }
+        });
     }
 
     /**
@@ -311,19 +336,26 @@ export class JenkinsService {
      * @param rootUrl Root jenkins url for the request.
      * @returns Jobs json object or undefined.
      */
-    public async getJobsFromUrl(rootUrl: string) {
-        try {
-            rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
-            rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
-            let r = await request.get(url);
-            let json = JSON.parse(r);
-            return json.jobs;
-        } catch (err) {
-            console.log(err);
-            this.showCantConnectMessage();
-            return undefined;
-        }
+    public async getJobsFromUrl(rootUrl: string, token?: vscode.CancellationToken) {
+        return new Promise<any>(async (resolve) => {
+            try {
+                rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
+                rootUrl = this.fromUrlFormat(rootUrl);
+                let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
+                let requestPromise = request.get(url);
+                token?.onCancellationRequested(() => {
+                    requestPromise.abort();
+                    resolve([]);
+                })
+                let r = await requestPromise;
+                let json = JSON.parse(r);
+                resolve(json.jobs);
+            } catch (err) {
+                console.log(err);
+                this.showCantConnectMessage();
+                return undefined;
+            }
+        });
     }
 
     /**
