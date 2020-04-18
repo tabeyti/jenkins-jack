@@ -48,11 +48,11 @@ export class JobJack extends JackBase {
                 jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job]
             }
             else {
-                let jobs = await ext.jenkinsHostManager.host.jobSelectionFlow();
+                let jobs = await ext.connectionsManager.host.jobSelectionFlow();
                 if (undefined === jobs) { return false; }
             }
             for (let job of jobs) {
-                ext.jenkinsHostManager.host.openBrowserAt(new Url(job.url).pathname);
+                ext.connectionsManager.host.openBrowserAt(new Url(job.url).pathname);
             }
         }));
     }
@@ -83,25 +83,25 @@ export class JobJack extends JackBase {
     }
 
     public async enable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow((j: any) => !j.buildable);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => !j.buildable);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
-            await ext.jenkinsHostManager.host.client.job.enable(job.fullName);
+            await ext.connectionsManager.host.client.job.enable(job.fullName);
             return `"${job.fullName}" has been re-enabled`
         });
     }
 
     public async disable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow((j: any) => j.buildable);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.buildable);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
-            await ext.jenkinsHostManager.host.client.job.disable(job.fullName);
+            await ext.connectionsManager.host.client.job.disable(job.fullName);
             return `"${job.fullName}" has been disabled`
         });
     }
 
     public async delete(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.jenkinsHostManager.host.jobSelectionFlow();
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow();
         if (undefined === jobs) { return; }
 
         let jobNames = jobs.map((j: any) => j.fullName);
@@ -111,7 +111,7 @@ export class JobJack extends JackBase {
         if (undefined === r) { return undefined; }
 
         return await this.actionOnJobs(jobs, async (job: any) => {
-            await ext.jenkinsHostManager.host.client.job.destroy(job.fullName);
+            await ext.connectionsManager.host.client.job.destroy(job.fullName);
             return `"${job.fullName}" has been deleted`
         });
     }

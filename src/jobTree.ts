@@ -19,7 +19,7 @@ export class JobTree {
     }
 
     public refresh() {
-        this._treeView.title = `Jobs (${ext.jenkinsHostManager.host.id})`;
+        this._treeView.title = `Jobs (${ext.connectionsManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -52,14 +52,14 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
         return new Promise(async resolve => {
             let list =  [];
             if (element) {
-                let builds = await ext.jenkinsHostManager.host.getBuildsWithProgress(element.job, this._cancelTokenSource.token);
+                let builds = await ext.connectionsManager.host.getBuildsWithProgress(element.job, this._cancelTokenSource.token);
                 for (let build of builds) {
                     let dateOptions = { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
                     let label = `${build.number}    ${new Date(build.timestamp).toLocaleString('en-US', dateOptions)}`;
                     list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build))
                 }
             } else {
-                let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
+                let jobs = await ext.connectionsManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
                 jobs = jobs.filter((job: any) =>  job);
 
                 for(let job of jobs) {

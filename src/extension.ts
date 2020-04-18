@@ -8,7 +8,7 @@ import { PipelineJack } from './pipelineJack';
 import { PipelineSnippets } from './snippets';
 import { ScriptConsoleJack } from './scriptConsoleJack';
 import { BuildJack } from './buildJack';
-import { JenkinsHostManager } from './jenkinsHostManager';
+import { ConnectionsManager } from './connectionsManager';
 import { NodeJack } from './nodeJack';
 import { JobJack } from './jobJack';
 import { OutputPanelProvider } from './outputProvider';
@@ -29,7 +29,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // We initialize the Jenkins service first in order to avoid
     // a race condition during onDidChangeConfiguration
     let commandSets: QuickpickSet[] = [];
-    ext.jenkinsHostManager = new JenkinsHostManager();
+    ext.connectionsManager = new ConnectionsManager();
 
     ext.pipelineSnippets = new PipelineSnippets();
 
@@ -53,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ext.nodeJack = new NodeJack();
     commandSets.push(ext.nodeJack);
 
-    commandSets.push(ext.jenkinsHostManager);
+    commandSets.push(ext.connectionsManager);
 
     ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
 
