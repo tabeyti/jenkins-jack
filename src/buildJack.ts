@@ -78,8 +78,10 @@ export class BuildJack extends JackBase {
                 builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build]
             }
             else {
-                let jobs = await this.jobSelectionFlow();
-                if (undefined === jobs) { return false; }
+                let job = await ext.jenkinsHostManager.host.jobSelectionFlow();
+                if (undefined === job) { return false; }
+
+                builds = await ext.jenkinsHostManager.host.buildSelectionFlow(job, true);
             }
             for (let build of builds) {
                 ext.jenkinsHostManager.host.openBrowserAt(new Url(build.url).pathname);
