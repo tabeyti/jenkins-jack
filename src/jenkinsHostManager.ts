@@ -160,6 +160,7 @@ export class JenkinsHostManager implements QuickpickSet {
             conn = result.target;
         }
 
+        this._host.dispose();
         this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
 
         // Update settings with active host.

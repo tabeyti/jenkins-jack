@@ -27,8 +27,10 @@ export class JobTree {
 export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<JobTreeItem | undefined> = new vscode.EventEmitter<JobTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<JobTreeItem | undefined> = this._onDidChangeTreeData.event;
+    private _cancelTokenSource: vscode.CancellationTokenSource;
 
 	public constructor() {
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
         this.updateSettings();
     }
 
@@ -36,13 +38,17 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
     }
 
 	refresh(): void {
-		this._onDidChangeTreeData.fire();
+        this._cancelTokenSource.cancel();
+        this._cancelTokenSource.dispose();
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
+        this._onDidChangeTreeData.fire();
 	}
 
 	getTreeItem(element: JobTreeItem): JobTreeItem {
 		return element;
 	}
 
+    // https://www.codetinkerer.com/2019/01/14/cancel-async-requests-pattern.html
 	getChildren(element?: JobTreeItem): Thenable<JobTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
@@ -54,7 +60,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                     list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build))
                 }
             } else {
-                let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
+                let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
                 jobs = jobs.filter((job: any) =>  job);
 
                 for(let job of jobs) {

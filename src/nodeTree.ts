@@ -27,8 +27,10 @@ export class NodeTree {
 export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<NodeTreeItem | undefined> = new vscode.EventEmitter<NodeTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<NodeTreeItem | undefined> = this._onDidChangeTreeData.event;
+    private _cancelTokenSource: vscode.CancellationTokenSource;
 
 	public constructor() {
+        this._cancelTokenSource = new vscode.CancellationTokenSource():
         this.updateSettings();
     }
 
@@ -36,6 +38,9 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
     }
 
 	refresh(): void {
+        this._cancelTokenSource.cancel();
+        this._cancelTokenSource.dispose();
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
 		this._onDidChangeTreeData.fire();
 	}
 

@@ -48,7 +48,7 @@ export class JobJack extends JackBase {
                 jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job]
             }
             else {
-                let jobs = await this.jobSelectionFlow();
+                let jobs = await ext.jenkinsHostManager.host.jobSelectionFlow();
                 if (undefined === jobs) { return false; }
             }
             for (let job of jobs) {
@@ -114,23 +114,6 @@ export class JobJack extends JackBase {
             await ext.jenkinsHostManager.host.client.job.destroy(job.fullName);
             return `"${job.fullName}" has been deleted`
         });
-    }
-
-    /**
-     * Provides a quick pick selection of one or more jobs, returning the selected items.
-     * @param filter A function for filtering the job list retrieved from the Jenkins host.
-     */
-    private async jobSelectionFlow(filter?: ((job: any) => boolean)): Promise<any[]|undefined> {
-        let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
-        if (undefined === jobs) { return undefined; }
-        if (filter) {
-            jobs = jobs.filter(filter);
-        }
-        for (let job of jobs) { job.label = job.fullName; }
-
-        let jobSelections = await vscode.window.showQuickPick(jobs, { canPickMany: true }) as any;
-        if (undefined === jobSelections) { return undefined; }
-        return jobSelections;
     }
 
     /**

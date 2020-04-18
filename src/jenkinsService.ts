@@ -124,18 +124,18 @@ export class JenkinsService {
     /**
      * Wrapper around getJobs with progress notification.
      */
-    public async getJobsWithProgress(job?: any): Promise<any[]> {
+    public async getJobsWithProgress(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
             cancellable: true
-        }, async (progress, token) => {
-            token.onCancellationRequested(() => {
+        }, async (progress, t) => {
+            t.onCancellationRequested(() => {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
             });
 
             progress.report({ message: 'Retrieving jenkins jobs.' });
-            return await this.getJobs(job);
+            return await this.getJobs(job, token);
         });
     }
 
@@ -145,15 +145,18 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobs(job?: any): Promise<any[]> {
+    public async getJobs(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+        if (token?.isCancellationRequested) {
+            return [];
+        }
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
-        let jobs = job ? await this.getJobsFromUrl(job.url) : await this.getJobsFromUrl(this._jenkinsUri);
+        let jobs = job ? await this.getJobsFromUrl(job.url, token) : await this.getJobsFromUrl(this._jenkinsUri, token);
 
         if (undefined === jobs) { return []; }
 
         // Ineligant way of propogating the parent 'folder' type to the children
-        if (undefined !== job && JobType.Folder === job.type) {
+        if (undefined !== job && null !== job && JobType.Folder === job.type) {
             for (let j of jobs) {
                 j.type = JobType.Folder;
             }
@@ -167,7 +170,7 @@ export class JenkinsService {
                 case 'com.cloudbees.hudson.plugins.folder.Folder': {
                     // Propogate the the parent's job type to the child jobs. My babies!
                     j.type = JobType.Folder;
-                    jobList = jobList.concat(await this.getJobs(j));
+                    jobList = jobList.concat(await this.getJobs(j, token));
                     break;
                 }
                 case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
@@ -203,7 +206,7 @@ export class JenkinsService {
     /**
      * Retrieves the list of machines/nodes from Jenkins.
      */
-    public async getNodes() {
+    public async getNodes(token?: vscode.CancellationToken) {
         let r = await this.get('computer/api/json');
         if (undefined === r) { return undefined; }
         let json = JSON.parse(r);
@@ -317,19 +320,26 @@ export class JenkinsService {
      * @param rootUrl Root jenkins url for the request.
      * @returns Jobs json object or undefined.
      */
-    public async getJobsFromUrl(rootUrl: string) {
-        try {
-            rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
-            rootUrl = this.fromUrlFormat(rootUrl);
-            let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
-            let r = await request.get(url);
-            let json = JSON.parse(r);
-            return json.jobs;
-        } catch (err) {
-            console.log(err);
-            this.showCantConnectMessage();
-            return undefined;
-        }
+    public async getJobsFromUrl(rootUrl: string, token?: vscode.CancellationToken) {
+        return new Promise<any>(async (resolve) => {
+            try {
+                rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
+                rootUrl = this.fromUrlFormat(rootUrl);
+                let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
+                let requestPromise = request.get(url);
+                token?.onCancellationRequested(() => {
+                    requestPromise.abort();
+                    resolve([]);
+                })
+                let r = await requestPromise;
+                let json = JSON.parse(r);
+                resolve(json.jobs);
+            } catch (err) {
+                console.log(err);
+                this.showCantConnectMessage();
+                return undefined;
+            }
+        });
     }
 
     /**

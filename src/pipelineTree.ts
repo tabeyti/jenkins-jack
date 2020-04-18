@@ -39,8 +39,10 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private _config: any;
 	private _onDidChangeTreeData: vscode.EventEmitter<PipelineTreeItem | undefined> = new vscode.EventEmitter<PipelineTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<PipelineTreeItem | undefined> = this._onDidChangeTreeData.event;
+    private _cancelTokenSource: vscode.CancellationTokenSource;
 
 	public constructor() {
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.pipeline.tree.items')) {
@@ -194,6 +196,9 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     }
 
 	refresh(): void {
+        this._cancelTokenSource.cancel();
+        this._cancelTokenSource.dispose();
+        this._cancelTokenSource = new vscode.CancellationTokenSource();
 		this._onDidChangeTreeData.fire();
 	}
 
@@ -204,7 +209,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 	getChildren(element?: PipelineTreeItem): Thenable<PipelineTreeItem[]> {
         return new Promise(async resolve => {
 
-            let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress();
+            let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
              ext.jenkinsHostManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
