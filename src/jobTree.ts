@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { ext } from './extensionVariables';
+import { filepath } from './utils';
 
 export class JobTree {
     private readonly _treeView: vscode.TreeView<JobTreeItem>;
@@ -56,7 +56,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                 for (let build of builds) {
                     let dateOptions = { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
                     let label = `${build.number}    ${new Date(build.timestamp).toLocaleString('en-US', dateOptions)}`;
-                    list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build))
+                    list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build));
                 }
             } else {
                 let jobs = await ext.connectionsManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
@@ -68,7 +68,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                 }
             }
             resolve(list);
-        })
+        });
     }
 }
 
@@ -109,9 +109,9 @@ export class JobTreeItem extends vscode.TreeItem {
             }
         }
         this.iconPath = {
-            light: path.join(__filename, '..', '..', 'images', `${iconPrefix}-light.svg`),
-            dark: path.join(__filename, '..', '..', 'images', `${iconPrefix}-dark.svg`),
-        }
+            light: filepath('images', `${iconPrefix}-light.svg`),
+            dark: filepath('images', `${iconPrefix}-dark.svg`),
+        };
     }
 
 	get tooltip(): string {

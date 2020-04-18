@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
-import * as path from 'path';
+import { filepath } from './utils';
 
 export class NodeTree {
     private readonly _treeView: vscode.TreeView<NodeTreeItem>;
@@ -58,10 +58,10 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
             }
             nodes = nodes.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
-                list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n))
+                list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n));
             }
             resolve(list);
-        })
+        });
     }
 }
 
@@ -73,7 +73,7 @@ export class NodeTreeItem extends vscode.TreeItem {
 	) {
         super(label, treeItemState);
 
-        this.contextValue = 'nodeTreeItem'
+        this.contextValue = 'nodeTreeItem';
 
         let iconPrefix = 'node-enabled';
         if (node.offline && node.temporarilyOffline) {
@@ -83,9 +83,9 @@ export class NodeTreeItem extends vscode.TreeItem {
         }
 
         this.iconPath = {
-            light: path.join(__filename, '..', '..', 'images', `${iconPrefix}-light.svg`),
-            dark: path.join(__filename, '..', '..', 'images', `${iconPrefix}-dark.svg`),
-        }
+            light: filepath('images', `${iconPrefix}-light.svg`),
+            dark: filepath('images', `${iconPrefix}-dark.svg`),
+        };
     }
 
 	get tooltip(): string {
@@ -102,7 +102,7 @@ export class NodeTreeItem extends vscode.TreeItem {
         if (this.node.temporarilyOffline) {
             return `${tooltip}: ${this.node.offlineCauseReason}`;
         }
-        return tooltip
+        return tooltip;
 	}
 
 	get description(): string {

@@ -65,7 +65,7 @@ export class SharedLibApiManager {
         const root = htmlParser.load(html);
         let doc = root('.steps.variables.root').first();
 
-        let sharedLibVars: any[] = []
+        let sharedLibVars: any[] = [];
         let child = doc.find('dt').first();
         while (0 < child.length) {
             // Grab name, description, and html for the shared var.

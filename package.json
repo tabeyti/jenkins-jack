@@ -645,12 +645,9 @@
     "@types/open": "^6.1.0",
     "@types/request-promise-native": "^1.0.15",
     "@types/xml2js": "0.4.3",
-    "jenkins": "^0.27.0",
-    "open": "^6.2.0",
     "tslint": "^5.8.0",
     "typescript": "^3.8.3",
-    "vscode": "^1.1.36",
-    "xml2js": "0.4.3"
+    "vscode": "^1.1.36"
   },
   "dependencies": {
     "@types/url-parse": "^1.4.3",

@@ -11,7 +11,7 @@ export class JobJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.delete', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
-                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
                 let result = await this.delete(jobs);
                 if (result) { ext.jobTree.refresh(); }
             }
@@ -22,7 +22,7 @@ export class JobJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.enable', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
-                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
                 let result = await this.enable(jobs);
                 if (result) { ext.jobTree.refresh(); }
             }
@@ -33,7 +33,7 @@ export class JobJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.disable', async (item?: any[] | JobTreeItem, items?: any[]) => {
             if (item instanceof JobTreeItem) {
-                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job)
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
                 let result = await this.disable(jobs);
                 if (result) { ext.jobTree.refresh(); }
             }
@@ -45,7 +45,7 @@ export class JobJack extends JackBase {
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             let jobs = [];
             if (item instanceof JobTreeItem) {
-                jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job]
+                jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job];
             }
             else {
                 let jobs = await ext.connectionsManager.host.jobSelectionFlow();
@@ -87,7 +87,7 @@ export class JobJack extends JackBase {
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.enable(job.fullName);
-            return `"${job.fullName}" has been re-enabled`
+            return `"${job.fullName}" has been re-enabled`;
         });
     }
 
@@ -96,7 +96,7 @@ export class JobJack extends JackBase {
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.disable(job.fullName);
-            return `"${job.fullName}" has been disabled`
+            return `"${job.fullName}" has been disabled`;
         });
     }
 
@@ -112,7 +112,7 @@ export class JobJack extends JackBase {
 
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.destroy(job.fullName);
-            return `"${job.fullName}" has been deleted`
+            return `"${job.fullName}" has been deleted`;
         });
     }
 
@@ -141,9 +141,9 @@ export class JobJack extends JackBase {
                 let promise = new Promise(async (resolve) => {
                     try {
                         let output = await onJobAction(j);
-                        return resolve({ label: j.fullName, output: output })
+                        return resolve({ label: j.fullName, output: output });
                     } catch (err) {
-                        return resolve({ label: j.fullName, output: err })
+                        return resolve({ label: j.fullName, output: err });
                     }
                 });
                 tasks.push(promise);

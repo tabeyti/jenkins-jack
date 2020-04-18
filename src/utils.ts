@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import { ext } from './extensionVariables';
+import * as path from 'path';
 
 function _sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -22,8 +24,12 @@ export function isGroovy() {
 export async function showQuicPick(items: any[], ): Promise<void> {
     let qp = vscode.window.createQuickPick();
     qp.items = items;
-    qp.title = ''
+    qp.title = '';
 
+}
+
+export function filepath(...filenameParts: string[]): string {
+    return ext.context.asAbsolutePath(path.join(...filenameParts));
 }
 
 /**
@@ -45,7 +51,7 @@ export async function applyDefaultHost() {
                 "password": undefined === jenkinsConfig.password ? null : jenkinsConfig.password,
                 "active": true
             }
-        ]
+        ];
         await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
     }
 }
@@ -123,7 +129,7 @@ export function addeNodeLabelsScript(nodes: string[], labels: string[]): string 
     let labelsToken = '';
     let nodesToken = '';
     for (let l of labels) { labelsToken += ` "${l}",`; }
-    for (let n of nodes) { nodesToken += ` "${n}",` }
+    for (let n of nodes) { nodesToken += ` "${n}",`; }
 
     return `import jenkins.model.*;
     import jenkins.model.Jenkins;
@@ -149,16 +155,16 @@ export function addeNodeLabelsScript(nodes: string[], labels: string[]): string 
     }
 
     jenkins.setNodes(jenkins.getNodes());
-    jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken)
+    jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken);
 }
 
 export async function parallelTasks<T>(items: any, action: ((item: any) => Promise<T>)): Promise<T[]> {
     let tasks: Promise<T>[] = [];
     for (let item of items) {
         let t = new Promise<T>(async (resolve) => {
-            return resolve(action(item))
+            return resolve(action(item));
         });
-        tasks.push(t)
+        tasks.push(t);
     }
     return await Promise.all<T>(tasks);
 }
@@ -167,7 +173,7 @@ export function updateNodeLabelsScript(nodes: string[], labels: string[]): strin
     let labelsToken = '';
     let nodesToken = '';
     for (let l of labels) { labelsToken += ` "${l}",`; }
-    for (let n of nodes) { nodesToken += ` "${n}",` }
+    for (let n of nodes) { nodesToken += ` "${n}",`; }
 
     return `import jenkins.model.*;
     import jenkins.model.Jenkins;
@@ -187,5 +193,5 @@ export function updateNodeLabelsScript(nodes: string[], labels: string[]): strin
     }
 
     jenkins.setNodes(jenkins.getNodes());
-    jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken)
+    jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken);
 }

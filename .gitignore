@@ -1,6 +1,5 @@
-*.pyc
-.idea/
-**/node_modules/
-out/
+node_modules
+out
+dist
 *.vsix
 .vscode*
