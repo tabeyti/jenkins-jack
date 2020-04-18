@@ -26,7 +26,7 @@ export class PipelineTree {
     }
 
     public refresh() {
-        this._treeView.title = `Pipelines (${ext.jenkinsHostManager.host.id})`;
+        this._treeView.title = `Pipelines (${ext.connectionsManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 
@@ -103,20 +103,20 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
     private getTreeItemConfig(key: string): any {
         if (undefined === this._config.items) { this._config.items = []; }
-        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id)) {
+        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id)) {
             this._config.items.push({
-                hostId: ext.jenkinsHostManager.host.id,
+                hostId: ext.connectionsManager.host.id,
                 jobName: key,
                 filepath: null,
             });
         }
-        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.jenkinsHostManager.host.id);
+        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id);
     }
 
     private async pullJobScript(node: PipelineTreeItem) {
 
         // See if script source exists on job
-        let xml = await ext.jenkinsHostManager.host.client.job.config(node.label).then((data: any) => {
+        let xml = await ext.connectionsManager.host.client.job.config(node.label).then((data: any) => {
             return data;
         }).catch((err: any) => {
             // TODO: Handle better
@@ -138,11 +138,11 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private async pullReplayScript(node: PipelineTreeItem) {
 
         // Ask what build they want to download.
-        let build = await ext.jenkinsHostManager.host.buildSelectionFlow(node.job);
+        let build = await ext.connectionsManager.host.buildSelectionFlow(node.job);
         if (undefined === build) { return; }
 
         // Pull replay script from build number
-        let script = await ext.jenkinsHostManager.host.getReplayScript(node.job, build);
+        let script = await ext.connectionsManager.host.getReplayScript(node.job, build);
         if (undefined === script) { return; }
 
         await this.saveAndEditScript(script, node);
@@ -218,8 +218,8 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 	getChildren(element?: PipelineTreeItem): Thenable<PipelineTreeItem[]> {
         return new Promise(async resolve => {
 
-            let jobs = await ext.jenkinsHostManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
-             ext.jenkinsHostManager.host.id;
+            let jobs = await ext.connectionsManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
+             ext.connectionsManager.host.id;
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                                 job.buildable &&
@@ -228,7 +228,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
             let list =  [];
             for(let job of jobs) {
-                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job, this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.jenkinsHostManager.host.id));
+                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job, this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.connectionsManager.host.id));
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
                 list.push(pipelineTreeItem);
             }

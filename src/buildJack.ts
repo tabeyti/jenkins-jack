@@ -35,7 +35,7 @@ export class BuildJack extends JackBase {
                         this.showWarningMessage("User canceled command.");
                     });
                     let results = await parallelTasks(items, async (item: any) => {
-                        return await ext.jenkinsHostManager.host.deleteBuild(item.job, item.build.number);
+                        return await ext.connectionsManager.host.deleteBuild(item.job, item.build.number);
                     })
                     this.outputChannel.clear();
                     this.outputChannel.show();
@@ -77,13 +77,13 @@ export class BuildJack extends JackBase {
                 builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build]
             }
             else {
-                let job = await ext.jenkinsHostManager.host.jobSelectionFlow();
+                let job = await ext.connectionsManager.host.jobSelectionFlow();
                 if (undefined === job) { return false; }
 
-                builds = await ext.jenkinsHostManager.host.buildSelectionFlow(job, true);
+                builds = await ext.connectionsManager.host.buildSelectionFlow(job, true);
             }
             for (let build of builds) {
-                ext.jenkinsHostManager.host.openBrowserAt(new Url(build.url).pathname);
+                ext.connectionsManager.host.openBrowserAt(new Url(build.url).pathname);
             }
         }));
     }
@@ -121,10 +121,10 @@ export class BuildJack extends JackBase {
      * @param builds Optional builds to target. If none, build selection will be presented.
      */
     public async delete(job?: any, builds?: any[]) {
-        job = job ? job : await ext.jenkinsHostManager.host.jobSelectionFlow();
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
         if (undefined === job) { return; }
 
-        builds = builds ? builds : await ext.jenkinsHostManager.host.buildSelectionFlow(job, true);
+        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, true);
         if (undefined === builds) { return; }
 
         return await this.deleteBuilds(job, builds);
@@ -138,14 +138,14 @@ export class BuildJack extends JackBase {
      * @param build Optional build to target. If none, build selection will be presented.
      */
     public async downloadLog(job?: any, build?: any) {
-        job = job ? job : await ext.jenkinsHostManager.host.jobSelectionFlow();
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
         if (undefined === job) { return; }
 
-        build = build ? build : await ext.jenkinsHostManager.host.buildSelectionFlow(job);
+        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job);
         if (undefined === build) { return; }
 
         // Stream it. Stream it until the editor crashes.
-        await ext.jenkinsHostManager.host.streamBuildOutput(job.fullName, build.number, this.outputChannel);
+        await ext.connectionsManager.host.streamBuildOutput(job.fullName, build.number, this.outputChannel);
     }
 
     /**
@@ -158,14 +158,14 @@ export class BuildJack extends JackBase {
     public async downloadReplayScript(job?: any, build?: any) {
 
         // Grab only pipeline jobs
-        job = job ? job : await ext.jenkinsHostManager.host.jobSelectionFlow((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob");
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob");
         if (undefined === job) { return; }
 
-        build = build ? build : await ext.jenkinsHostManager.host.buildSelectionFlow(job);
+        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job);
         if (undefined === build) { return; }
 
         // Pull script and display as an Untitled document
-        let script = await ext.jenkinsHostManager.host.getReplayScript(job, build);
+        let script = await ext.connectionsManager.host.getReplayScript(job, build);
         if (undefined === script) { return; }
         let doc = await vscode.workspace.openTextDocument({
             content: script,
@@ -191,7 +191,7 @@ export class BuildJack extends JackBase {
             for (let b of builds) {
                 let promise = new Promise(async (resolve) => {
                     try {
-                        let output = await ext.jenkinsHostManager.host.deleteBuild(job, b.number);
+                        let output = await ext.connectionsManager.host.deleteBuild(job, b.number);
                         return resolve({ label: b.number, output: output })
                     } catch (err) {
                         return resolve({ label: b.number, output: err })

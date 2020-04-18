@@ -1,5 +1,5 @@
 import { ExtensionContext } from "vscode";
-import { JenkinsHostManager } from "./jenkinsHostManager";
+import { ConnectionsManager } from "./connectionsManager";
 import { PipelineSnippets } from "./snippets";
 import { PipelineJack } from "./pipelineJack";
 import { ScriptConsoleJack } from "./scriptConsoleJack";
@@ -31,5 +31,5 @@ export namespace ext {
     export let jobTree: JobTree;
     export let pipelineTree: PipelineTree;
     export let nodeTree: NodeTree;
-    export let jenkinsHostManager: JenkinsHostManager;
+    export let connectionsManager: ConnectionsManager;
 }

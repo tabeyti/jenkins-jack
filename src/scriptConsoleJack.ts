@@ -40,7 +40,7 @@ export class ScriptConsoleJack extends JackBase {
     }
 
     public async execute(source: string) {
-        let nodes = await ext.jenkinsHostManager.host.getNodes();
+        let nodes = await ext.connectionsManager.host.getNodes();
         nodes = nodes.filter((n: any) => n.displayName !== 'master');
 
         if (undefined === nodes) { return; }
@@ -112,13 +112,13 @@ export class ScriptConsoleJack extends JackBase {
                 let promise = undefined;
                 if ('System' === m) {
                     promise = new Promise(async (resolve) => {
-                        let result = await ext.jenkinsHostManager.host.runConsoleScript(source, undefined, token);
+                        let result = await ext.connectionsManager.host.runConsoleScript(source, undefined, token);
                         return resolve({ node: 'System', output: result });
                     });
                 }
                 else {
                     promise = new Promise(async (resolve) => {
-                        let result = await ext.jenkinsHostManager.host.runConsoleScript(source, m, token);
+                        let result = await ext.connectionsManager.host.runConsoleScript(source, m, token);
                         return resolve({ node: m, output: result });
                     });
                 }

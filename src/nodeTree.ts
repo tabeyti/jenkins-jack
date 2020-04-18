@@ -19,7 +19,7 @@ export class NodeTree {
     }
 
     public refresh() {
-        this._treeView.title = `Nodes (${ext.jenkinsHostManager.host.id})`;
+        this._treeView.title = `Nodes (${ext.connectionsManager.host.id})`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -51,7 +51,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            let nodes = await ext.jenkinsHostManager.host.getNodes(this._cancelTokenSource.token);
+            let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
             if (undefined === nodes) {
                 resolve([]);
                 return;

@@ -4,7 +4,7 @@ import { QuickpickSet } from './quickpickSet';
 import { ext } from './extensionVariables';
 import { ConnectionsTreeItem } from './connectionsTree';
 
-export class JenkinsHostManager implements QuickpickSet {
+export class ConnectionsManager implements QuickpickSet {
     private _host: JenkinsService;
 
     public constructor() {

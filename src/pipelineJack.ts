@@ -109,7 +109,7 @@ export class PipelineJack extends JackBase {
         ext.jobTree.refresh();
 
         // Stream the output. Yep.
-        await ext.jenkinsHostManager.host.streamBuildOutput(
+        await ext.connectionsManager.host.streamBuildOutput(
             this.activeJob.fullName,
             this.activeJob.nextBuildNumber,
             this.outputChannel);
@@ -123,7 +123,7 @@ export class PipelineJack extends JackBase {
      */
     private async abortPipeline() {
         if (undefined === this.activeJob) { return; }
-        await ext.jenkinsHostManager.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
+        await ext.connectionsManager.host.client.build.stop(this.activeJob.fullName, this.activeJob.nextBuildNumber).then(() => { });
         this.activeJob = undefined;
     }
 
@@ -158,7 +158,7 @@ export class PipelineJack extends JackBase {
         if (this.config.browserSharedLibraryRef) {
             let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
                                                         `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`
-            ext.jenkinsHostManager.host.openBrowserAt(uri);
+            ext.connectionsManager.host.openBrowserAt(uri);
         }
         else {
             const panel = vscode.window.createWebviewPanel(
@@ -179,12 +179,12 @@ export class PipelineJack extends JackBase {
      */
     private async createUpdate(source: string, jobName: string): Promise<any> {
         let xml = pipelineJobConfigXml();
-        let job = await ext.jenkinsHostManager.host.getJob(jobName);
+        let job = await ext.connectionsManager.host.getJob(jobName);
 
         // If job already exists, grab the job config xml from Jenkins.
         if (job) {
             // Grab job's xml configuration.
-            xml = await ext.jenkinsHostManager.host.client.job.config(jobName).then((data: any) => {
+            xml = await ext.connectionsManager.host.client.job.config(jobName).then((data: any) => {
                 return data;
             }).catch((err: any) => {
                 // TODO: Handle better
@@ -218,12 +218,12 @@ export class PipelineJack extends JackBase {
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
-            await ext.jenkinsHostManager.host.client.job.create(jobName, xml);
-            job = await ext.jenkinsHostManager.host.getJob(jobName);
+            await ext.connectionsManager.host.client.job.create(jobName, xml);
+            job = await ext.connectionsManager.host.getJob(jobName);
         }
         else {
             console.log(`${jobName} already exists. Updating...`);
-            await ext.jenkinsHostManager.host.client.job.config(jobName, xml);
+            await ext.connectionsManager.host.client.job.config(jobName, xml);
         }
         console.log(`Successfully updated Pipeline: ${jobName}`);
         return job;
@@ -359,14 +359,14 @@ export class PipelineJack extends JackBase {
     private async restoreJobScm(job: any) {
         if (undefined === job.scm) { return; }
 
-        let xml = await ext.jenkinsHostManager.host.client.job.config(job.name);
+        let xml = await ext.connectionsManager.host.client.job.config(job.name);
         let parsed = await parseXmlString(xml);
         let root = parsed['flow-definition'];
         delete root.definition;
         root.definition = job.scm;
         xml = new xml2js.Builder().buildObject(parsed);
 
-        await ext.jenkinsHostManager.host.client.job.config(job.name, xml);
+        await ext.connectionsManager.host.client.job.config(job.name, xml);
     }
 
     /**
@@ -422,7 +422,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 20, message: `Building "${jobName}" #${buildNum}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
-            await ext.jenkinsHostManager.host.client.job.build(buildOptions).catch((err: any) => {
+            await ext.connectionsManager.host.client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
                 throw err;
             });
@@ -434,7 +434,7 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 40, message: 'Waiting for build to be ready...' });
             try {
-                await ext.jenkinsHostManager.host.buildReady(jobName, buildNum);
+                await ext.connectionsManager.host.buildReady(jobName, buildNum);
             } catch (err) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
                 return undefined;
