@@ -187,19 +187,9 @@ export class ConnectionsManager implements QuickpickSet {
                     target: c
                 })
             }
-            hosts.push({
-                label: "$(settings) Edit Hosts"
-            })
 
             let result = await vscode.window.showQuickPick(hosts);
             if (undefined === result) { return; }
-
-            // If edit was selected, open settings.json
-            if (result.label.indexOf('Edit Hosts') >= 0) {
-                await vscode.commands.executeCommand('workbench.action.openSettingsJson');
-                return;
-            }
-
             conn = result.target;
         }
 
