@@ -35,11 +35,21 @@ export class PipelineJack extends JackBase {
         }));
 
         this.updateSettings();
+
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.pipeline')) {
                 this.updateSettings();
             }
         });
+
+        // Register for a change in connection info to clear job cache.
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('jenkins-jack.jenkins.connections')) {
+                this.cachedJob = undefined;
+                this.activeJob = undefined;
+            }
+        });
+
         this.sharedLib = SharedLibApiManager.instance;
     }
 
