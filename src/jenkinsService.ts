@@ -491,7 +491,7 @@ export class JenkinsService {
      * Provides a quick pick selection of one or more jobs, returning the selected items.
      * @param filter A function for filtering the job list retrieved from the Jenkins host.
      */
-    public async jobSelectionFlow(filter?: ((job: any) => boolean)): Promise<any[]|undefined> {
+    public async jobSelectionFlow(filter?: ((job: any) => boolean), canPickMany: boolean = false): Promise<any[]|undefined> {
         let jobs = await this.getJobsWithProgress();
         if (undefined === jobs) { return undefined; }
         if (filter) {
@@ -499,9 +499,9 @@ export class JenkinsService {
         }
         for (let job of jobs) { job.label = job.fullName; }
 
-        let selectedJob = await vscode.window.showQuickPick(jobs);
-        if (undefined === selectedJob) { return undefined; }
-        return selectedJob;
+        let selectedJobs = await vscode.window.showQuickPick(jobs, { canPickMany: canPickMany });
+        if (undefined === selectedJobs) { return undefined; }
+        return selectedJobs;
     }
 
     /**

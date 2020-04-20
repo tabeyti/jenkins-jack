@@ -43,12 +43,12 @@ export class JobJack extends JackBase {
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
-            let jobs = [];
+            let jobs: any[] | undefined = [];
             if (item instanceof JobTreeItem) {
                 jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job];
             }
             else {
-                let jobs = await ext.connectionsManager.host.jobSelectionFlow();
+                jobs = await ext.connectionsManager.host.jobSelectionFlow(undefined, true);
                 if (undefined === jobs) { return false; }
             }
             for (let job of jobs) {
