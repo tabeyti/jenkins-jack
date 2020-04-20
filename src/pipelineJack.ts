@@ -154,7 +154,7 @@ export class PipelineJack extends JackBase {
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.update(source, config.buildableName());
+        await this.update(source, config.buildableName);
     }
 
     /**
@@ -395,7 +395,7 @@ export class PipelineJack extends JackBase {
             return undefined;
         }
 
-        let job = config.buildableName();
+        let job = config.buildableName;
 
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,

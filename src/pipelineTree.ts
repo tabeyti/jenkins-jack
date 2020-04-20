@@ -21,7 +21,7 @@ export class PipelineTree {
             if (e.visible) { this.refresh(); }
           });
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.refresh', (content: any) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.refresh', () => {
             this.refresh();
         }));
     }
@@ -51,17 +51,25 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             }
         });
 
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.openScript', async (node: PipelineTreeItem) => {
-            await this.openScript(node);
-        });
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.openScript', async (item: PipelineTreeItem) => {
+            await this.openScript(item);
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullJobScript', async (node: PipelineTreeItem) => {
-            await this.pullJobScript(node);
-        });
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullJobScript', async (item: PipelineTreeItem) => {
+            await this.pullJobScript(item);
+        }));
 
-        vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullReplayScript', async (node: PipelineTreeItem) => {
-            await this.pullReplayScript(node);
-        });
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullReplayScript', async (item: PipelineTreeItem) => {
+            await this.pullReplayScript(item);
+        }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.addLink', async (item: PipelineTreeItem) => {
+            await this.addScriptLink(item);
+        }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.removeLink', async (item: PipelineTreeItem) => {
+            await this.remoteTreeItemConfig(item);
+        }));
     }
 
     public async openScript(node: PipelineTreeItem) {
@@ -99,12 +107,13 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             'jenkins-jack.pipeline.tree.items',
             this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
             vscode.ConfigurationTarget.Global);
-        await this.refresh();
+        this.refresh();
     }
 
     private getTreeItemConfig(key: string): any {
         if (undefined === this._config.items) { this._config.items = []; }
-        if (undefined === this._config.items || undefined === this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id)) {
+        if (undefined === this._config.items || undefined === this._config.items.find(
+                (i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id)) {
             this._config.items.push({
                 hostId: ext.connectionsManager.host.id,
                 jobName: key,
@@ -114,10 +123,50 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id);
     }
 
-    private async pullJobScript(node: PipelineTreeItem) {
+    private async remoteTreeItemConfig(item: PipelineTreeItem) {
+        await vscode.workspace.getConfiguration().update(
+            'jenkins-jack.pipeline.tree.items',
+            this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.id && i.jobName !== item.job.fullName),
+            vscode.ConfigurationTarget.Global);
+        this.refresh();
+    }
+
+    private async addScriptLink(item: PipelineTreeItem) {
+        // Check for files of the same name, even with extension .groovy, and
+        // ask user if they want to overwrite
+        let jobName = item.job.type === JobType.Folder ? path.parse(item.job.fullName).base : item.job.fullName;
+
+        // Prompt user for folder location to save script
+        let scriptFile = await vscode.window.showOpenDialog({
+            canSelectMany: false
+        });
+        if (undefined === scriptFile) { return; }
+
+        // Create pipeline config for selected script
+        let scriptFilePath = scriptFile[0].fsPath.replace(/\\/g, '/');
+        if (PipelineConfig.exists(scriptFilePath)) {
+            let result = await vscode.window.showInformationMessage(
+                `Pipeline config for ${scriptFilePath} already exists. Continuing will overwrite.`,
+                { modal: true },
+                { title: 'Okay' });
+            if (undefined === result) { return; }
+        }
+        let pipelineJobConfig = new PipelineConfig(scriptFilePath, true);
+        pipelineJobConfig.name = jobName;
+        if (JobType.Folder === item.job.type) {
+            pipelineJobConfig.folder = path.dirname(item.job.fullName);
+        }
+        pipelineJobConfig.save();
+
+        // Update the filepath of this tree item's config, save it globally, and refresh tree items.
+        this.getTreeItemConfig(item.label).filepath = scriptFilePath;
+        await this.saveTreeItemsConfig();
+    }
+
+    private async pullJobScript(item: PipelineTreeItem) {
 
         // See if script source exists on job
-        let xml = await ext.connectionsManager.host.client.job.config(node.label).then((data: any) => {
+        let xml = await ext.connectionsManager.host.client.job.config(item.label).then((data: any) => {
             return data;
         }).catch((err: any) => {
             // TODO: Handle better
@@ -129,30 +178,31 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         let root = parsed['flow-definition'];
         let script = root.definition[0].script;
         if (undefined === script) {
-            vscode.window.showInformationMessage(`Pipeline job "${node.label}" has no script to pull.`);
+            vscode.window.showInformationMessage(`Pipeline job "${item.label}" has no script to pull.`);
             return;
         }
 
-        await this.saveAndEditScript(script[0], node);
+        await this.saveAndEditScript(script[0], item);
     }
 
-    private async pullReplayScript(node: PipelineTreeItem) {
+    private async pullReplayScript(item: PipelineTreeItem) {
 
         // Ask what build they want to download.
-        let build = await ext.connectionsManager.host.buildSelectionFlow(node.job);
+        let build = await ext.connectionsManager.host.buildSelectionFlow(item.job);
         if (undefined === build) { return; }
 
         // Pull replay script from build number
-        let script = await ext.connectionsManager.host.getReplayScript(node.job, build);
+        let script = await ext.connectionsManager.host.getReplayScript(item.job, build);
         if (undefined === script) { return; }
 
-        await this.saveAndEditScript(script, node);
+        await this.saveAndEditScript(script, item);
     }
 
-    private async saveAndEditScript(script: string, node: PipelineTreeItem) {
+    private async saveAndEditScript(script: string, item: PipelineTreeItem) {
 
          // Prompt user for folder location to save script
          let folderResult = await vscode.window.showOpenDialog({
+            openLabel: 'Select a directory',
             canSelectFiles: false,
             canSelectMany: false,
             canSelectFolders: true,
@@ -162,7 +212,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
         // Check for files of the same name, even with extension .groovy, and
         // ask user if they want to overwrite
-        let jobName = node.job.type === JobType.Folder ? path.parse(node.job.fullName).base : node.job.fullName;
+        let jobName = item.job.type === JobType.Folder ? path.parse(item.job.fullName).base : item.job.fullName;
 
         // Ensure filepath slashes are standard, otherwise vscode.window.showTextDocument will create
         // a new document instead of refreshing the existing one.
@@ -191,8 +241,8 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
         // Create associated jenkins-jack pipeline script config, with folder location if present.
         let pipelineJobConfig = new PipelineConfig(filepath);
-        if (JobType.Folder === node.job.type) {
-            pipelineJobConfig.folder = path.dirname(node.job.fullName);
+        if (JobType.Folder === item.job.type) {
+            pipelineJobConfig.folder = path.dirname(item.job.fullName);
         }
         pipelineJobConfig.save();
 
@@ -201,7 +251,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
 
         // Update the filepath of this tree item's config, save it globally, and refresh tree items.
-        this.getTreeItemConfig(node.label).filepath = filepath;
+        this.getTreeItemConfig(item.label).filepath = filepath;
         await this.saveTreeItemsConfig();
     }
 

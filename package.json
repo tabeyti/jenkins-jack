@@ -89,6 +89,14 @@
           "when": "never"
         },
         {
+          "command": "extension.jenkins-jack.tree.pipeline.removeLink",
+          "when": "never"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.pipeline.addLink",
+          "when": "never"
+        },
+        {
           "command": "extension.jenkins-jack.tree.job.refresh",
           "when": "never"
         },
@@ -169,6 +177,16 @@
           "command": "extension.jenkins-jack.tree.pipeline.pullReplayScript",
           "when": "view == pipelineTree",
           "group": "z_commands"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.pipeline.addLink",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemDefault",
+          "group": "1_modification"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.pipeline.removeLink",
+          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "group": "1_modification"
         },
         {
           "command": "extension.jenkins-jack.job.open",
@@ -444,6 +462,16 @@
           "light": "images/refresh-light.svg",
           "dark": "images/refresh-dark.svg"
         }
+      },
+      {
+        "command": "extension.jenkins-jack.tree.pipeline.addLink",
+        "title": "Add Script Link",
+        "category": "Jenkins Jack: Pipeline Tree"
+      },
+      {
+        "command": "extension.jenkins-jack.tree.pipeline.removeLink",
+        "title": "Delete Script Link",
+        "category": "Jenkins Jack: Pipeline Tree"
       },
       {
         "command": "extension.jenkins-jack.scriptConsole",

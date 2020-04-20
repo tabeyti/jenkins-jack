@@ -10,19 +10,19 @@ export class PipelineConfig {
     public folder: string | undefined;
     private path: string;
 
-    constructor(scriptPath: string) {
+    constructor(scriptPath: string, overwrite: boolean = false) {
         let parsed = path.parse(scriptPath);
-        let configFileName = `.${parsed.name}.config.json`;
-        this.path = path.join(parsed.dir, configFileName);
+        this.path = PipelineConfig.pathFromScript(scriptPath);
 
         // If config doesn't exist, write out defaults.
-        if (!fs.existsSync(this.path)) {
+        if (!fs.existsSync(this.path) || overwrite) {
             this.name = parsed.name;
             this.params = null;
             this.folder = undefined;
             this.save();
             return;
         }
+
         let json = readjson(this.path);
         this.name = json.name;
         this.params = json.params;
@@ -49,7 +49,7 @@ export class PipelineConfig {
         });
     }
 
-    buildableName(): string {
+    get buildableName(): string {
         if (undefined === this.folder || '' === this.folder) {
             return this.name;
         }
@@ -74,5 +74,16 @@ export class PipelineConfig {
         this.params = json.params;
         this.interactiveInputOverride = json.interactiveInputOverride;
         this.folder = json.folder;
+    }
+
+    public static exists(scriptPath: string): boolean {
+        let path = PipelineConfig.pathFromScript(scriptPath);
+        return fs.existsSync(path);
+    }
+
+    public static pathFromScript(scriptPath: string): string {
+        let parsed = path.parse(scriptPath);
+        let configFileName = `.${parsed.name}.config.json`;
+        return path.join(parsed.dir, configFileName);
     }
 }
