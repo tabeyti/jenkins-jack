@@ -58,7 +58,7 @@ export class NodeJack extends JackBase {
                 nodes = items ? items.map((i: any) => i.node) : [item.node];
             }
             else {
-                let nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true);
+                nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true);
                 if (undefined === nodes) { return false; }
             }
             for (let n of nodes) {
