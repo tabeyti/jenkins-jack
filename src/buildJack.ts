@@ -15,6 +15,46 @@ export class BuildJack extends JackBase {
     constructor() {
         super('Build Jack', 'extension.jenkins-jack.build');
 
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.abort', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+            if (item instanceof JobTreeItem) {
+                items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
+
+                let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
+
+                let r = await this.showInformationModal(
+                    `Are you sure you want to abort these builds?\n\n${buildNames.join('\n')}`,
+                    { title: "Yes"} );
+                if (undefined === r) { return undefined; }
+
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Window,
+                    title: `Build Jack Output(s)`,
+                    cancellable: true
+                }, async (progress, token) => {
+                    token.onCancellationRequested(() => {
+                        this.showWarningMessage("User canceled command.");
+                    });
+                    let results = await parallelTasks(items, async (item: any) => {
+                        await ext.connectionsManager.host.client.build.stop(item.job.fullName, item.build.number);
+                        return `Abort signal sent to ${item.job.fullName}: #${item.bulld.number}`;
+
+                    });
+                    this.outputChannel.clear();
+                    this.outputChannel.show();
+                    for (let r of results as any[]) {
+                        this.outputChannel.appendLine(this.barrierLine);
+                        this.outputChannel.appendLine(r);
+                        this.outputChannel.appendLine(this.barrierLine);
+                    }
+                    ext.jobTree.refresh();
+
+                });
+            }
+            else {
+                await this.abort();
+            }
+        }));
+
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
@@ -80,7 +120,7 @@ export class BuildJack extends JackBase {
                 let job = await ext.connectionsManager.host.jobSelectionFlow();
                 if (undefined === job) { return false; }
 
-                builds = await ext.connectionsManager.host.buildSelectionFlow(job, true);
+                builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
             }
             for (let build of builds) {
                 ext.connectionsManager.host.openBrowserAt(new Url(build.url).pathname);
@@ -90,6 +130,11 @@ export class BuildJack extends JackBase {
 
     public get commands(): any[] {
         return [
+            {
+                label: "$(circle-slash)  Build: Abort",
+                description: "Select a job and builds to abort.",
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.build.abort')
+            },
             {
                 label: "$(circle-slash)  Build: Delete",
                 description: "Select a job and builds to delete.",
@@ -113,6 +158,39 @@ export class BuildJack extends JackBase {
         ];
     }
 
+    public async abort(job?: any, builds?: any[]) {
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
+        if (undefined === job) { return; }
+
+        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
+        if (undefined === builds) { return; }
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Build Jack Output(s)`,
+            cancellable: true
+        }, async (progress, token) => {
+            token.onCancellationRequested(() => {
+                this.showWarningMessage("User canceled command.");
+            });
+            let results = await parallelTasks(builds, async (build: any) => {
+                await ext.connectionsManager.host.client.build.stop(job.fullName, build.number);
+                return `Abort signal sent to ${job.fullName}: #${build.number}`;
+
+            });
+            this.outputChannel.clear();
+            this.outputChannel.show();
+            for (let r of results as any[]) {
+                this.outputChannel.appendLine(this.barrierLine);
+                this.outputChannel.appendLine(r);
+                this.outputChannel.appendLine(this.barrierLine);
+            }
+            ext.jobTree.refresh();
+
+        });
+    }
+
+
     /**
      * Downloads a build log for the user by first presenting a list
      * of jobs to select from, and then a list of build numbers for
@@ -124,7 +202,7 @@ export class BuildJack extends JackBase {
         job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
         if (undefined === job) { return; }
 
-        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, true);
+        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
         if (undefined === builds) { return; }
 
         return await this.deleteBuilds(job, builds);

@@ -28,7 +28,17 @@ export class JenkinsService {
         'fullName',
         'url',
         'buildable',
+        'inQueue',
         'description'
+    ].join(',');
+
+    private _buildProps = [
+        'number',
+        'result',
+        'description',
+        'url',
+        'timestamp',
+        'building'
     ].join(',');
 
     private readonly messageItem: vscode.MessageItem = {
@@ -257,7 +267,7 @@ export class JenkinsService {
         return new Promise<any>(async resolve => {
             try {
                 let rootUrl = this.fromUrlFormat(job.url);
-                let url = `${rootUrl}/api/json?tree=builds[number,result,description,url,timestamp]`;
+                let url = `${rootUrl}/api/json?tree=builds[${this._buildProps}]`;
                 let requestPromise = request.get(url);
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
@@ -267,6 +277,7 @@ export class JenkinsService {
                 let json = JSON.parse(r);
                 resolve(json.builds.map((n: any) => {
                     let buildStatus = resultIconMap.get(n.result);
+                    buildStatus = null === n.result && n.building ? '$(loading~spin)' : undefined;
                     n.label = String(`${n.number} ${buildStatus}`);
                     return n;
                 }));
@@ -509,10 +520,11 @@ export class JenkinsService {
      * @param job The target job for retrieval the builds.
      * @param canPickMany Optional flag for retrieving more than one build in the selection.
      */
-    public async buildSelectionFlow(job: any, canPickMany: boolean = false): Promise<any[]|any|undefined> {
+    public async buildSelectionFlow(job: any, filter?: ((build: any) => boolean), canPickMany: boolean = false): Promise<any[]|any|undefined> {
         // Ask what build they want to download.
-        let buildNumbers = await this.getBuildsWithProgress(job);
-        let selections = await vscode.window.showQuickPick(buildNumbers, { canPickMany: canPickMany }) as any;
+        let builds = await this.getBuildsWithProgress(job);
+        if (undefined !== filter) { builds = builds.filter(filter); }
+        let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany }) as any;
         if (undefined === selections) { return undefined; }
         return selections;
     }

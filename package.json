@@ -171,22 +171,22 @@
         {
           "command": "extension.jenkins-jack.tree.pipeline.pullJobScript",
           "when": "view == pipelineTree",
-          "group": "z_commands"
+          "group": "action"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.pullReplayScript",
           "when": "view == pipelineTree",
-          "group": "z_commands"
+          "group": "action"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.addLink",
           "when": "view == pipelineTree && viewItem == pipelineTreeItemDefault",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.removeLink",
           "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.job.open",
@@ -201,17 +201,17 @@
         {
           "command": "extension.jenkins-jack.job.delete",
           "when": "view == jobTree && viewItem == jobTreeItemJob",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.job.disable",
           "when": "view == jobTree && viewItem == jobTreeItemJob",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.job.enable",
           "when": "view == jobTree && viewItem == jobTreeItemJob",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.build.open",
@@ -224,14 +224,19 @@
           "group": "inline"
         },
         {
+          "command": "extension.jenkins-jack.build.abort",
+          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "group": "action"
+        },
+        {
           "command": "extension.jenkins-jack.build.delete",
           "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.build.downloadLog",
           "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
-          "group": "z_commands"
+          "group": "action"
         },
         {
           "command": "extension.jenkins-jack.build.downloadLog",
@@ -241,7 +246,7 @@
         {
           "command": "extension.jenkins-jack.build.downloadReplayScript",
           "when": "view == jobTree && viewItem == jobTreeItemBuildPipeline",
-          "group": "z_commands"
+          "group": "action"
         },
         {
           "command": "extension.jenkins-jack.node.open",
@@ -256,22 +261,22 @@
         {
           "command": "extension.jenkins-jack.node.setOffline",
           "when": "view == nodeTree && viewItem == nodeTreeItem",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.setOnline",
           "when": "view == nodeTree && viewItem == nodeTreeItem",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.disconnect",
           "when": "view == nodeTree && viewItem == nodeTreeItem",
-          "group": "1_modification"
+          "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.updateLabels",
           "when": "view == nodeTree && viewItem == nodeTreeItem",
-          "group": "z_commands"
+          "group": "action"
         }
       ]
     },
@@ -487,6 +492,11 @@
         "command": "extension.jenkins-jack.build",
         "title": "Build Jack",
         "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.build.abort",
+        "title": "Abort",
+        "category": "Jenkins Jack: Build"
       },
       {
         "command": "extension.jenkins-jack.build.open",

@@ -68,7 +68,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.removeLink', async (item: PipelineTreeItem) => {
-            await this.remoteTreeItemConfig(item);
+            await this.deleteTreeItemConfig(item);
         }));
     }
 
@@ -123,10 +123,10 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id);
     }
 
-    private async remoteTreeItemConfig(item: PipelineTreeItem) {
+    private async deleteTreeItemConfig(item: PipelineTreeItem) {
         await vscode.workspace.getConfiguration().update(
             'jenkins-jack.pipeline.tree.items',
-            this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.id && i.jobName !== item.job.fullName),
+            this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.id || i.jobName !== item.job.fullName ),
             vscode.ConfigurationTarget.Global);
         this.refresh();
     }
