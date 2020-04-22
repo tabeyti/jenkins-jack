@@ -25,6 +25,7 @@ export class JenkinsService {
     private _disposed = false;
 
     private _jobProps = [
+        'name',
         'fullName',
         'url',
         'buildable',
@@ -117,7 +118,6 @@ export class JenkinsService {
                 resolve(await requestPromise);
             } catch (err) {
                 console.log(err);
-                this.showCantConnectMessage();
                 return undefined;
             }
         });
@@ -360,6 +360,10 @@ export class JenkinsService {
                 });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
+
+                // Backwards compatability for older Jenkins API
+                json.jobs.forEach((j: any) => { j.fullName = (undefined === j.fullName) ? j.name : j.name; });
+
                 resolve(json.jobs);
             } catch (err) {
                 console.log(err);
