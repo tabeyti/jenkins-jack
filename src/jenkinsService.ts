@@ -5,7 +5,7 @@ import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 import * as Url from 'url-parse';
 
-import { sleep } from './utils';
+import { sleep, timer } from './utils';
 
 export enum JobType {
     Default = 'default',
@@ -266,6 +266,7 @@ export class JenkinsService {
 
         return new Promise<any>(async resolve => {
             try {
+                let sw = timer();
                 let rootUrl = this.fromUrlFormat(job.url);
                 let url = `${rootUrl}/api/json?tree=builds[${this._buildProps}]`;
                 let requestPromise = request.get(url);
@@ -275,9 +276,10 @@ export class JenkinsService {
                 });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
+                console.log(`getBuilds: ${sw.seconds}`);
                 resolve(json.builds.map((n: any) => {
                     let buildStatus = resultIconMap.get(n.result);
-                    buildStatus = null === n.result && n.building ? '$(loading~spin)' : undefined;
+                    buildStatus = null === n.result && n.building ? '$(loading~spin)' : buildStatus;
                     n.label = String(`${n.number} ${buildStatus}`);
                     return n;
                 }));
@@ -350,6 +352,7 @@ export class JenkinsService {
     public async getJobsFromUrl(rootUrl: string, token?: vscode.CancellationToken) {
         return new Promise<any>(async (resolve) => {
             try {
+                let sw = timer();
                 rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
                 rootUrl = this.fromUrlFormat(rootUrl);
                 let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
@@ -360,7 +363,7 @@ export class JenkinsService {
                 });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
-
+                console.log(`getJobsFromUrl: ${sw.seconds}`);
                 // Backwards compatability for older Jenkins API
                 json.jobs.forEach((j: any) => { j.fullName = (undefined === j.fullName) ? j.name : j.name; });
 

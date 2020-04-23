@@ -98,7 +98,10 @@ export class JobTreeItem extends vscode.TreeItem {
         else {
             this.contextValue = "default" !== job.type ? 'jobTreeItemBuildPipeline' : 'jobTreeItemBuild';
 
-            if ('FAILURE' === build.result) {
+            if (this.build.building) {
+                iconPrefix = 'build-inprogress';
+            }
+            else if ('FAILURE' === build.result) {
                 iconPrefix = 'build-bad';
             } else if ('ABORTED' === build.result) {
                 iconPrefix = 'build-aborted';
@@ -124,7 +127,7 @@ export class JobTreeItem extends vscode.TreeItem {
             }
         }
         else {
-            return `${this.label}: ${this.build.result}`;
+            return this.build.building ? `${this.label}: BUILDING` : `${this.label}: ${this.build.result}`;
         }
 	}
 
