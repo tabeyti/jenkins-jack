@@ -3,7 +3,7 @@ import { JackBase } from './jack';
 import { JobTreeItem, JobTreeItemType } from './jobTree';
 import { ext } from './extensionVariables';
 import * as Url from 'url-parse';
-import { parallelTasks } from './utils';
+import { withProgressOutputParallel } from './utils';
 
 export class BuildJack extends JackBase {
 
@@ -18,79 +18,65 @@ export class BuildJack extends JackBase {
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.abort', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
-
-                let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
-
-                let r = await this.showInformationModal(
-                    `Are you sure you want to abort these builds?\n\n${buildNames.join('\n')}`,
-                    { title: "Yes"} );
-                if (undefined === r) { return undefined; }
-
-                vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Window,
-                    title: `Build Jack Output(s)`,
-                    cancellable: true
-                }, async (progress, token) => {
-                    token.onCancellationRequested(() => {
-                        this.showWarningMessage("User canceled command.");
-                    });
-                    let results = await parallelTasks(items, async (item: any) => {
-                        await ext.connectionsManager.host.client.build.stop(item.job.fullName, item.build.number);
-                        return `Abort signal sent to ${item.job.fullName}: #${item.bulld.number}`;
-
-                    });
-                    this.outputChannel.clear();
-                    this.outputChannel.show();
-                    for (let r of results as any[]) {
-                        this.outputChannel.appendLine(this.barrierLine);
-                        this.outputChannel.appendLine(r);
-                        this.outputChannel.appendLine(this.barrierLine);
-                    }
-                    ext.jobTree.refresh();
-
-                });
             }
             else {
-                await this.abort();
+                let job = await ext.connectionsManager.host.jobSelectionFlow();
+                if (undefined === job) { return; }
+
+                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
+                if (undefined === builds) { return; }
+
+                items = builds.map((b: any) => { return { job: job, build: b }; } );
             }
+
+            if (undefined === items) { return; }
+
+            let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
+            let r = await this.showInformationModal(
+                `Are you sure you want to abort these builds?\n\n${buildNames.join('\n')}`,
+                { title: "Yes"} );
+            if (undefined === r) { return undefined; }
+
+            let output = await withProgressOutputParallel('Build Jack Output(s)', items, async (item) => {
+                await ext.connectionsManager.host.client.build.stop(item.job.fullName, item.build.number);
+                return `Abort signal sent to ${item.job.fullName}: #${item.build.number}`;
+            });
+            this.outputChannel.clear();
+            this.outputChannel.show();
+            this.outputChannel.appendLine(output);
+            ext.jobTree.refresh();
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
             if (item instanceof JobTreeItem) {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
-
-                let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
-
-                let r = await this.showInformationModal(
-                    `Are you sure you want to delete these builds?\n\n${buildNames.join('\n')}`,
-                    { title: "Yes"} );
-                if (undefined === r) { return undefined; }
-
-                vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Window,
-                    title: `Build Jack Output(s)`,
-                    cancellable: true
-                }, async (progress, token) => {
-                    token.onCancellationRequested(() => {
-                        this.showWarningMessage("User canceled command.");
-                    });
-                    let results = await parallelTasks(items, async (item: any) => {
-                        return await ext.connectionsManager.host.deleteBuild(item.job, item.build.number);
-                    });
-                    this.outputChannel.clear();
-                    this.outputChannel.show();
-                    for (let r of results as any[]) {
-                        this.outputChannel.appendLine(this.barrierLine);
-                        this.outputChannel.appendLine(r);
-                        this.outputChannel.appendLine(this.barrierLine);
-                    }
-                    ext.jobTree.refresh();
-
-                });
             }
             else {
-                await this.delete();
+                let job = await ext.connectionsManager.host.jobSelectionFlow();
+                if (undefined === job) { return; }
+
+                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
+                if (undefined === builds) { return; }
+
+                items = builds.map((b: any) => { return { job: job, build: b }; } );
             }
+
+            if (undefined === items) { return; }
+
+            let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
+            let r = await this.showInformationModal(
+                `Are you sure you want to delete these builds?\n\n${buildNames.join('\n')}`,
+                { title: "Yes"} );
+            if (undefined === r) { return undefined; }
+
+            let output = await withProgressOutputParallel('Build Jack Output(s)', items, async (item) => {
+                await ext.connectionsManager.host.deleteBuild(item.job, item.build.number);
+                return `Deleted build ${item.job.fullName}: #${item.build.number}`;
+            });
+            this.outputChannel.clear();
+            this.outputChannel.show();
+            this.outputChannel.appendLine(output);
+            ext.jobTree.refresh();
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
@@ -131,7 +117,7 @@ export class BuildJack extends JackBase {
     public get commands(): any[] {
         return [
             {
-                label: "$(circle-slash)  Build: Abort",
+                label: "$(stop)  Build: Abort",
                 description: "Select a job and builds to abort.",
                 target: () => vscode.commands.executeCommand('extension.jenkins-jack.build.abort')
             },
@@ -158,39 +144,6 @@ export class BuildJack extends JackBase {
         ];
     }
 
-    public async abort(job?: any, builds?: any[]) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
-        if (undefined === job) { return; }
-
-        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
-        if (undefined === builds) { return; }
-
-        vscode.window.withProgress({
-            location: vscode.ProgressLocation.Window,
-            title: `Build Jack Output(s)`,
-            cancellable: true
-        }, async (progress, token) => {
-            token.onCancellationRequested(() => {
-                this.showWarningMessage("User canceled command.");
-            });
-            let results = await parallelTasks(builds, async (build: any) => {
-                await ext.connectionsManager.host.client.build.stop(job.fullName, build.number);
-                return `Abort signal sent to ${job.fullName}: #${build.number}`;
-
-            });
-            this.outputChannel.clear();
-            this.outputChannel.show();
-            for (let r of results as any[]) {
-                this.outputChannel.appendLine(this.barrierLine);
-                this.outputChannel.appendLine(r);
-                this.outputChannel.appendLine(this.barrierLine);
-            }
-            ext.jobTree.refresh();
-
-        });
-    }
-
-
     /**
      * Downloads a build log for the user by first presenting a list
      * of jobs to select from, and then a list of build numbers for
@@ -205,7 +158,15 @@ export class BuildJack extends JackBase {
         builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
         if (undefined === builds) { return; }
 
-        return await this.deleteBuilds(job, builds);
+        let items = builds.map((b: any) => { return { job: job, build: b }; } );
+
+        let output = await withProgressOutputParallel('Build Jack Output(s)', items, async (item) => {
+            await ext.connectionsManager.host.deleteBuild(item.job.fullName, item.build.number);
+            return `Deleted build ${item.job.fullName}: #${item.bulld.number}`;
+        });
+        this.outputChannel.clear();
+        this.outputChannel.show();
+        this.outputChannel.appendLine(output);
     }
 
     /**
@@ -250,48 +211,5 @@ export class BuildJack extends JackBase {
             language: 'groovy'
         });
         await vscode.window.showTextDocument(doc);
-    }
-
-    public async deleteBuilds(job: any, builds: any[]) {
-        return vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: `Build Jack Output(s)`,
-            cancellable: true
-        }, async (progress, token) => {
-            token.onCancellationRequested(() => {
-                this.showWarningMessage("User canceled command.");
-            });
-
-            // Builds a list of parallel actions across the list of targeted machines
-            // and awaits across all.
-            let tasks = [];
-            progress.report({ increment: 50, message: "Deleting build(s)" });
-            for (let b of builds) {
-                let promise = new Promise(async (resolve) => {
-                    try {
-                        let output = await ext.connectionsManager.host.deleteBuild(job, b.number);
-                        return resolve({ label: b.number, output: output });
-                    } catch (err) {
-                        return resolve({ label: b.number, output: err });
-                    }
-                });
-                tasks.push(promise);
-            }
-            let results = await Promise.all(tasks);
-
-            // Iterate over the result list, printing the name of the
-            // machine and it's output.
-            this.outputChannel.clear();
-            this.outputChannel.show();
-            for (let r of results as any[]) {
-                this.outputChannel.appendLine(this.barrierLine);
-                this.outputChannel.appendLine(r.label);
-                this.outputChannel.appendLine('');
-                this.outputChannel.appendLine(r.output);
-                this.outputChannel.appendLine(this.barrierLine);
-            }
-            progress.report({ increment: 50, message: `Output retrieved. Displaying in OUTPUT channel...` });
-            return true;
-        });
     }
 }

@@ -21,7 +21,48 @@ export function isGroovy() {
     return "groovy" === editor.document.languageId;
 }
 
-export async function showQuicPick(items: any[], ): Promise<void> {
+export function timer() {
+    let timeStart = new Date().getTime();
+    return {
+        get seconds() {
+            const seconds = Math.ceil((new Date().getTime() - timeStart) / 1000) + 's';
+            return seconds;
+        },
+        get ms() {
+            const ms = (new Date().getTime() - timeStart) + 'ms';
+            return ms;
+        }
+    };
+}
+
+export async function withProgressOutput(title: string, func: () => Promise<string>): Promise<string> {
+    return await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Window,
+        title: title,
+        cancellable: true
+    }, async (progress, token) => {
+        token.onCancellationRequested(() => {
+            vscode.window.showWarningMessage("User canceled command.");
+        });
+        return await func();
+    });
+}
+
+export async function withProgressOutputParallel(title: string, items: any[], func: (i: any) => Promise<string>) {
+    return await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Window,
+        title: title,
+        cancellable: true
+    }, async (progress, token) => {
+        token.onCancellationRequested(() => {
+            vscode.window.showWarningMessage("User canceled command.");
+        });
+        let results = await parallelTasks(items, func);
+        return results.join(`\n${'-'.repeat(80)}\n`);
+    });
+}
+
+export async function showQuicPick(items: any[]): Promise<void> {
     let qp = vscode.window.createQuickPick();
     qp.items = items;
     qp.title = '';
