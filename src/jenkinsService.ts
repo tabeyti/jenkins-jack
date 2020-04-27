@@ -61,7 +61,8 @@ export class JenkinsService {
             host = match[2];
         }
 
-        this._jenkinsUri = (null === username || null === password) ?   `${protocol}://${host}` :
+        // tslint:disable-next-line: triple-equals
+        this._jenkinsUri = (null == username || null == password) ?   `${protocol}://${host}` :
                                                                         `${protocol}://${username}:${password}@${host}`;
 
         console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
