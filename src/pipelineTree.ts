@@ -128,7 +128,6 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             'jenkins-jack.pipeline.tree.items',
             this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.id || i.jobName !== item.job.fullName ),
             vscode.ConfigurationTarget.Global);
-        this.refresh();
     }
 
     private async addScriptLink(item: PipelineTreeItem) {
@@ -200,23 +199,19 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
     private async saveAndEditScript(script: string, item: PipelineTreeItem) {
 
-         // Prompt user for folder location to save script
-         let folderResult = await vscode.window.showOpenDialog({
-            openLabel: 'Select a directory',
-            canSelectFiles: false,
-            canSelectMany: false,
-            canSelectFolders: true,
-        });
-        if (undefined === folderResult) { return; }
-        let folderUri = folderResult[0];
-
         // Check for files of the same name, even with extension .groovy, and
         // ask user if they want to overwrite
         let jobName = item.job.type === JobType.Folder ? path.parse(item.job.fullName).base : item.job.fullName;
 
+        let scriptPathResult = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.parse(`file:${jobName}`)
+        });
+        if (undefined === scriptPathResult) { return; }
+
         // Ensure filepath slashes are standard, otherwise vscode.window.showTextDocument will create
         // a new document instead of refreshing the existing one.
-        let filepath = `${folderUri.fsPath.replace(/\\/g, '/')}/${jobName}`;
+        let filepath = scriptPathResult.fsPath.replace(/\\/g, '/');
+
         if (fs.existsSync(filepath)) {
 
             // If there is a folder present of the same name as file, add .groovy extension
@@ -241,6 +236,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
         // Create associated jenkins-jack pipeline script config, with folder location if present.
         let pipelineJobConfig = new PipelineConfig(filepath);
+        pipelineJobConfig.name = jobName;
         if (JobType.Folder === item.job.type) {
             pipelineJobConfig.folder = path.dirname(item.job.fullName);
         }
