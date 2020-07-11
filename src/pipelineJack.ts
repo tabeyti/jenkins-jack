@@ -162,7 +162,14 @@ export class PipelineJack extends JackBase {
      * On selection, will display a web-view of the step's documentation.
      */
     private async showSharedLibraryReference() {
-        let lib = await this.sharedLib.refresh(this.cachedJob) as SharedLibVar[];
+        let lib = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: 'Retrieving Share Lib API...',
+            cancellable: true
+        }, async (progress, token) => {
+            return await this.sharedLib.refresh(this.cachedJob) as SharedLibVar[];
+        });
+
         let result = await vscode.window.showQuickPick(lib);
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
