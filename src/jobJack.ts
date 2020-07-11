@@ -13,7 +13,10 @@ export class JobJack extends JackBase {
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
                 let result = await this.delete(jobs);
-                if (result) { ext.jobTree.refresh(); }
+                if (result) {
+                    ext.jobTree.refresh();
+                    ext.pipelineTree.refresh();
+                }
             }
             else {
                 await this.delete(item);
