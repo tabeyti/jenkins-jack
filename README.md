@@ -53,19 +53,22 @@ Any `groovy` file in the editor will have these completions. This feature can be
 ## Configuration
 Jenkins Jack works by hooking into the user's running Jenkins instance via the Jenkins Remote API. Before you can use the plugin, you must fill in the extension settings to point to a Jenkins host(s) in `settings.json`:
 
-```json
+```javascript
 "jenkins-jack.jenkins.connections": [
     {
-        "name": "localhost",                            // "name" can be seen in the host selection command
+        // "name" can be seen in the host selection command
+        "name": "localhost",
         "uri": "http://localhost:8080",
         "username": "drapplesauce",
 
+        // gen API token via <your-jenkins>/user/<user name>/configure
+        // E.g. http://127.0.0.1:8080/user/drapplesauce/configure
+        "password": "217287g126721687162f76f387fdsy7",
 
-        "password": "217287g126721687162f76f387fdsy7",  // gen API token via <your-jenkins>/user/<user name>/configure
-                                                        // E.g. http://127.0.0.1:8080/user/drapplesauce/configure
+        // Indicates the active jenkins host you're connected to.
+        // Also set via host selection command
+        "active": true
 
-        "active": true                                  // Indicates the active jenkins host you're connected to.
-                                                        // Also set via host selection command
     }
 ]
 ```
