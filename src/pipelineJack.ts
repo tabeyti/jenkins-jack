@@ -25,7 +25,8 @@ export class PipelineJack extends JackBase {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.pipeline.execute', async (item?: PipelineTreeItem) => {
             if (item) {
-                await ext.pipelineTree.provider.openScript(item);
+                let opened = await ext.pipelineTree.provider.openScript(item);
+                if (!opened) { return; }
             }
             await this.executePipeline();
         }));
@@ -55,8 +56,6 @@ export class PipelineJack extends JackBase {
 
     public get commands(): any[] {
         let commands: any[] = [];
-
-        if (!isGroovy()) { return []; }
 
         // Displayed commands altered by active pipeline build.
         if (undefined === this.activeJob) {
@@ -94,6 +93,8 @@ export class PipelineJack extends JackBase {
 
     // @ts-ignore
     private async executePipeline() {
+        if (!isGroovy()) { return []; }
+
         let editor = vscode.window.activeTextEditor;
         if (undefined === editor) { return; }
 
@@ -139,6 +140,8 @@ export class PipelineJack extends JackBase {
 
     // @ts-ignore
     private async updatePipeline() {
+        if (!isGroovy()) { return []; }
+
         // Validate it's valid groovy source.
         var editor = vscode.window.activeTextEditor;
         if (!editor) { return; }

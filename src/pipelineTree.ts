@@ -52,7 +52,11 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         });
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.openScript', async (item: PipelineTreeItem) => {
-            await this.openScript(item);
+            return await this.openScript(item);
+        }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.openScriptConfig', async (item: PipelineTreeItem) => {
+            await this.openLocalScriptConfig(item);
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.pipeline.pullJobScript', async (item: PipelineTreeItem) => {
@@ -72,17 +76,26 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         }));
     }
 
-    public async openScript(node: PipelineTreeItem) {
-        let config = this.getTreeItemConfig(node.label);
+    public async openScript(item: PipelineTreeItem) {
+        let config = this.getTreeItemConfig(item.label);
 
-        // If the script file path is not mapped, prompt the user to locate it.
+        // If there is a mapping, but we can't find the file, as to link to a local script
+        if (null !== config.filepath && undefined !== config.filepath && !fs.existsSync(config.filepath)) {
+            let r = await vscode.window.showInformationMessage(
+                `"${config.filepath}" doesn't exist. Do you want to link to another script?`, { modal: true }, { title: "Yes"});
+
+            if (undefined === r) { return false; }
+        }
+
+        // If the script file path is not mapped, or we can't find the mapped script,
+        // ask the user if they want to link it to an existing local script.
         if (null === config.filepath || undefined === config.filepath || !fs.existsSync(config.filepath)) {
             let scriptResult = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
                 canSelectFolders: false,
                 canSelectMany: false
             });
-            if (undefined === scriptResult) { return; }
+            if (undefined === scriptResult) { return false; }
 
             // Update the tree item config with the new file path and save global config
             let scriptUri = scriptResult[0];
@@ -95,6 +108,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         let uri = vscode.Uri.parse(`file:${config.filepath}`);
         let editor = await vscode.window.showTextDocument(uri);
         await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
+        return true;
     }
 
     private updateSettings() {
@@ -249,6 +263,13 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         // Update the filepath of this tree item's config, save it globally, and refresh tree items.
         this.getTreeItemConfig(item.label).filepath = filepath;
         await this.saveTreeItemsConfig();
+    }
+
+    private async openLocalScriptConfig(item: PipelineTreeItem) {
+        let pipelineConfig = new PipelineConfig(item.config.filepath);
+        let uri = vscode.Uri.parse(`file:${pipelineConfig.path}`);
+        let editor = await vscode.window.showTextDocument(uri);
+        await vscode.languages.setTextDocumentLanguage(editor.document, "json");
     }
 
 	refresh(): void {

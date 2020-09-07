@@ -8,7 +8,7 @@ export class PipelineConfig {
     public params: any;
     public interactiveInputOverride: any;
     public folder: string | undefined;
-    private path: string;
+    public path: string;
 
     constructor(scriptPath: string, overwrite: boolean = false) {
         let parsed = path.parse(scriptPath);
