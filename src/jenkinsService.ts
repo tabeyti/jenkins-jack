@@ -118,7 +118,7 @@ export class JenkinsService {
                 resolve(await requestPromise);
             } catch (err) {
                 console.log(err);
-                return undefined;
+                resolve(undefined);
             }
         });
     }
@@ -170,7 +170,8 @@ export class JenkinsService {
         }
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
-        let jobs = job ? await this.getJobsFromUrl(job.url, token) : await this.getJobsFromUrl(this._jenkinsUri, token);
+        let jobs = job ?    await this.getJobsFromUrl(job.url, token) :
+                            await this.getJobsFromUrl(this._jenkinsUri, token);
 
         if (undefined === jobs) { return []; }
 
@@ -226,10 +227,16 @@ export class JenkinsService {
      * Retrieves the list of machines/nodes from Jenkins.
      */
     public async getNodes(token?: vscode.CancellationToken) {
-        let r = await this.get('computer/api/json', token);
-        if (undefined === r) { return undefined; }
-        let json = JSON.parse(r);
-        return json.computer;
+        try {
+            let r = await this.get('computer/api/json', token);
+            if (undefined === r) { return undefined; }
+            let json = JSON.parse(r);
+            return json.computer;
+        } catch (err) {
+            console.log(err);
+            this.showCantConnectMessage();
+            return undefined;
+        }
     }
 
     /**
@@ -286,7 +293,7 @@ export class JenkinsService {
             } catch (err) {
                 console.log(err);
                 this.showCantConnectMessage();
-                return undefined;
+                resolve(undefined);
             }
         });
     }
@@ -364,14 +371,14 @@ export class JenkinsService {
                 let r = await requestPromise;
                 let json = JSON.parse(r);
                 console.log(`getJobsFromUrl: ${sw.seconds}`);
-                // Backwards compatability for older Jenkins API
+                // Backwards compatibility for older Jenkins API
                 json.jobs.forEach((j: any) => { j.fullName = (undefined === j.fullName) ? j.name : j.name; });
 
                 resolve(json.jobs);
             } catch (err) {
                 console.log(err);
                 this.showCantConnectMessage();
-                return undefined;
+                resolve(undefined);
             }
         });
     }
@@ -576,9 +583,9 @@ export class JenkinsService {
     }
 
     private async showCantConnectMessage() {
-        let result = await vscode.window.showWarningMessage(this._cantConnectMessage, { title: 'Okay' }, { title: 'Open Settings' });
-        if ('Open Settings' === result?.title) {
-            vscode.commands.executeCommand('workbench.action.openSettingsJson');
+        let result = await vscode.window.showWarningMessage(this._cantConnectMessage, { title: 'Okay' }, { title: 'Edit Host' });
+        if ('Edit Host' === result?.title) {
+            vscode.commands.executeCommand('extension.jenkins-jack.connections.edit');
         }
     }
 }
