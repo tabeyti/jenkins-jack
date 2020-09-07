@@ -54,7 +54,6 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
             let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
             if (undefined === nodes) {
                 resolve([]);
-                return;
             }
             nodes = nodes.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
