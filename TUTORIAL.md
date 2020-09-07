@@ -1,22 +1,34 @@
 # Tutorial
 
-## Setup
+All commands can either be handled in the quickpick command menu (`ctrl+shift+j`) or through the Jenkins Jack Views (bow icon on the left bar).
 
+## Setting up a Connection
+![setup](images/doc/demo_setup.gif)
 
+Add a host connection through quickpick command or the Connection Tree View (connections are stored in `settings.json`)
 
-## Pipeline
+---
 
-The Pipeline Jack works by using the active Groovy file open in your editor for executing a job on the targeted host.
+## Executing a Pipeline
 
-A user just needs to open a Pipeline script in VSCode with the Groovy language selected.
+![pipeline](images/doc/demo_pipelinerun.gif)
 
-Another option is to pull a Pipeline script from the host for editing.
+* Run a pipeline script from a local Groovy file on your machine
+* Pull a job or replay script from the host in the Pipeline Tree View, creating a link between the saved script and the host's job for easy access and execution in the Pipeline Tree View
+* Link a Pipeline job found on the host to an already existing local script for easy access and execution
 
-This is done in the Jenkins Jack Tree View under Pipeline by right clicking a Pipeline and selecting `Pull Job Script` and saving it locally with a file name of your choosing:
+---
 
-![picture 2](images/doc/45246cadfe8c24e51d97cdde6f8296fe88647274c2e3e4b7dc92018500d92462.png)
+## Execute a Pipeline with Build Parameters
 
-![picture 3](images/doc/b72817b3408a6dc2bca1ca82e226c63ad2994a84288162032dd913ba4360d8bf.png)
+![pipeline](images/doc/demo_pipelineparams.gif)
 
-### Execute a Pipeline Script
+* A user can modify build input/parameters in the `.<your_script>.json` config file local to the script (created on pipeline execution). You can also access script config quickly through the Pipeline Tree View context menu
+* Interactive input can be enabled in settings to prompt a user for values on each build parameter (only supports Jenkins default parameter types) during Pipeline execution
 
+---
+
+## Job and Build Management
+
+* Open/disable/enable/delete jobs from the targeted Jenkins
+* Open/delete/abort builds as well as download logs and replay scripts (if Pipeline)
