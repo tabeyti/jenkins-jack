@@ -1,11 +1,12 @@
-![logo](images/demo.gif)
+![logo](images/doc/demo.gif)
 
 # Jenkins Jack
 
-Are you tired of bloated extensions with superfluous features that are so confusing to use, you'd rather do everything manually? I'm not!
+Are you tired of bloated extensions with superfluous features that are so confusing to use, you'd rather do everything manually?
 
-Jack into your Jenkins to streamline your Pipeline development and Jenkins management.
-Execute Pipeline scripts remotely with real-time syntax highlighted output, access Pipeline step auto-completions, pull Pipeline step documentation, run console groovy scripts across multiple agents, manage jobs/builds/agents, and more!
+I'm not!
+
+Jack into your Jenkins to streamline your Pipeline development and Jenkins management. Execute Pipeline scripts remotely with real-time syntax highlighted output, access Pipeline step auto-completions, pull Pipeline step documentation, run console groovy scripts across multiple agents, manage jobs/builds/agents, and more!
 
 Honestly, not that much more.
 
@@ -79,10 +80,6 @@ From the selected remote Jenkins, the extension will pull, parse, and provide Pi
 
 Any file in the editor with the Groovy language id set will have these completions (can be disabled via settings).
 
-## Setup
-
-See [TUTORIAL.md](TUTORIAL.md##setting-up-a-connection) for setup.
-
 ## Settings
 
 |Name |Description |
@@ -98,6 +95,10 @@ See [TUTORIAL.md](TUTORIAL.md##setting-up-a-connection) for setup.
 | `jenkins-jack.snippets.enabled` | Enable Pipeline step snippets for editors windows with the Groovy language id set |
 | `jenkins-jack.pipeline.tree.items` | Pipeline Tree View local script to host Pipeline job associations (updated by extension) |
 
+## Setup
+
+See [TUTORIAL.md](TUTORIAL.md##setting-up-a-connection) for setup and basic usage.
+
 ## Quick-use
 
 ### `ctrl+shift+j`
@@ -108,9 +109,9 @@ Displays a list of all Jack commands provided by the extension (`extension.jenki
 To create a standalone `vsix` for installation locally, run the following commands:
 ```bash
 # From the root of the extension.
-npm install -g vsce # For packaging
-npm install # Install dependencies.
-vsce package # Bake some bread.
+npm install -g vsce     # For packaging
+npm install             # Install dependencies.
+vsce package            # Bake some bread.
 code --install-extension .\jenkins-jack-0.0.1.vsix # ...or whatever version was built
 ```
 
@@ -122,7 +123,6 @@ Currently, there are no hard guidelines defined for feature requests, bugs, or q
 ## Authors
 
 * **Travis Abeyti** (*initial work*)
-*
 
 ## License
 
