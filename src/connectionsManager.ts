@@ -168,7 +168,11 @@ export class ConnectionsManager implements QuickpickSet {
         // Update connection and the global config.
         config.connections.forEach((c: any) => {
             if (c.name === conn.name && undefined !== editedConnection) {
+                // TODO: there has to be a better way as ref assignment doesn't work
                 c.name = editedConnection.name;
+                c.uri = editedConnection.uri;
+                c.username = editedConnection.username;
+                c.password = editedConnection.password;
             }
         });
         await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
@@ -262,12 +266,12 @@ export class ConnectionsManager implements QuickpickSet {
         while (true) {
             hostName = await vscode.window.showInputBox({
                 ignoreFocusOut: true,
-                prompt: 'Enter in a unique name for your jenkins connection (e.g. JenkyMcJunklets)',
+                prompt: 'Enter in a unique name for your jenkins connection (e.g. Jenky McJunklets)',
                 value: jenkinsConnection?.name
             });
             if (undefined === hostName) { return undefined; }
 
-            if (!config.connections.some((c: any) => c.name === hostName)) {
+            if (!config.connections.some((c: any) => c.name === hostName) || jenkinsConnection?.name === hostName) {
                 break;
             }
             vscode.window.showWarningMessage(`There is already a connection named "${hostName}". Please choose another.`);
