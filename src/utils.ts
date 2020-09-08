@@ -15,6 +15,16 @@ export async function sleep(ms: number) {
     await _sleep(ms);
 }
 
+export function getValidEditor() {
+    var editor = vscode.window.activeTextEditor;
+    if (!editor) { return undefined; }
+    if ("groovy" === editor?.document.languageId ||
+        "jenkinsfile" === editor?.document.languageId) {
+            return editor;
+    }
+    return undefined;
+}
+
 export function isGroovy() {
     var editor = vscode.window.activeTextEditor;
     if (!editor) { return false; }

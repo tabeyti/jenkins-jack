@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
 import { JackBase } from './jack';
-import { isGroovy } from './utils';
+import { getValidEditor } from './utils';
 
 export class ScriptConsoleJack extends JackBase {
 
@@ -14,8 +14,6 @@ export class ScriptConsoleJack extends JackBase {
     }
 
     public get commands(): any[] {
-        if (!isGroovy()) { return []; }
-
         return [{
             label: "$(terminal)  Script Console: Execute",
             description: "Executes the current view's groovy script as a system/node console script (script console).",
@@ -25,10 +23,9 @@ export class ScriptConsoleJack extends JackBase {
 
     // @ts-ignore
     protected async executeScriptConsole() {
-        // Validate it's valid groovy source.
-        var editor = vscode.window.activeTextEditor;
-        if (!editor) { return; }
-        if ("groovy" !== editor.document.languageId) {
+        let editor = getValidEditor();
+        if (undefined === editor) {
+            this.showInformationMessage('Must have a file open with a supported language id to use this command.');
             return;
         }
 
