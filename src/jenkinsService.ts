@@ -430,6 +430,9 @@ export class JenkinsService {
         outputChannel.clear();
         outputChannel.show();
 
+        let outputConfig = await vscode.workspace.getConfiguration('jenkins-jack.outputView');
+        let suppressPipelineLog = outputConfig.suppressPipelineLog;
+
         // TODO:Arbitrary sleep to mitigate a race condition where the window
         //      updates with empty content before the log stream can
         //      append text to the OutputPanel's buffer.
@@ -460,7 +463,13 @@ export class JenkinsService {
 
                 log.on('data', (text: string) => {
                     if (token.isCancellationRequested) { return; }
-                    outputChannel.append(text);
+                    if (suppressPipelineLog) {
+                        let regex = new RegExp('^\\[Pipeline\\] .*');
+                        let content = text.split(/\r?\n/).filter((l: string) => !regex.test(l));
+                        outputChannel.append(content.join('\n'));
+                    } else {
+                        outputChannel.append(text);
+                    }
                 });
 
                 log.on('error', (err: string) => {
