@@ -65,14 +65,6 @@
           "when": "never"
         },
         {
-          "command": "extension.jenkins-jack.pipeline.execute",
-          "when": "editorLangId == groovy"
-        },
-        {
-          "command": "extension.jenkins-jack.pipeline.sharedLibrary",
-          "when": "editorLangId == groovy"
-        },
-        {
           "command": "extension.jenkins-jack.tree.pipeline.refresh",
           "when": "never"
         },

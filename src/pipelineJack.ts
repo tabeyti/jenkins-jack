@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as xml2js from "xml2js";
 import * as util from 'util';
 
-import { pipelineJobConfigXml } from './utils';
+import { pipelineJobConfigXml, getValidEditor } from './utils';
 import { ext } from './extensionVariables';
 import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
@@ -95,9 +95,9 @@ export class PipelineJack extends JackBase {
     private async executePipeline() {
 
         // Validate it's valid groovy source.
-        let editor = vscode.window.activeTextEditor;
-        if (undefined === editor || "groovy" !== editor.document.languageId) {
-            this.showInformationMessage('Must have an open file with Groovy language id set.');
+        let editor = getValidEditor();
+        if (undefined === editor) {
+            this.showWarningMessage('Must have a file open with a supported language id to use this command.');
             return;
         }
 
@@ -145,9 +145,9 @@ export class PipelineJack extends JackBase {
     private async updatePipeline() {
 
         // Validate it's valid groovy source.
-        let editor = vscode.window.activeTextEditor;
-        if (undefined === editor || "groovy" !== editor.document.languageId) {
-            this.showInformationMessage('Must have an open file with Groovy language id set.');
+        let editor = getValidEditor();
+        if (undefined === editor) {
+            this.showInformationMessage('Must have a file open with a supported language id to use this command.');
             return;
         }
 
