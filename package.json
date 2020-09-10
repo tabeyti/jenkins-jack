@@ -295,6 +295,11 @@
         "title": "Jenkins Jack configuration",
         "type": "object",
         "properties": {
+          "jenkins-jack.outputView.suppressPipelineLog": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "If enabled, streamed output will filter out lines starting with \"`[Pipeline]`\"."
+          },
           "jenkins-jack.outputView.type": {
             "type": "string",
             "default": "channel",
