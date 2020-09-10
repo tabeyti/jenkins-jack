@@ -2,14 +2,33 @@ import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
 import { JackBase } from './jack';
 import { isGroovy } from './utils';
+import { NodeTreeItem } from './nodeTree';
 
 export class ScriptConsoleJack extends JackBase {
 
     constructor() {
         super('Script Console Jack', 'extension.jenkins-jack.scriptConsole');
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole.execute', async () => {
-            await this.executeScriptConsole();
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.scriptConsole.execute', async (item?: any, items?: any[]) => {
+
+            // If View items were passed in, grab the agent names, otherwise prompt user for agent selection
+            if (item instanceof NodeTreeItem) {
+                items = !items ? [item] : items.map((item: NodeTreeItem) => item.node.displayName);
+            }
+            else {
+                let nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true);
+                if (undefined === nodes) { return; }
+                items = nodes.map((n: any) => n.displayName);
+            }
+
+            // Verify with the user that they want to run the script on the targeted agents
+            if (undefined === items) { return undefined; }
+            let r = await this.showInformationModal(
+                `Are you sure you want run the active script on these agents?\n\n${items.join('\n')}`,
+                { title: "Yes"} );
+            if (undefined === r) { return undefined; }
+
+            await this.execute(items);
         }));
     }
 
@@ -23,77 +42,15 @@ export class ScriptConsoleJack extends JackBase {
         }];
     }
 
-    // @ts-ignore
-    protected async executeScriptConsole() {
-        // Validate it's valid groovy source.
+    private async execute(targetNodes?: any[]) {
+
+        // Validate it's valid groovy source and grab it from the active editor
         var editor = vscode.window.activeTextEditor;
-        if (!editor) { return; }
-        if ("groovy" !== editor.document.languageId) {
+        if (!editor || "groovy" !== editor.document.languageId) {
+            this.showWarningMessage('Must have an open file with Groovy language id set.');
             return;
         }
-
-        // Grab source from active editor.
         let source = editor.document.getText();
-        if ("" === source) { return; }
-
-        await this.execute(source);
-    }
-
-    public async execute(source: string) {
-        let nodes = await ext.connectionsManager.host.getNodes();
-        nodes = nodes.filter((n: any) => n.displayName !== 'master');
-
-        if (undefined === nodes) { return; }
-        nodes.map((n: any) => {
-            n.label = n.displayName;
-            n.description = n.offline ? "$(alert)" : "";
-        });
-
-        let options = Object.assign([], nodes);
-        options.unshift({
-            label: "System",
-            description: "Executes from the System Script Console found in 'Manage Jenkins'."
-        });
-        options.unshift({
-            label: ".*",
-            description: "Regex of the nodes you would like to target."
-        });
-
-        // Grab initial selection from the user.
-        let selection = await vscode.window.showQuickPick(options) as any;
-        if (undefined === selection) { return; }
-
-        let targetMachines: any[] = [];
-
-        // If regex specified, grab a pattern from the user to
-        // filter on the list of nodes.
-        if ('.*' === selection.label) {
-
-            // Grab regex pattern from user.
-            let pattern = await vscode.window.showInputBox();
-            if (undefined === pattern) { return; }
-
-            // Match against list of nodes.
-            let matches = [];
-            for (let n of nodes) {
-                let name = n.displayName as string;
-                let match = name.match(pattern);
-                if (null !== match && match.length >= 0) {
-                    matches.push(n);
-                }
-            }
-
-            // Allow the user to select nodes retrieved from regex.
-            let selections = await vscode.window.showQuickPick(matches, { canPickMany: true } );
-            if (undefined === selections) { return; }
-            targetMachines = targetMachines.concat(selections.map(s => s.label));
-        }
-        else if ('System' === selection.label) {
-            targetMachines.push('System');
-        }
-        else {
-            targetMachines.push(selection.label);
-        }
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -108,12 +65,13 @@ export class ScriptConsoleJack extends JackBase {
             // and awaits across all.
             let tasks = [];
             progress.report({ increment: 50, message: "Executing on target machine(s)" });
-            for (let m of targetMachines) {
+            if (undefined === targetNodes) { return undefined; }
+            for (let m of targetNodes) {
                 let promise = undefined;
-                if ('System' === m) {
+                if ('master' === m) {
                     promise = new Promise(async (resolve) => {
                         let result = await ext.connectionsManager.host.runConsoleScript(source, undefined, token);
-                        return resolve({ node: 'System', output: result });
+                        return resolve({ node: 'master', output: result });
                     });
                 }
                 else {

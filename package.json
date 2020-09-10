@@ -287,6 +287,11 @@
           "command": "extension.jenkins-jack.node.updateLabels",
           "when": "view == nodeTree && viewItem == nodeTreeItem",
           "group": "action"
+        },
+        {
+          "command": "extension.jenkins-jack.scriptConsole.execute",
+          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "group": "action"
         }
       ]
     },
@@ -505,7 +510,7 @@
       },
       {
         "command": "extension.jenkins-jack.scriptConsole.execute",
-        "title": "Execute",
+        "title": "Execute Script Console",
         "category": "Jenkins Jack: Script Console"
       },
       {
