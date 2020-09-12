@@ -10,9 +10,9 @@ pipeline {
 
             steps {
                 sh  '''
+                    npm upgrade
                     npm install
                     npm run vscode:prepublish
-                    npm test --silent
                     '''
             }
         }
