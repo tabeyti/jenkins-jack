@@ -16,13 +16,16 @@ export async function sleep(ms: number) {
 }
 
 export function getValidEditor() {
+    let langIds = [
+        "groovy",
+        "jenkinsfile",
+        "java"
+    ];
     var editor = vscode.window.activeTextEditor;
-    if (!editor) { return undefined; }
-    if ("groovy" === editor?.document.languageId ||
-        "jenkinsfile" === editor?.document.languageId) {
-            return editor;
+    if (!editor || !langIds.includes(editor?.document.languageId)) {
+        return undefined;
     }
-    return undefined;
+    return editor;
 }
 
 export function timer() {
