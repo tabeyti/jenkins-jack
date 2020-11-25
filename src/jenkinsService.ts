@@ -128,8 +128,8 @@ export class JenkinsService {
      * @param job The Jenkins job JSON object.
      */
     public async getJob(job: string) {
-        return this.client.job.get(job).then((data: any) => {
-            return data;
+        return this.get(`job/${job}/api/json`).then((data: any) => {
+            return JSON.parse(data);
         }).catch((err: any) => {
             if (err.notFound) {
                 return undefined;
