@@ -712,7 +712,7 @@
   "dependencies": {
     "@types/url-parse": "^1.4.3",
     "cheerio": "^1.0.0-rc.3",
-    "jenkins": "^0.27.0",
+    "jenkins": "^0.28.1",
     "open": "^6.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
