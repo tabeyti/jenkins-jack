@@ -122,11 +122,17 @@ export class PipelineJack extends JackBase {
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
 
-        // Stream the output. Yep.
-        await ext.connectionsManager.host.streamBuildOutput(
-            this.activeJob.fullName,
-            this.activeJob.nextBuildNumber,
-            this.outputChannel);
+        if (!this.config.browserBuildOutput) {
+            // Stream the output. Yep.
+            await ext.connectionsManager.host.streamBuildOutput(
+                this.activeJob.fullName,
+                this.activeJob.nextBuildNumber,
+                this.outputChannel);
+
+        }
+        else {
+            ext.connectionsManager.host.openBrowserAt(`/job/${this.activeJob.fullName}/${this.activeJob.nextBuildNumber}/console`);
+        }
 
         this.cachedJob = this.activeJob;
         this.activeJob = undefined;
