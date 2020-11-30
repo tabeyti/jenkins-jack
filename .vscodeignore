@@ -10,3 +10,9 @@ vsc-extension-quickstart.md
 **/*.ts
 *.log
 *.vsix
+*.sh
+*.txt
+*.py
+temp
+Jenkinsfile*
+**/*.gif

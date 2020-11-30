@@ -492,7 +492,7 @@ export class JenkinsService {
      * @param path The desired path from the Jenkins host. Example: /job/someJob
      */
     public openBrowserAt(path: string) {
-        opn(`${this._jenkinsUri}/${path}`);
+        opn(`${this._jenkinsUri}${path}`);
     }
 
     /**
