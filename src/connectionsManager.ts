@@ -3,6 +3,7 @@ import { JenkinsService } from './jenkinsService';
 import { QuickpickSet } from './quickpickSet';
 import { ext } from './extensionVariables';
 import { ConnectionsTreeItem } from './connectionsTree';
+import { JenkinsConnection } from './jenkinsConnection';
 
 export class ConnectionsManager implements QuickpickSet {
     private _host: JenkinsService;
@@ -83,7 +84,7 @@ export class ConnectionsManager implements QuickpickSet {
         if (undefined !== this.host) {
             this.host.dispose();
         }
-        this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
+        this._host = new JenkinsService(conn);
     }
 
     public get activeConnection(): any {
@@ -105,7 +106,7 @@ export class ConnectionsManager implements QuickpickSet {
         let conn = await this.getConnectionInput();
         if (undefined === conn) { return; }
 
-        this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
+        this._host = new JenkinsService(conn);
 
         // Add the connection to the list and make it the active one
         config.connections.forEach((c: any) => c.active = false);
@@ -114,6 +115,7 @@ export class ConnectionsManager implements QuickpickSet {
             "uri": conn.uri,
             "username": conn.username,
             "password": conn.password,
+            "folderFilter": conn.folderFilter,
             "active": true
         });
 
@@ -173,6 +175,7 @@ export class ConnectionsManager implements QuickpickSet {
                 c.uri = editedConnection.uri;
                 c.username = editedConnection.username;
                 c.password = editedConnection.password;
+                c.folderFilter = editedConnection.folderFilter;
             }
         });
         await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
@@ -241,7 +244,7 @@ export class ConnectionsManager implements QuickpickSet {
         }
 
         this._host.dispose();
-        this._host = new JenkinsService(conn.name, conn.uri, conn.username, conn.password);
+        this._host = new JenkinsService(conn);
 
         // Update settings with active host.
         for (let c of config.connections) {
@@ -298,34 +301,15 @@ export class ConnectionsManager implements QuickpickSet {
         });
         if (undefined === password) { return undefined; }
 
-        return new JenkinsConnection(hostName, hostUri, username, password, );
-    }
-}
+        let folderFilter = await vscode.window.showInputBox({
+            ignoreFocusOut: true,
+            prompt: '(Optional) Filter only jobs on a specified folder path (e.g. "job/myfolder")',
+            value: jenkinsConnection?.folderFilter
+        });
+        if (undefined === folderFilter) { return undefined; }
 
-export class JenkinsConnection {
-    private _name: string;
-    private _uri: string;
-    private _username: string;
-    private _password: string;
+        folderFilter = !folderFilter || '' === folderFilter?.trim() ? undefined : folderFilter;
 
-    public constructor(hostName: string, hostUri: string, username: string, password: string) {
-        this._name = hostName;
-        this._uri = hostUri;
-        this._username = username;
-        this._password = password;
-    }
-
-    public get name() { return this._name; }
-    public get uri() { return this._uri; }
-    public get username() { return this._username; }
-    public get password() { return this._password; }
-
-    public get json() {
-        return {
-            name: this._name,
-            uri: this._uri,
-            username: this._username,
-            password: this._password
-        };
+        return new JenkinsConnection(hostName, hostUri, username, password, folderFilter);
     }
 }

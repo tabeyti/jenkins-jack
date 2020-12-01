@@ -6,6 +6,7 @@ import * as htmlParser from 'cheerio';
 import * as Url from 'url-parse';
 
 import { sleep, timer } from './utils';
+import { JenkinsConnection } from './jenkinsConnection';
 
 export enum JobType {
     Default = 'default',
@@ -20,8 +21,10 @@ export class JenkinsService {
     public client: any;
 
     private _config: any;
+
     private _jenkinsUri: string;
-    private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.id}"`;
+
+    private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.connection.name}".`;
     private _disposed = false;
 
     private _jobProps = [
@@ -47,22 +50,20 @@ export class JenkinsService {
     };
 
     public constructor(
-        public readonly id: string,
-        public readonly uri: string,
-        username: string,
-        password: string) {
+        public readonly connection: JenkinsConnection) {
 
         let protocol = 'http';
-        let host = uri;
+        let host = this.connection.uri;
 
-        let match = uri.match('(http|https)://(.*)');
+        let match = this.connection.uri.match('(http|https)://(.*)');
         if (null !== match && match.length === 3) {
             protocol = match[1];
             host = match[2];
         }
 
-        this._jenkinsUri = (null === username || null === password) ?   `${protocol}://${host}` :
-                                                                        `${protocol}://${username}:${password}@${host}`;
+        this._jenkinsUri = (null === this.connection.username || null === this.connection.password) ?
+                            `${protocol}://${host}` :
+                            `${protocol}://${this.connection.username}:${this.connection.password}@${host}`;
 
         console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
 
@@ -79,6 +80,15 @@ export class JenkinsService {
             if (this._disposed) { return; }
             this.showCantConnectMessage();
         });
+
+        // If a folder filter path was provided, check that it exists
+        if (this.connection.folderFilter) {
+            this.client.job.exists(`${this._jenkinsUri}/${this.connection.folderFilter}`, (err: any, exists: any) => {
+                if (err || !exists) {
+                    this.showCantConnectMessage(`Folder filter path invalid: ${this.connection.folderFilter}`);
+                }
+            });
+        }
 
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins')) {
@@ -142,6 +152,8 @@ export class JenkinsService {
 
     /**
      * Wrapper around getJobs with progress notification.
+     * @param job The current Jenkins 'job' object.
+     * @returns A list of Jenkins 'job' objects.
      */
     public async getJobsWithProgress(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
         return await vscode.window.withProgress({
@@ -154,6 +166,16 @@ export class JenkinsService {
             });
 
             progress.report({ message: 'Retrieving jenkins jobs.' });
+
+            // If not job provided and filter is specified in settings,
+            // start recursive job retrieval using top-level folder
+            if (!job && this.connection.folderFilter) {
+                job = {
+                    type: JobType.Folder,
+                    url: `${this._jenkinsUri}/${this.connection.folderFilter}`
+                };
+            }
+
             return await this.getJobs(job, token);
         });
     }
@@ -165,9 +187,7 @@ export class JenkinsService {
      * @returns A list of Jenkins 'job' objects.
      */
     public async getJobs(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
-        if (token?.isCancellationRequested) {
-            return [];
-        }
+        if (token?.isCancellationRequested) { return []; }
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
         let jobs = job ?    await this.getJobsFromUrl(job.url, token) :
@@ -175,7 +195,7 @@ export class JenkinsService {
 
         if (undefined === jobs) { return []; }
 
-        // Ineligant way of propogating the parent 'folder' type to the children
+        // Inelegant way of propagating the parent 'folder' type to the children
         if (undefined !== job && null !== job && JobType.Folder === job.type) {
             for (let j of jobs) {
                 j.type = JobType.Folder;
@@ -188,7 +208,7 @@ export class JenkinsService {
         for (let j of jobs) {
             switch(j._class) {
                 case 'com.cloudbees.hudson.plugins.folder.Folder': {
-                    // Propogate the the parent's job type to the child jobs. My babies!
+                    // Propagate the the parent's job type to the child jobs. My babies!
                     j.type = JobType.Folder;
                     jobList = jobList.concat(await this.getJobs(j, token));
                     break;
@@ -591,9 +611,11 @@ export class JenkinsService {
         return url;
     }
 
-    private async showCantConnectMessage() {
-        let result = await vscode.window.showWarningMessage(this._cantConnectMessage, { title: 'Okay' }, { title: 'Edit Host' });
-        if ('Edit Host' === result?.title) {
+    private async showCantConnectMessage(message?: string) {
+        message = message ?? this._cantConnectMessage;
+
+        let result = await vscode.window.showWarningMessage(message, { title: 'Okay' }, { title: 'Edit Connection' });
+        if ('Edit Connection' === result?.title) {
             vscode.commands.executeCommand('extension.jenkins-jack.connections.edit');
         }
     }

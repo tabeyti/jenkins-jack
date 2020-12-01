@@ -19,7 +19,7 @@ export class NodeTree {
     }
 
     public refresh() {
-        this._treeView.title = `Nodes (${ext.connectionsManager.host.id})`;
+        this._treeView.title = `Nodes (${ext.connectionsManager.host.connection.name})`;
         this._treeViewDataProvider.refresh();
     }
 }

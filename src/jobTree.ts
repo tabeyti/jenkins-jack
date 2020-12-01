@@ -19,7 +19,7 @@ export class JobTree {
     }
 
     public refresh() {
-        this._treeView.title = `Jobs (${ext.connectionsManager.host.id})`;
+        this._treeView.title = `Jobs (${ext.connectionsManager.host.connection.name})`;
         this._treeViewDataProvider.refresh();
     }
 }
@@ -117,6 +117,7 @@ export class JobTreeItem extends vscode.TreeItem {
         };
     }
 
+    // @ts-ignore
 	get tooltip(): string {
         if (JobTreeItemType.Job === this.type) {
             if (undefined === this.job.description || '' === this.job.description) {
@@ -131,6 +132,7 @@ export class JobTreeItem extends vscode.TreeItem {
         }
 	}
 
+    // @ts-ignore
 	get description(): string {
 		return JobTreeItemType.Job === this.type ? this.job.description : this.build.description;
     }

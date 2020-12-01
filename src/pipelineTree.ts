@@ -27,7 +27,7 @@ export class PipelineTree {
     }
 
     public refresh() {
-        this._treeView.title = `Pipelines (${ext.connectionsManager.host.id})`;
+        this._treeView.title = `Pipelines (${ext.connectionsManager.host.connection.name})`;
         this._treeViewDataProvider.refresh();
     }
 
@@ -127,20 +127,20 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private getTreeItemConfig(key: string): any {
         if (undefined === this._config.items) { this._config.items = []; }
         if (undefined === this._config.items || undefined === this._config.items.find(
-                (i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id)) {
+                (i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.connection.name)) {
             this._config.items.push({
-                hostId: ext.connectionsManager.host.id,
+                hostId: ext.connectionsManager.host.connection.name,
                 jobName: key,
                 filepath: null,
             });
         }
-        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.id);
+        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.connection.name);
     }
 
     private async deleteTreeItemConfig(item: PipelineTreeItem) {
         await vscode.workspace.getConfiguration().update(
             'jenkins-jack.pipeline.tree.items',
-            this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.id || i.jobName !== item.job.fullName ),
+            this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.connection.name || i.jobName !== item.job.fullName ),
             vscode.ConfigurationTarget.Global);
     }
 
@@ -295,7 +295,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
             let list =  [];
             for(let job of jobs) {
-                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job, this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.connectionsManager.host.id));
+                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job, this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.connectionsManager.host.connection.name));
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
                 list.push(pipelineTreeItem);
             }
@@ -320,6 +320,7 @@ export class PipelineTreeItem extends vscode.TreeItem {
         };
     }
 
+    // @ts-ignore
 	get tooltip(): string {
         if (this.config) {
             return this.config.filepath;
@@ -333,6 +334,7 @@ export class PipelineTreeItem extends vscode.TreeItem {
         }
 	}
 
+    // @ts-ignore
 	get description(): string {
 		return this.job.description;
     }
