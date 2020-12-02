@@ -1,6 +1,54 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.1.1
+
+### Features
+
+* __Filter Jobs by Folder ([#40](https://github.com/tabeyti/jenkins-jack/issues/40))__: Connection configs now have an (optional) feature to limit extension job queries to a specific folder in Jenkins:
+  ```javascript
+  "jenkins-jack.jenkins.connections": [
+    {
+        "name":         "localhost",
+        "uri":          "http://127.0.0.1:8080/jenkins",
+        "username":     "myusername",
+        "password":     "1231231231231231231231231231"
+        // A relative URI folder path to the folder you want the extension to filter on
+        "folderFilter": "job/myfolder"
+    },
+  ]
+  ```
+
+  If a user wanted filter on jobs that are in a sub-folder (nested folders)...
+  ![Folder Filter Browser](images/doc/connection_folderfilter_browser.png)
+
+  ...the folder filter path would be:
+  ```javascript
+  "folderFilter": "job/myfolder/job/subfolder"
+  ```
+
+* __Pipeline Log Line Suppression Setting ([#30](https://github.com/tabeyti/jenkins-jack/issues/30))__: A new setting/flag `jenkins-jack.outputView.suppressPipelineLog` is now available so that when set to `true`, will filter out all `[Pipeline]` log lines in user's output stream during Pipeline execution and build log download.
+
+* __Additional Language Support ([#20](https://github.com/tabeyti/jenkins-jack/issues/20))__: Additional language IDs (e.g. `jenkinsfile`, `java`) are supported as valid languages for Pipeline execution.
+
+### Fixed
+* __Can't Execute/Update Jobs ([#38](https://github.com/tabeyti/jenkins-jack/issues/38))__: Fixed `forbidden` message appearing when users utilize non-api-token for authentication by setting `crumbIssuer: true` for Jenkins connections (CSRF protection).
+  > __NOTE__: This is configurable for backwards compatibility against older Jenkins version (pre 2.222.1). If you are having connection problems after this change, the `crumbIssuer` can be disabled by modifying your specific Jenkins connection config located in `settings.json`:
+  ```javascript
+  "jenkins-jack.jenkins.connections": [
+    {
+        "name":       "localhost",
+        "uri":        "http://127.0.0.1:8080",
+        "username":   "myusername",
+        "password":   "1231231231231231231231231231"
+        // Add/set "crumbIssuer" as "false" to disable CSRF protection
+        "crumbIssuer": false
+    },
+  ]
+  ```
+
+* __Username/Password URI Encoding Fix ([#41](https://github.com/tabeyti/jenkins-jack/issues/41))__: Both username and password fields are now URI encoded so that special characters are escaped in each connection field.
+
 ## 1.1.0
 
 Massive update adding UI/Views, additional commands, bug fixes, and additional documentation.

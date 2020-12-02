@@ -81,19 +81,22 @@ From the selected remote Jenkins, the extension will pull, parse, and provide Pi
 Any file in the editor with the Groovy language id set will have these completions (can be disabled via settings).
 
 ## Settings
+<!-- settings-start -->
 
 |Name |Description |
 | --- | ---------- |
-| `jenkins-jack.jenkins.connections` | List of jenkins connections (uri, username, and password) a user can switch between for running commands |
+| `jenkins-jack.jenkins.connections` | List of jenkins connections (uri, username, and password) to target when running commands |
 | `jenkins-jack.jenkins.strictTls` | If unchecked, the extension will **not** check certificate validity when connecting through HTTPS |
-| `jenkins-jack.pipeline.params.enabled` | Enables/disables use of build parameters when executing a Pipeline |
-| `jenkins-jack.pipeline.params.interactiveInput` | When enabled, during Pipeline execution a user will be presented with input boxes to enter values for build parameters discovered on the Pipeline job |
+| `jenkins-jack.outputView.panel.defaultViewColumn` | The default view column (location) in vscode the output panel will spawn on show. See https://code.visualstudio.com/api/references/vscode-api#ViewColumn |
+| `jenkins-jack.outputView.suppressPipelineLog` | If enabled, hides `[Pipeline]` log lines in streamed output. |
+| `jenkins-jack.outputView.type` | The output view for streamed logs |
 | `jenkins-jack.pipeline.browserBuildOutput` | Show build output via browser instead of the `OUTPUT` channel |
 | `jenkins-jack.pipeline.browserSharedLibraryRef` | Show Pipeline Shared Library documentation via browser instead of within vscode as markdown |
-| `jenkins-jack.outputView.type` | The output view type (e.g. `OUTPUT` window or editor window) |
-| `jenkins-jack.outputView.panel.defaultViewColumn` | The default view column (location) in vscode the output panel will spawn on show. See https://code.visualstudio.com/api/references/vscode-api#ViewColumn |
-| `jenkins-jack.snippets.enabled` | Enable Pipeline step snippets for editors windows with the Groovy language id set |
-| `jenkins-jack.pipeline.tree.items` | Pipeline Tree View local script to host Pipeline job associations (updated by extension) |
+| `jenkins-jack.pipeline.params.enabled` | Enables the use of parameters (stored in '.myfile.config.json') to be used in your Pipeline execution |
+| `jenkins-jack.pipeline.params.interactiveInput` | If true, will grab parameters from the remote jenkins job and prompt user for builder parameter input using input boxes and quick picks. |
+| `jenkins-jack.pipeline.tree.items` | Remote jenkins job to local pipeline script associations |
+| `jenkins-jack.snippets.enabled` | Enable Pipeline step snippets for supported languageIds |
+<!-- settings-end -->
 
 ## Setup
 

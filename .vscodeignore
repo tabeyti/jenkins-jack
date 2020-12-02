@@ -15,4 +15,4 @@ vsc-extension-quickstart.md
 *.py
 temp
 Jenkinsfile*
-**/*.gif
+images/doc
