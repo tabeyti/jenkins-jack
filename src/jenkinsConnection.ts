@@ -4,12 +4,20 @@ export class JenkinsConnection {
     private _username: string;
     private _password: string;
     private _folderFilter: string | undefined;
+    private _crumbIssuer: boolean;
 
-    public constructor(hostName: string, hostUri: string, username: string, password: string, folderFilter: string | undefined) {
+    public constructor(
+        hostName: string,
+        hostUri: string,
+        username: string,
+        password: string,
+        crumbIssuer: boolean,
+        folderFilter: string | undefined) {
         this._name = hostName;
         this._uri = hostUri;
         this._username = username;
         this._password = password;
+        this._crumbIssuer = crumbIssuer;
         this._folderFilter = folderFilter;
     }
 
@@ -18,14 +26,17 @@ export class JenkinsConnection {
     public get username() { return this._username; }
     public get password() { return this._password; }
     public get folderFilter() { return this._folderFilter; }
+    public get crumbIssuer() { return this._crumbIssuer; }
 
-    public get json() {
-        return {
-            name: this._name,
-            uri: this._uri,
-            username: this._username,
-            password: this._password,
-            folderFilter: this._folderFilter
-        };
+    public static fromJSON(json: any) : JenkinsConnection {
+        let thing =  new JenkinsConnection(
+            json.name,
+            json.uri,
+            json.username,
+            json.password,
+            (null != json.crumbIssuer) ? json.crumbIssuer : true,
+            json.folderFilter
+        );
+        return thing;
     }
 }

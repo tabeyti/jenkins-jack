@@ -84,7 +84,7 @@ export class ConnectionsManager implements QuickpickSet {
         if (undefined !== this.host) {
             this.host.dispose();
         }
-        this._host = new JenkinsService(conn);
+        this._host = new JenkinsService(JenkinsConnection.fromJSON(conn));
     }
 
     public get activeConnection(): any {
@@ -106,7 +106,7 @@ export class ConnectionsManager implements QuickpickSet {
         let conn = await this.getConnectionInput();
         if (undefined === conn) { return; }
 
-        this._host = new JenkinsService(conn);
+        this._host = new JenkinsService(JenkinsConnection.fromJSON(conn));
 
         // Add the connection to the list and make it the active one
         config.connections.forEach((c: any) => c.active = false);
@@ -244,7 +244,7 @@ export class ConnectionsManager implements QuickpickSet {
         }
 
         this._host.dispose();
-        this._host = new JenkinsService(conn);
+        this._host = new JenkinsService(JenkinsConnection.fromJSON(conn));
 
         // Update settings with active host.
         for (let c of config.connections) {
@@ -310,6 +310,6 @@ export class ConnectionsManager implements QuickpickSet {
 
         folderFilter = !folderFilter || '' === folderFilter?.trim() ? undefined : folderFilter;
 
-        return new JenkinsConnection(hostName, hostUri, username, password, folderFilter);
+        return new JenkinsConnection(hostName, hostUri, username, password, true, folderFilter);
     }
 }

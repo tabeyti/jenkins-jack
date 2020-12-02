@@ -66,13 +66,13 @@ export class JenkinsService {
 
         console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
 
+        this.updateSettings();
+
         this.client = jenkins({
             baseUrl: this._jenkinsUri,
-            crumbIssuer: false,
+            crumbIssuer: this.connection.crumbIssuer,
             promisify: true
         });
-
-        this.updateSettings();
 
         // Will error if no connection can be made to the remote host
         this.client.info().catch((err: any) => {
