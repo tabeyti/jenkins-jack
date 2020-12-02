@@ -49,8 +49,7 @@ export class JenkinsService {
         title: 'Okay'
     };
 
-    public constructor(
-        public readonly connection: JenkinsConnection) {
+    public constructor(public readonly connection: JenkinsConnection) {
 
         let protocol = 'http';
         let host = this.connection.uri;
@@ -63,7 +62,7 @@ export class JenkinsService {
 
         this._jenkinsUri = (null === this.connection.username || null === this.connection.password) ?
                             `${protocol}://${host}` :
-                            `${protocol}://${this.connection.username}:${this.connection.password}@${host}`;
+                            `${protocol}://${encodeURIComponent(this.connection.username)}:${encodeURIComponent(this.connection.password)}@${host}`;
 
         console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
 
