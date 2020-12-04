@@ -391,7 +391,7 @@ export class JenkinsService {
                 let json = JSON.parse(r);
                 console.log(`getJobsFromUrl: ${sw.seconds}`);
                 // Backwards compatibility for older Jenkins API
-                json.jobs.forEach((j: any) => { j.fullName = (undefined === j.fullName) ? j.name : j.name; });
+                json.jobs.forEach((j: any) => { j.fullName = (undefined === j.fullName) ? j.name : j.fullName; });
 
                 resolve(json.jobs);
             } catch (err) {
