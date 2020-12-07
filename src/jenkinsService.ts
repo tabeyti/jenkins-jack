@@ -5,7 +5,7 @@ import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 import * as Url from 'url-parse';
 
-import { sleep, timer } from './utils';
+import { sleep, timer, folderToUri } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 
 export enum JobType {
@@ -82,7 +82,8 @@ export class JenkinsService {
 
         // If a folder filter path was provided, check that it exists
         if (this.connection.folderFilter) {
-            this.client.job.exists(`${this._jenkinsUri}/${this.connection.folderFilter}`, (err: any, exists: any) => {
+            let folderUriPath = folderToUri(this.connection.folderFilter);
+            this.client.job.exists(`${this._jenkinsUri}/job/${folderUriPath}`, (err: any, exists: any) => {
                 if (err || !exists) {
                     this.showCantConnectMessage(`Folder filter path invalid: ${this.connection.folderFilter}`);
                 }
@@ -137,16 +138,8 @@ export class JenkinsService {
      * @param job The Jenkins job JSON object.
      */
     public async getJob(job: string) {
-        return this.get(`job/${job}/api/json`).then((data: any) => {
-            return JSON.parse(data);
-        }).catch((err: any) => {
-            if (err.notFound) {
-                return undefined;
-            }
-            console.log(err);
-            this.showCantConnectMessage();
-            throw err;
-        });
+        try { return await this.client.job.get(job); }
+        catch (err) { return undefined; }
     }
 
     /**
@@ -171,7 +164,7 @@ export class JenkinsService {
             if (!job && this.connection.folderFilter) {
                 job = {
                     type: JobType.Folder,
-                    url: `${this._jenkinsUri}/${this.connection.folderFilter}`
+                    url: `${this._jenkinsUri}/job/${folderToUri(this.connection.folderFilter)}`
                 };
             }
 

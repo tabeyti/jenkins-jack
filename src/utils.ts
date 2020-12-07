@@ -243,3 +243,7 @@ export function updateNodeLabelsScript(nodes: string[], labels: string[]): strin
     jenkins.setNodes(jenkins.getNodes());
     jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken);
 }
+
+export function folderToUri(folderPath: string) {
+	return folderPath.split('/').join('/job/');
+}
