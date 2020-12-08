@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.1.2
+
+### Fixes
+
+* __Fixed Broken Folder Jobs ([#43](https://github.com/tabeyti/jenkins-jack/issues/43))__: Folder jobs were broken for script linking and pipeline execute due to job name assignment. Folder pipeline jobs can now be executed and should display with the folder path in the tree view.
+* __Updated Folder Filter to Use Common Directory Path Structure__: The folder filter was introduce in the last update to allow a Jenkins connection to filter on a particular folder when querying jobs.
+  The filter string format was originally to be a relative URI path to the folder (e.g. `job/myfolder/job/mysubfolder`). This messed with the Jenkins nodejs client on how jobs were queried. The filter now accepts a common directory path (e.g. `myfolder/mysubfolder`) for filtering, which requires the user to update their `folderFilter` to the new format.
+
 ## 1.1.1
 
 ### Features

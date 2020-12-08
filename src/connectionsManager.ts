@@ -303,7 +303,7 @@ export class ConnectionsManager implements QuickpickSet {
 
         let folderFilter = await vscode.window.showInputBox({
             ignoreFocusOut: true,
-            prompt: '(Optional) Filter only jobs on a specified folder path (e.g. "job/myfolder")',
+            prompt: '(Optional) Filter only jobs on a specified folder path (e.g. "myfolder", "myfolder/mysubfolder")',
             value: jenkinsConnection?.folderFilter
         });
         if (undefined === folderFilter) { return undefined; }
