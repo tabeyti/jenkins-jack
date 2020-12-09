@@ -286,7 +286,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 	getChildren(element?: PipelineTreeItem): Thenable<PipelineTreeItem[]> {
         return new Promise(async resolve => {
 
-            let jobs = await ext.connectionsManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
+            let jobs = await ext.connectionsManager.host.getJobs(null, this._cancelTokenSource.token);
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
             jobs = jobs.filter((job: any) =>    job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob" &&
                                                 job.buildable &&

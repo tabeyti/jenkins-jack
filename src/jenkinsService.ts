@@ -147,7 +147,7 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobsWithProgress(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+    public async getJobs(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -168,7 +168,7 @@ export class JenkinsService {
                 };
             }
 
-            return await this.getJobs(job, token);
+            return await this.getJobsInternal(job, token);
         });
     }
 
@@ -178,7 +178,7 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobs(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+    private async getJobsInternal(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
         if (token?.isCancellationRequested) { return []; }
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
@@ -202,7 +202,7 @@ export class JenkinsService {
                 case 'com.cloudbees.hudson.plugins.folder.Folder': {
                     // Propagate the the parent's job type to the child jobs. My babies!
                     j.type = JobType.Folder;
-                    jobList = jobList.concat(await this.getJobs(j, token));
+                    jobList = jobList.concat(await this.getJobsInternal(j, token));
                     break;
                 }
                 case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
@@ -538,7 +538,7 @@ export class JenkinsService {
      * @param filter A function for filtering the job list retrieved from the Jenkins host.
      */
     public async jobSelectionFlow(filter?: ((job: any) => boolean), canPickMany: boolean = false): Promise<any[]|undefined> {
-        let jobs = await this.getJobsWithProgress();
+        let jobs = await this.getJobs();
         if (undefined === jobs) { return undefined; }
         if (filter) {
             jobs = jobs.filter(filter);
