@@ -467,7 +467,7 @@ export class JenkinsService {
                 delay: 500
             });
 
-            return new Promise((resolve) => {
+            return new Promise<void>((resolve) => {
                 token.onCancellationRequested(() =>{
                     log = undefined;
                     resolve();
