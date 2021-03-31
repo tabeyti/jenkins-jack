@@ -7,14 +7,7 @@ import * as Url from 'url-parse';
 
 import { sleep, timer, folderToUri } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
-
-export enum JobType {
-    Default = 'default',
-    Pipeline = 'pipeline',
-    Folder = 'folder',
-    Multi = 'multibranch',
-    Org = 'org'
-}
+import { JobType, JobTypeUtil } from './jobType';
 
 export class JenkinsService {
     // @ts-ignore
@@ -198,21 +191,22 @@ export class JenkinsService {
         // types.
         let jobList: any[] = [];
         for (let j of jobs) {
-            switch(j._class) {
-                case 'com.cloudbees.hudson.plugins.folder.Folder': {
-                    // Propagate the the parent's job type to the child jobs. My babies!
-                    j.type = JobType.Folder;
+
+            let type = JobTypeUtil.classNameToType(j._class);
+
+            switch(type) {
+                case JobType.Folder: {
                     jobList = jobList.concat(await this.getJobsInternal(j, token));
                     break;
                 }
-                case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {
+                case JobType.Multi: {
                     for (let c of j.jobs) {
                         c.type = JobType.Multi;
                         jobList.push(c);
                     }
                     break;
                 }
-                case 'jenkins.branch.OrganizationFolder': {
+                case JobType.Org: {
                     for (var pc of j.jobs) {
                         for (let c of pc.jobs) {
                             c.type = JobType.Org;
@@ -221,7 +215,7 @@ export class JenkinsService {
                     }
                     break;
                 }
-                case 'org.jenkinsci.plugins.workflow.job.WorkflowJob': {
+                case JobType.Pipeline: {
                     j.type = undefined === j.type ? JobType.Pipeline : j.type;
                     jobList.push(j);
                     break;
@@ -445,7 +439,7 @@ export class JenkinsService {
         let outputConfig = await vscode.workspace.getConfiguration('jenkins-jack.outputView');
         let suppressPipelineLog = outputConfig.suppressPipelineLog;
 
-        // TODO:Arbitrary sleep to mitigate a race condition where the window
+        // TODO: Arbitrary sleep to mitigate a race condition where the window
         //      updates with empty content before the log stream can
         //      append text to the OutputPanel's buffer.
         //      A better solution would be for the show of OutputPanel to await on the
@@ -467,10 +461,10 @@ export class JenkinsService {
                 delay: 500
             });
 
-            return new Promise<void>((resolve) => {
+            return new Promise((resolve) => {
                 token.onCancellationRequested(() =>{
                     log = undefined;
-                    resolve();
+                    resolve(undefined);
                 });
 
                 log.on('data', (text: string) => {
@@ -487,15 +481,14 @@ export class JenkinsService {
                 log.on('error', (err: string) => {
                     if (token.isCancellationRequested) { return; }
                     console.log(`[ERROR]: ${err}`);
-                    resolve();
+                    resolve(undefined);
                 });
 
                 log.on('end', () => {
                     if (token.isCancellationRequested) { return; }
-                    resolve();
+                    resolve(undefined);
                 });
             });
-
         });
     }
 

@@ -5,7 +5,7 @@ import { ext } from './extensionVariables';
 import * as util from 'util';
 import * as xml2js from "xml2js";
 import { PipelineConfig } from './pipelineJobConfig';
-import { JobType } from './jenkinsService';
+import { JobType } from './jobType';
 import { filepath } from './utils';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
