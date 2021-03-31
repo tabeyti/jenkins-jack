@@ -59,7 +59,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                     list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build));
                 }
             } else {
-                let jobs = await ext.connectionsManager.host.getJobsWithProgress(null, this._cancelTokenSource.token);
+                let jobs = await ext.connectionsManager.host.getJobs(null, this._cancelTokenSource.token);
                 jobs = jobs.filter((job: any) =>  job);
 
                 for(let job of jobs) {
