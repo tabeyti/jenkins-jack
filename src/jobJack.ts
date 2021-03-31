@@ -104,7 +104,7 @@ export class JobJack extends JackBase {
     }
 
     public async delete(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow();
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow(undefined, true);
         if (undefined === jobs) { return; }
 
         let jobNames = jobs.map((j: any) => j.fullName);
