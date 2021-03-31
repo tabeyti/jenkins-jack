@@ -63,7 +63,7 @@ export class ConnectionsManager implements QuickpickSet {
     }
 
     public async display() {
-        let result = await vscode.window.showQuickPick(this.commands, { placeHolder: 'Jenkins Jack' });
+        let result = await vscode.window.showQuickPick(this.commands, { placeHolder: 'Jenkins Jack', ignoreFocusOut: true });
         if (undefined === result) { return; }
         return result.target();
     }
@@ -144,7 +144,7 @@ export class ConnectionsManager implements QuickpickSet {
             }
 
             // Select a connection to edit
-            let result = await vscode.window.showQuickPick(hosts);
+            let result = await vscode.window.showQuickPick(hosts, { ignoreFocusOut: true });
             if (undefined === result) { return; }
             conn = result.target;
         }
@@ -198,7 +198,7 @@ export class ConnectionsManager implements QuickpickSet {
                 });
             }
 
-            let result = await vscode.window.showQuickPick(hosts);
+            let result = await vscode.window.showQuickPick(hosts, { ignoreFocusOut: true });
             if (undefined === result) { return undefined; }
             conn = result.target;
         }
@@ -238,7 +238,7 @@ export class ConnectionsManager implements QuickpickSet {
                 });
             }
 
-            let result = await vscode.window.showQuickPick(hosts);
+            let result = await vscode.window.showQuickPick(hosts, { ignoreFocusOut: true });
             if (undefined === result) { return; }
             conn = result.target;
         }

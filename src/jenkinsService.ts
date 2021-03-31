@@ -545,7 +545,7 @@ export class JenkinsService {
         }
         for (let job of jobs) { job.label = job.fullName; }
 
-        let selectedJobs = await vscode.window.showQuickPick(jobs, { canPickMany: canPickMany });
+        let selectedJobs = await vscode.window.showQuickPick(jobs, { canPickMany: canPickMany, ignoreFocusOut: true });
         if (undefined === selectedJobs) { return undefined; }
         return selectedJobs;
     }
@@ -559,7 +559,7 @@ export class JenkinsService {
         // Ask what build they want to download.
         let builds = await this.getBuildsWithProgress(job);
         if (undefined !== filter) { builds = builds.filter(filter); }
-        let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany }) as any;
+        let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany, ignoreFocusOut: true }) as any;
         if (undefined === selections) { return undefined; }
         return selections;
     }
@@ -583,7 +583,7 @@ export class JenkinsService {
             n.label = (n.offline ? "$(alert) " : "$(check) ") + n.displayName;
         }
 
-        let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany }) as any;
+        let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany, ignoreFocusOut: true }) as any;
         if (undefined === selections) { return; }
         return selections;
     }

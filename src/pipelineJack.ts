@@ -181,7 +181,7 @@ export class PipelineJack extends JackBase {
             return await this.sharedLib.refresh(this.cachedJob) as SharedLibVar[];
         });
 
-        let result = await vscode.window.showQuickPick(lib);
+        let result = await vscode.window.showQuickPick(lib, { ignoreFocusOut: true });
         if (undefined === result) { return; }
         if (this.config.browserSharedLibraryRef) {
             let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
@@ -266,14 +266,16 @@ export class PipelineJack extends JackBase {
                         label: title,
                         picked: (prefillValue === "true")
                     }], {
-                    canPickMany: true
+                    canPickMany: true,
+                    ignoreFocusOut: true
                 });
                 if (undefined === result) { return undefined; }
                 value = String(result.length === 1);
                 break;
             case "hudson.model.ChoiceParameterDefinition":
                 value = await vscode.window.showQuickPick(param.choices, {
-                    placeHolder: title
+                    placeHolder: title,
+                    ignoreFocusOut: true
                 });
                 break;
             case "hudson.model.StringParameterDefinition":
@@ -339,7 +341,8 @@ export class PipelineJack extends JackBase {
             if (undefined !== config.interactiveInputOverride &&
                 undefined !== config.interactiveInputOverride[p.name]) {
                 value = await vscode.window.showQuickPick(config.interactiveInputOverride[p.name], {
-                    placeHolder: title
+                    placeHolder: title,
+                    ignoreFocusOut: true
                 });
             }
             else {
