@@ -246,7 +246,13 @@ export class PipelineJack extends JackBase {
             if (undefined === r) { return undefined; }
 
             console.log(`${jobName} doesn't exist. Creating...`);
-            await ext.connectionsManager.host.client.job.create(jobName, xml);
+            try {
+                await ext.connectionsManager.host.client.job.create(jobName, xml);
+            } catch (ex) {
+                console.log(ex.message);
+                this.showWarningMessage(ex.message);
+                throw ex;
+            }
             job = await ext.connectionsManager.host.getJob(jobName);
         }
         else {
@@ -377,7 +383,7 @@ export class PipelineJack extends JackBase {
                 this.showWarningMessage(`User canceled pipeline update.`);
             });
             progress.report({ increment: 50 });
-            return new Promise(async resolve => {
+            return new Promise<void>(async resolve => {
                 await this.createUpdate(source, job);
                 this.outputChannel.appendLine(this.barrierLine);
                 this.outputChannel.appendLine(`Pipeline ${job} updated!`);
