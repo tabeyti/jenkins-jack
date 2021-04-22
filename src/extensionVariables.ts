@@ -11,6 +11,7 @@ import { PipelineTree } from "./pipelineTree";
 import { NodeTree } from "./nodeTree";
 import { OutputPanelProvider } from "./outputProvider";
 import { ConnectionsTree } from "./connectionsTree";
+import { QueueJack } from "./queueJack";
 
 /**
  * Namespace for common variables used throughout the extension. They must be initialized in the activate() method of extension.ts
@@ -26,6 +27,8 @@ export namespace ext {
     export let nodeJack: NodeJack;
     export let buildJack: BuildJack;
     export let jobJack: JobJack;
+
+    export let queueJack: QueueJack;
 
     export let connectionsTree: ConnectionsTree;
     export let jobTree: JobTree;

@@ -5,7 +5,7 @@ import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 import * as Url from 'url-parse';
 
-import { sleep, timer, folderToUri } from './utils';
+import { sleep, timer, folderToUri, getQueuedItemsScript, msToHm } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 import { JobType, JobTypeUtil } from './jobType';
 
@@ -413,7 +413,7 @@ export class JenkinsService {
                 });
             }
             let output = await r;
-            return output;
+            return output.replace('Result: ', '');
         } catch (err) {
             console.log(err);
             this.showCantConnectMessage();
@@ -577,6 +577,29 @@ export class JenkinsService {
         }
 
         let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany, ignoreFocusOut: true }) as any;
+        if (undefined === selections) { return; }
+        return selections;
+    }
+
+    /**
+     * Provides a quick pick selection of queued items, returning the selected items.
+     * @param filter A function for filtering the queue list retrieved from the Jenkins host.
+     */
+    public async queueSelectionFlow(filter?: ((job: any) => boolean), canPickMany: boolean = false): Promise<any[]|undefined> {
+        let result = await this.runConsoleScript(getQueuedItemsScript());
+        let items = JSON.parse(result);
+        if (undefined === items) { return undefined; }
+
+        if (filter) {
+            items = items.filter(filter);
+        }
+
+        items.forEach((i: any) => {
+            i.label = `(${i.id}) ${i.name}`;
+            i.description =`${i.why} (${msToHm(Date.now() - new Date(i.inQueueSince).getTime())})`
+        })
+
+        let selections = await vscode.window.showQuickPick(items, { canPickMany: canPickMany, ignoreFocusOut: true }) as any;
         if (undefined === selections) { return; }
         return selections;
     }

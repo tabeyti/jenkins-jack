@@ -19,6 +19,7 @@ import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
 import { applyDefaultHost } from './utils';
 import { ConnectionsTree } from './connectionsTree';
+import { QueueJack } from './queueJack';
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -52,6 +53,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     ext.nodeJack = new NodeJack();
     commandSets.push(ext.nodeJack);
+
+    ext.queueJack = new QueueJack();
+    commandSets.push(ext.queueJack);
 
     commandSets.push(ext.connectionsManager);
 

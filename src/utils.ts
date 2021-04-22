@@ -244,6 +244,54 @@ export function updateNodeLabelsScript(nodes: string[], labels: string[]): strin
     jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken);
 }
 
+export function getQueuedItemsScript(): string {
+    return `
+    import groovy.json.JsonOutput
+
+    def queuedItems = []
+    Jenkins.instance.queue.items.each {
+        queuedItems.add([
+                name: it.task.fullDisplayName,
+                blocked: it.blocked,
+                buildable: it.buildable,
+                id: it.id,
+                inQueueSince: it.inQueueSince,
+                params: it.params,
+                stuck: it.stuck,
+                url: it.url,
+                why: it.why,
+                buildableStartMilliseconds: it.buildableStartMilliseconds,
+                pending: it.pending
+        ])
+    }
+    return JsonOutput.toJson(queuedItems)
+    `
+}
+
+export function msToHm(milliseconds: number) {
+
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const totalHours = Math.floor(totalMinutes / 60);
+    const days = Math.floor(totalHours / 24);
+
+    const seconds = totalSeconds % 60;
+    const minutes = totalMinutes % 60;
+    const hours = totalHours % 24;
+
+    let time = '1s';
+    if (days > 0) {
+      time = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else if (hours > 0) {
+      time = `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      time = `${minutes}m ${seconds}s`;
+    } else if (seconds > 0) {
+      time = `${seconds}s`;
+    }
+    return time;
+}
+
 export function folderToUri(folderPath: string) {
 	return folderPath.split('/').join('/job/');
 }

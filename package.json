@@ -625,6 +625,16 @@
         }
       },
       {
+        "command": "extension.jenkins-jack.queue",
+        "title": "Queue Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.queue.abort",
+        "title": "Abort",
+        "category": "Jenkins Jack: Queue"
+      },
+      {
         "command": "extension.jenkins-jack.connections.select",
         "title": "Select",
         "category": "Jenkins Jack: Connections"
