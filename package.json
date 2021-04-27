@@ -707,7 +707,7 @@
     "@types/xml2js": "0.4.3",
     "tslint": "^5.8.0",
     "typescript": "^3.8.3",
-    "vscode": "^1.1.36"
+    "vscode": "~1.1.18"
   },
   "dependencies": {
     "@types/url-parse": "^1.4.3",
@@ -717,7 +717,6 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
     "url-parse": "^1.4.7",
-    "vsce": "^1.81.1",
     "xml2js": "0.4.3"
   }
 }
