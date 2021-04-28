@@ -8,6 +8,7 @@ import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 import { PipelineConfig } from './pipelineJobConfig';
 import { PipelineTreeItem } from './pipelineTree';
+import { JobType } from './jobType';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -166,7 +167,7 @@ export class PipelineJack extends JackBase {
         let source = editor.document.getText();
         if ("" === source) { return; }
 
-        await this.update(source, config.buildableName);
+        await this.update(source, config);
     }
 
     /**
@@ -203,10 +204,12 @@ export class PipelineJack extends JackBase {
     /**
      * Creates or update the provides job with the passed Pipeline source.
      * @param source The scripted Pipeline source.
-     * @param jobName The Jenkins Pipeline true job name (including folder path).
+     * @param config The local pipeline config for the job
      * @returns A Jenkins 'job' json object.
      */
-    private async createUpdate(source: string, jobName: string): Promise<any> {
+    private async createUpdate(source: string, config: PipelineConfig): Promise<any> {
+        let jobName = config.buildableName;
+
         let xml = pipelineJobConfigXml();
         let job = await ext.connectionsManager.host.getJob(jobName);
 
@@ -241,27 +244,49 @@ export class PipelineJack extends JackBase {
         root.quietPeriod = 0;
         xml = new xml2js.Builder().buildObject(parsed);
 
-        if (!job) {
-            let r = await this.showInformationModal(
-                `"${jobName}" doesn't exist. Do you want us to create it?`, { title: "Yes"} );
-            if (undefined === r) { return undefined; }
-
-            console.log(`${jobName} doesn't exist. Creating...`);
-            try {
-                await ext.connectionsManager.host.client.job.create(jobName, xml);
-            } catch (ex) {
-                console.log(ex.message);
-                this.showWarningMessage(ex.message);
-                throw ex;
-            }
-            job = await ext.connectionsManager.host.getJob(jobName);
-        }
-        else {
+        // If job exists already, update the config
+        if (job) {
             console.log(`${jobName} already exists. Updating...`);
             await ext.connectionsManager.host.client.job.config(jobName, xml);
+            return job;
         }
-        console.log(`Successfully updated Pipeline: ${jobName}`);
-        return job;
+
+        // If job doesn't exist, see if user wants to make it
+        let r = await this.showInformationModal(
+            `"${jobName}" doesn't exist. Do you want us to create it?`, { title: 'Yes' } );
+        if (undefined === r) { return undefined; }
+        console.log(`${jobName} doesn't exist. Creating...`);
+
+        // Provide option for selecting a folder job on the server to create the job under
+        let fullJobName = jobName;
+        if (!config.folder) {
+            let options = (await ext.connectionsManager.host
+                                .getJobs())
+                                .filter((j: any) => j.type === JobType.Folder)
+                                .map((j: any) => j.fullName);
+            options.unshift('.');
+
+            let selection = await vscode.window.showQuickPick(options, { placeHolder: 'Select the Jenkins folder to create your job under.' });
+            if (undefined === selection) { return undefined; }
+
+            if ('.' !== selection) {
+                // If folder selected, add it to job name and update pipeline config
+                fullJobName = `${selection}/${jobName}`
+                config.folder = selection;
+                config.save();
+            }
+        }
+
+        // Create the job on da Jenkles!
+        try {
+            await ext.connectionsManager.host.client.job.create(fullJobName, xml);
+        } catch (ex) {
+            console.log(ex.message);
+            this.showWarningMessage(ex.message);
+            throw ex;
+        }
+
+        return await ext.connectionsManager.host.getJob(fullJobName);
     }
 
     private async showParameterInput(param: any, prefillValue: string) {
@@ -364,9 +389,9 @@ export class PipelineJack extends JackBase {
     /**
      * Updates the targeted Pipeline job with the given script/source.
      * @param source The pipeline script source to update to.
-     * @param job The name of the job to update.
+     * @param config The local pipeline config of the job
      */
-    private async update(source: string, job: string) {
+    private async update(source: string, config: PipelineConfig) {
         if (undefined !== this.activeJob) {
             this.showWarningMessage(`Already building/streaming - ${this.activeJob.fullName}: #${this.activeJob.nextBuildNumber}`);
             return;
@@ -377,7 +402,7 @@ export class PipelineJack extends JackBase {
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: `Updating ${job}`,
+            title: `Updating ${config.buildableName}`,
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
@@ -385,9 +410,9 @@ export class PipelineJack extends JackBase {
             });
             progress.report({ increment: 50 });
             return new Promise<void>(async resolve => {
-                await this.createUpdate(source, job);
+                await this.createUpdate(source, config);
                 this.outputChannel.appendLine(this.barrierLine);
-                this.outputChannel.appendLine(`Pipeline ${job} updated!`);
+                this.outputChannel.appendLine(`Pipeline ${config.buildableName} updated!`);
                 this.outputChannel.appendLine(this.barrierLine);
                 resolve();
             });
@@ -435,11 +460,11 @@ export class PipelineJack extends JackBase {
             });
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
-            let currentJob = await this.createUpdate(source, job);
+            let currentJob = await this.createUpdate(source, config);
             if (undefined === currentJob) { return; }
 
             let jobName = currentJob.fullName;
-            let buildNum = currentJob.nextBuildNumber;
+            let buildNumber = currentJob.nextBuildNumber;
             if (token.isCancellationRequested) { return undefined;  }
 
             progress.report({ increment: 20, message: `Waiting on build paramter input...` });
@@ -458,7 +483,7 @@ export class PipelineJack extends JackBase {
             }
             if (token.isCancellationRequested) { return undefined;  }
 
-            progress.report({ increment: 20, message: `Building "${jobName}" #${buildNum}` });
+            progress.report({ increment: 20, message: `Building "${jobName}" #${buildNumber}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
             await ext.connectionsManager.host.client.job.build(buildOptions).catch((err: any) => {
                 console.log(err);
@@ -472,9 +497,9 @@ export class PipelineJack extends JackBase {
 
             progress.report({ increment: 40, message: 'Waiting for build to be ready...' });
             try {
-                await ext.connectionsManager.host.buildReady(jobName, buildNum);
+                await ext.connectionsManager.host.buildReady(jobName, buildNumber);
             } catch (err) {
-                this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNum}`);
+                this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNumber}`);
                 return undefined;
             }
 
