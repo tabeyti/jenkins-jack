@@ -3,7 +3,6 @@ import * as jenkins from 'jenkins';
 import * as request from 'request-promise-native';
 import * as opn from 'open';
 import * as htmlParser from 'cheerio';
-import * as Url from 'url-parse';
 
 import { sleep, timer, folderToUri } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
@@ -152,8 +151,8 @@ export class JenkinsService {
 
             progress.report({ message: 'Retrieving jenkins jobs.' });
 
-            // If not job provided and filter is specified in settings,
-            // start recursive job retrieval using top-level folder
+            // If no job was provided and and a folder filter is specified in config,
+            // start recursive job retrieval using the folder
             if (!job && this.connection.folderFilter) {
                 job = {
                     type: JobType.Folder,
@@ -173,6 +172,7 @@ export class JenkinsService {
      */
     private async getJobsInternal(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
         if (token?.isCancellationRequested) { return []; }
+
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API
         let jobs = job ?    await this.getJobsFromUrl(job.url, token) :
@@ -180,12 +180,6 @@ export class JenkinsService {
 
         if (undefined === jobs) { return []; }
 
-        // Inelegant way of propagating the parent 'folder' type to the children
-        if (undefined !== job && null !== job && JobType.Folder === job.type) {
-            for (let j of jobs) {
-                j.type = JobType.Folder;
-            }
-        }
 
         // Not all jobs are top level. Need to grab child jobs from certain class
         // types.
@@ -195,7 +189,11 @@ export class JenkinsService {
             let type = JobTypeUtil.classNameToType(j._class);
 
             switch(type) {
+                // Although folder jobs aren't buildable, we grab them anyways to use
+                // for things like job creation
                 case JobType.Folder: {
+                    j.type = JobType.Folder;
+                    jobList.push(j);
                     jobList = jobList.concat(await this.getJobsInternal(j, token));
                     break;
                 }
@@ -246,7 +244,7 @@ export class JenkinsService {
     }
 
     /**
-     * Wrapper around getBuildNumbers with progress notification.
+     * Wrapper around getBuilds with progress notification.
      * @param job The Jenkins JSON job object
      */
     public async getBuildsWithProgress(job: any, token?: vscode.CancellationToken) {
@@ -377,8 +375,8 @@ export class JenkinsService {
                 let r = await requestPromise;
                 let json = JSON.parse(r);
                 console.log(`getJobsFromUrl: ${sw.seconds}`);
-                // Backwards compatibility for older Jenkins API
-                json.jobs.forEach((j: any) => { j.fullName = (undefined === j.fullName) ? j.name : j.fullName; });
+
+                this.addJobMetadata(json.jobs);
 
                 resolve(json.jobs);
             } catch (err) {
@@ -386,6 +384,16 @@ export class JenkinsService {
                 this.showCantConnectMessage();
                 resolve(undefined);
             }
+        });
+    }
+
+    private addJobMetadata(jobs: any) {
+        jobs?.forEach((j: any) => {
+            // Add meta-data fields to Jenkins job object
+            j.fullName = (undefined === j.fullName) ? j.name : j.fullName;
+
+            // Recurse on child jobs, if any
+            this.addJobMetadata(j.jobs);
         });
     }
 
