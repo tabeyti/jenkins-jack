@@ -145,9 +145,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     }
 
     private async addScriptLink(item: PipelineTreeItem) {
-        // Check for files of the same name, even with extension .groovy, and
-        // ask user if they want to overwrite
-        let jobName = item.job.type === JobType.Folder ? path.parse(item.job.fullName).base : item.job.fullName;
+        let jobName = path.parse(item.job.fullName).base;
 
         // Prompt user for folder location to save script
         let scriptFile = await vscode.window.showOpenDialog({
@@ -166,7 +164,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         }
         let pipelineJobConfig = new PipelineConfig(scriptFilePath, true);
         pipelineJobConfig.name = jobName;
-        if (JobType.Folder === item.job.type) {
+        if (path.parse(item.job.fullName).dir !== '') {
             pipelineJobConfig.folder = path.dirname(item.job.fullName);
         }
         pipelineJobConfig.save();
@@ -213,10 +211,11 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
     private async saveAndEditScript(script: string, item: PipelineTreeItem) {
 
+        // If this pipeline is in a folder, grab the name of job only
+        let jobName = path.parse(item.job.fullName).base
+
         // Check for files of the same name, even with extension .groovy, and
         // ask user if they want to overwrite
-        let jobName = item.job.type === JobType.Folder ? path.parse(item.job.fullName).base : item.job.fullName;
-
         let scriptPathResult = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.parse(`file:${jobName}`)
         });
@@ -251,7 +250,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         // Create associated jenkins-jack pipeline script config, with folder location if present.
         let pipelineJobConfig = new PipelineConfig(filepath);
         pipelineJobConfig.name = jobName;
-        if (JobType.Folder === item.job.type) {
+        if (path.parse(item.job.fullName).dir !== '') {
             pipelineJobConfig.folder = path.dirname(item.job.fullName);
         }
         pipelineJobConfig.save();

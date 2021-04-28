@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { JackBase } from './jack';
 import { JobTreeItem, JobTreeItemType } from './jobTree';
 import { ext } from './extensionVariables';
-import * as Url from 'url-parse';
 import { withProgressOutputParallel } from './utils';
 
 export class BuildJack extends JackBase {
@@ -109,7 +108,7 @@ export class BuildJack extends JackBase {
                 builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
             }
             for (let build of builds) {
-                ext.connectionsManager.host.openBrowserAt(new Url(build.url).pathname);
+                ext.connectionsManager.host.openBrowserAt(build.url);
             }
         }));
     }

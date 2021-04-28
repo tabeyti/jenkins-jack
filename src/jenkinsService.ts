@@ -321,7 +321,7 @@ export class JenkinsService {
             });
             progress.report({ message: `Pulling replay script from ${job.fullName} #${build.number}` });
             try {
-                let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${build.number}/replay`;
+                let url = `${this.fromUrlFormat(job.url)}/${build.number}/replay`;
                 let r = await request.get(url);
 
                 const root = htmlParser.load(r);
@@ -346,7 +346,7 @@ export class JenkinsService {
      */
     public async deleteBuild(job: any, buildNumber: any) {
         try {
-            let url = `${this._jenkinsUri}/${new Url(job.url).pathname}/${buildNumber}/doDelete`;
+            let url = `${this.fromUrlFormat(job.url)}/${buildNumber}/doDelete`;
             await request.post(url);
         } catch (err) {
             if (302 === err.statusCode) {
@@ -493,10 +493,18 @@ export class JenkinsService {
     }
 
     /**
+     * Opens the browser at the url provided.
+     * @param url The url to open in the browser
+     */
+    public openBrowserAt(url: string) {
+        opn(url);
+    }
+
+    /**
      * Opens the browser at the targeted path using the Jenkins host.
      * @param path The desired path from the Jenkins host. Example: /job/someJob
      */
-    public openBrowserAt(path: string) {
+    public openBrowserAtPath(path: string) {
         opn(`${this._jenkinsUri}${path}`);
     }
 

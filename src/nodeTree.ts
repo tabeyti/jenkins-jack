@@ -55,7 +55,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
             if (undefined === nodes) {
                 resolve([]);
             }
-            nodes = nodes.filter((n: any) => n.displayName !== 'master');
+            nodes = nodes?.filter((n: any) => n.displayName !== 'master');
             for (let n of nodes) {
                 list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n));
             }
@@ -87,6 +87,7 @@ export class NodeTreeItem extends vscode.TreeItem {
         };
     }
 
+     // @ts-ignore
 	get tooltip(): string {
         let tooltip = this.label;
 
@@ -104,6 +105,7 @@ export class NodeTreeItem extends vscode.TreeItem {
         return tooltip;
 	}
 
+     // @ts-ignore
 	get description(): string {
 		return this.node.description;
     }

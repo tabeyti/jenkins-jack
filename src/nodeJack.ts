@@ -62,7 +62,7 @@ export class NodeJack extends JackBase {
                 if (undefined === nodes) { return false; }
             }
             for (let n of nodes) {
-                ext.connectionsManager.host.openBrowserAt(`computer/${n.displayName}`);
+                ext.connectionsManager.host.openBrowserAtPath(`/computer/${n.displayName}`);
             }
         }));
     }

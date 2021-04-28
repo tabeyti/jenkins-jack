@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
+import { JobType } from './jobType';
 import { filepath } from './utils';
 
 export class JobTree {
@@ -60,7 +61,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                 }
             } else {
                 let jobs = await ext.connectionsManager.host.getJobs(null, this._cancelTokenSource.token);
-                jobs = jobs.filter((job: any) =>  job);
+                jobs = jobs.filter((job: any) =>  job.type !== JobType.Folder);
 
                 for(let job of jobs) {
                     let jobTreeItem = new JobTreeItem(job.fullName, JobTreeItemType.Job, vscode.TreeItemCollapsibleState.Collapsed,job);

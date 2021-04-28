@@ -131,7 +131,8 @@ export class PipelineJack extends JackBase {
 
         }
         else {
-            ext.connectionsManager.host.openBrowserAt(`/job/${this.activeJob.fullName}/${this.activeJob.nextBuildNumber}/console`);
+            ext.connectionsManager.host.openBrowserAtPath(
+                `/job/${this.activeJob.fullName}/${this.activeJob.nextBuildNumber}/console`);
         }
 
         this.cachedJob = this.activeJob;
@@ -186,7 +187,7 @@ export class PipelineJack extends JackBase {
         if (this.config.browserSharedLibraryRef) {
             let uri = (undefined === this.cachedJob) ?  `pipeline-syntax/globals#${result.label}` :
                                                         `job/${this.cachedJob.fullName}/pipeline-syntax/globals#${result.label}`;
-            ext.connectionsManager.host.openBrowserAt(uri);
+            ext.connectionsManager.host.openBrowserAtPath(uri);
         }
         else {
             const panel = vscode.window.createWebviewPanel(

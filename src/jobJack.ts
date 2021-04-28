@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { JackBase } from './jack';
 import { JobTreeItem, JobTreeItemType } from './jobTree';
-import * as Url from 'url-parse';
 import { ext } from './extensionVariables';
+import { JobType } from './jobType';
 
 export class JobJack extends JackBase {
 
@@ -55,7 +55,7 @@ export class JobJack extends JackBase {
                 if (undefined === jobs) { return false; }
             }
             for (let job of jobs) {
-                ext.connectionsManager.host.openBrowserAt(new Url(job.url).pathname);
+                ext.connectionsManager.host.openBrowserAt(job.url);
             }
         }));
     }
@@ -86,7 +86,7 @@ export class JobJack extends JackBase {
     }
 
     public async enable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => !j.buildable);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => !j.buildable && j.type !== JobType.Folder);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.enable(job.fullName);
@@ -95,7 +95,7 @@ export class JobJack extends JackBase {
     }
 
     public async disable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.buildable);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.buildable && j.type !== JobType.Folder);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.disable(job.fullName);
@@ -104,7 +104,7 @@ export class JobJack extends JackBase {
     }
 
     public async delete(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow(undefined, true);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.type !== JobType.Folder, true);
         if (undefined === jobs) { return; }
 
         let jobNames = jobs.map((j: any) => j.fullName);
