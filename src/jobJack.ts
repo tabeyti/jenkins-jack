@@ -90,7 +90,7 @@ export class JobJack extends JackBase {
     }
 
     public async enable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => !j.buildable && j.type !== JobType.Folder);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => !j.buildable && j.type !== JobType.Folder, true);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.enable(job.fullName);
@@ -99,7 +99,7 @@ export class JobJack extends JackBase {
     }
 
     public async disable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.buildable && j.type !== JobType.Folder);
+        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.buildable && j.type !== JobType.Folder, true);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.disable(job.fullName);
@@ -114,8 +114,8 @@ export class JobJack extends JackBase {
         let jobNames = jobs.map((j: any) => j.fullName);
         let r = await this.showInformationModal(
             `Are you sure you want to delete these jobs?\n\n${jobNames.join('\n')}`,
-            { title: "Yes"} );
-        if (undefined === r) { return undefined; }
+            { title: "Yes" } );
+        if (undefined === r) { return; }
 
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.destroy(job.fullName);
