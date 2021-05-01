@@ -3,6 +3,7 @@ import { JackBase } from './jack';
 import { JobTreeItem, JobTreeItemType } from './jobTree';
 import { ext } from './extensionVariables';
 import { withProgressOutputParallel } from './utils';
+import { JobType } from './jobType'
 
 export class BuildJack extends JackBase {
 
@@ -161,7 +162,7 @@ export class BuildJack extends JackBase {
 
         let output = await withProgressOutputParallel('Build Jack Output(s)', items, async (item) => {
             await ext.connectionsManager.host.deleteBuild(item.job.fullName, item.build.number);
-            return `Deleted build ${item.job.fullName}: #${item.bulld.number}`;
+            return `Deleted build ${item.job.fullName}: #${item.build.number}`;
         });
         this.outputChannel.clear();
         this.outputChannel.show();
@@ -196,7 +197,7 @@ export class BuildJack extends JackBase {
     public async downloadReplayScript(job?: any, build?: any) {
 
         // Grab only pipeline jobs
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow((job: any) => job._class === "org.jenkinsci.plugins.workflow.job.WorkflowJob");
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow((job: any) => job.buildable && job.type !== JobType.Default);
         if (undefined === job) { return; }
 
         build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job);
