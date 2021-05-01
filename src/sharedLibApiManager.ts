@@ -1,5 +1,6 @@
 import * as htmlParser from 'cheerio';
 import { ext } from './extensionVariables';
+import { folderToUri } from './utils';
 
 export class SharedLibVar {
     label: string;
@@ -46,7 +47,7 @@ export class SharedLibApiManager {
      * E.g. <root>/pipeline-syntax/globals vs. <root>/job/somejob/pipeline-syntax/globals
      */
     public async refresh(job: any | undefined = undefined) {
-        let url = undefined !== job ?   `job/${job.fullName}/pipeline-syntax/globals` :
+        let url = undefined !== job ?   `job/${folderToUri(job.fullName)}/pipeline-syntax/globals` :
                                         'pipeline-syntax/globals';
 
         let html: string = await ext.connectionsManager.host.get(url);
