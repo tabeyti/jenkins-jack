@@ -149,7 +149,6 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
                 return undefined;
             });
-
             progress.report({ message: 'Retrieving jenkins jobs.' });
 
             // If no job was provided and and a folder filter is specified in config,
@@ -176,15 +175,13 @@ export class JenkinsService {
         if (token?.isCancellationRequested) { return []; }
 
         // If this is the first call of the recursive function, retrieve all jobs from the
-        // Jenkins API
+        // Jenkins API, otherwise, grab all child jobs from the given parent job
         let jobs = job ?    await this.getJobsFromUrl(job.url, token) :
                             await this.getJobsFromUrl(this._jenkinsUri, token);
 
         if (undefined === jobs) { return []; }
 
-
-        // Not all jobs are top level. Need to grab child jobs from certain class
-        // types.
+        // Evaluate child jobs
         let jobList: any[] = [];
         for (let j of jobs) {
 
