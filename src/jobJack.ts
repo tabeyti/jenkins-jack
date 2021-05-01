@@ -10,39 +10,43 @@ export class JobJack extends JackBase {
         super('Job Jack', 'extension.jenkins-jack.job');
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.delete', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+            let result: boolean | undefined = false;
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
-                let result = await this.delete(jobs);
-                if (result) {
-                    ext.jobTree.refresh();
-                    ext.pipelineTree.refresh();
-                }
+                result = await this.delete(jobs);
             }
             else {
-                await this.delete(item);
+                result = await this.delete(item);
+            }
+
+            if (result) {
+                ext.jobTree.refresh();
+                ext.pipelineTree.refresh();
             }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.enable', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+            let result: boolean | undefined = false;
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
-                let result = await this.enable(jobs);
-                if (result) { ext.jobTree.refresh(); }
+                result = await this.enable(jobs);
             }
             else {
-                await this.enable(item);
+                result = await this.enable(item);
             }
+            if (result) { ext.jobTree.refresh(); }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.disable', async (item?: any[] | JobTreeItem, items?: any[]) => {
+            let result: boolean | undefined = false;
             if (item instanceof JobTreeItem) {
                 let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
-                let result = await this.disable(jobs);
-                if (result) { ext.jobTree.refresh(); }
+                result = await this.disable(jobs);
             }
             else {
                 await this.disable(item);
             }
+            if (result) { ext.jobTree.refresh(); }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {

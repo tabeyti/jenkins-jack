@@ -10,46 +10,51 @@ export class NodeJack extends JackBase {
         super('Node Jack', 'extension.jenkins-jack.node');
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOffline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            let result: any;
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node);
-                let result = await this.setOffline(nodes);
-                if (result) { ext.nodeTree.refresh(); }
+                result = await this.setOffline(nodes);
             }
             else {
-                await this.setOffline(item);
+                result = await this.setOffline(item);
             }
+            if (result) { ext.nodeTree.refresh(); }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.setOnline', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            let result: any;
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node);
-                let result = await this.setOnline(nodes);
-                if (result) { ext.nodeTree.refresh(); }
+                result = await this.setOnline(nodes);
             }
             else {
-                await this.setOnline(item);
+                result = await this.setOnline(item);
             }
+            if (result) { ext.nodeTree.refresh(); }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.disconnect', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            let result: any;
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node);
-                let result = await this.disconnect(nodes);
-                if (result) { ext.nodeTree.refresh(); }
+                result = await this.disconnect(nodes);
             }
             else {
-                await this.disconnect(item);
+                result = await this.disconnect(item);
             }
+            if (result) { ext.nodeTree.refresh(); }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.updateLabels', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            let result: any;
             if (item instanceof NodeTreeItem) {
                 let nodes = !items ? [item.node] : items.map((item: any) => item.node);
-                await this.updateLabels(nodes);
+                result = await this.updateLabels(nodes);
             }
             else {
-                await this.updateLabels();
+                result = await this.updateLabels();
             }
+            if (result) { ext.nodeTree.refresh(); }
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.open', async (item?: any | NodeTreeItem, items?: NodeTreeItem[]) => {
@@ -163,7 +168,7 @@ export class NodeJack extends JackBase {
 
         let nodeNames = nodes.map((n: any) => n.displayName);
 
-        let script =    updateNodeLabelsScript(nodeNames, labelString.split(' '));
+        let script = updateNodeLabelsScript(nodeNames, labelString.split(' '));
         let result = await ext.connectionsManager.host.runConsoleScript(script, undefined);
 
         this.outputChannel.clear();
@@ -172,6 +177,7 @@ export class NodeJack extends JackBase {
         this.outputChannel.appendLine(`Nodes Updated: ${nodeNames.join(', ')}`);
         this.outputChannel.appendLine(`Script Output: ${result}`);
         this.outputChannel.appendLine(this.barrierLine);
+        return true;
     }
 
     /**
