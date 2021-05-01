@@ -139,7 +139,7 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    public async getJobs(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+    public async getJobs(job?: any, options?: GetJobsOptions): Promise<any[]> {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -147,20 +147,21 @@ export class JenkinsService {
         }, async (progress, t) => {
             t.onCancellationRequested(() => {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+                return undefined;
             });
 
             progress.report({ message: 'Retrieving jenkins jobs.' });
 
             // If no job was provided and and a folder filter is specified in config,
             // start recursive job retrieval using the folder
-            if (!job && this.connection.folderFilter) {
+            if (!job && this.connection.folderFilter && !options?.ignoreFolderFilter) {
                 job = {
                     type: JobType.Folder,
                     url: `${this._jenkinsUri}/job/${folderToUri(this.connection.folderFilter)}`
                 };
             }
 
-            return await this.getJobsInternal(job, token);
+            return await this.getJobsInternal(job, options);
         });
     }
 
@@ -170,7 +171,8 @@ export class JenkinsService {
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
-    private async getJobsInternal(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+    private async getJobsInternal(job?: any, options?: GetJobsOptions): Promise<any[]> {
+        let token: vscode.CancellationToken | undefined = options?.token;
         if (token?.isCancellationRequested) { return []; }
 
         // If this is the first call of the recursive function, retrieve all jobs from the
@@ -189,12 +191,12 @@ export class JenkinsService {
             let type = JobTypeUtil.classNameToType(j._class);
 
             switch(type) {
-                // Although folder jobs aren't buildable, we grab them anyways to use
-                // for things like job creation
                 case JobType.Folder: {
                     j.type = JobType.Folder;
-                    jobList.push(j);
-                    jobList = jobList.concat(await this.getJobsInternal(j, token));
+                    if (options?.includeFolderJobs) {
+                        jobList.push(j);
+                    }
+                    jobList = jobList.concat(await this.getJobsInternal(j, options));
                     break;
                 }
                 case JobType.Multi: {
@@ -545,8 +547,13 @@ export class JenkinsService {
     /**
      * Provides a quick pick selection of one or more jobs, returning the selected items.
      * @param filter A function for filtering the job list retrieved from the Jenkins host.
+     * @param canPickMany Optional flag for retrieving more than one job in the selection.
      */
-    public async jobSelectionFlow(filter?: ((job: any) => boolean), canPickMany: boolean = false): Promise<any[]|undefined> {
+    public async jobSelectionFlow(
+        filter?: ((job: any) => boolean),
+        canPickMany?: boolean,
+        message?: string): Promise<any[]|undefined> {
+
         let jobs = await this.getJobs();
         if (undefined === jobs) { return undefined; }
         if (filter) {
@@ -554,7 +561,7 @@ export class JenkinsService {
         }
         for (let job of jobs) { job.label = job.fullName; }
 
-        let selectedJobs = await vscode.window.showQuickPick(jobs, { canPickMany: canPickMany, ignoreFocusOut: true });
+        let selectedJobs = await vscode.window.showQuickPick(jobs, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message });
         if (undefined === selectedJobs) { return undefined; }
         return selectedJobs;
     }
@@ -564,23 +571,33 @@ export class JenkinsService {
      * @param job The target job for retrieval the builds.
      * @param canPickMany Optional flag for retrieving more than one build in the selection.
      */
-    public async buildSelectionFlow(job: any, filter?: ((build: any) => boolean), canPickMany: boolean = false): Promise<any[]|any|undefined> {
+    public async buildSelectionFlow(
+        job: any,
+        filter?: ((build: any) => boolean),
+        canPickMany?: boolean,
+        message?: string): Promise<any[]|any|undefined> {
+
         // Ask what build they want to download.
         let builds = await this.getBuildsWithProgress(job);
         if (undefined !== filter) { builds = builds.filter(filter); }
-        let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany, ignoreFocusOut: true }) as any;
+        let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message }) as any;
         if (undefined === selections) { return undefined; }
         return selections;
     }
 
     /**
-     * Provides a quick pick selection of one or more builds, returning the selected items.
+     * Provides a quick pick selection of one or more nodes, returning the selected items.
      * @param filter A function for filtering the nodes retrieved from the Jenkins host.
-     * @param job The target job for retrieval the builds.
-     * @param canPickMany Optional flag for retrieving more than one build in the selection.
+     * @param canPickMany Optional flag for retrieving more than one node in the selection.
      */
-    public async nodeSelectionFlow(filter?: ((job: any) => boolean), canPickMany: boolean = false): Promise<any[]|any|undefined> {
+    public async nodeSelectionFlow(
+        filter?: ((node: any) => boolean),
+        canPickMany?: boolean,
+        message?: string,
+        includeMaster?: boolean): Promise<any[]|any|undefined> {
+
         let nodes = await this.getNodes();
+        if (!includeMaster) { nodes.shift(); }
         if (undefined !== filter) { nodes = nodes.filter(filter); }
         if (undefined === nodes) { return undefined; }
         if (0 >= nodes.length) {
@@ -588,11 +605,9 @@ export class JenkinsService {
             return undefined;
         }
 
-        for (let n of nodes) {
-            n.label = (n.offline ? "$(alert) " : "$(check) ") + n.displayName;
-        }
+        nodes.forEach((n: any) => n.label = (n.offline ? "$(alert) " : "$(check) ") + n.displayName);
 
-        let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany, ignoreFocusOut: true }) as any;
+        let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message }) as any;
         if (undefined === selections) { return; }
         return selections;
     }
@@ -620,4 +635,25 @@ export class JenkinsService {
             vscode.commands.executeCommand('extension.jenkins-jack.connections.edit');
         }
     }
+}
+
+/**
+ * Options to configure the behavior of the jenkinsService.getJobs method for
+ * job retrieval.
+ */
+export interface GetJobsOptions {
+    /**
+     * An optional flag to ignore usage of the folder filter for jobs retrieval.
+     */
+    ignoreFolderFilter?: boolean;
+
+    /**
+     * An optional flag for including folder jobs in the results.
+     */
+    includeFolderJobs?: boolean;
+
+    /**
+     * An optional cancellation token.
+     */
+    token?: vscode.CancellationToken;
 }

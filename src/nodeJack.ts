@@ -63,7 +63,7 @@ export class NodeJack extends JackBase {
                 nodes = items ? items.map((i: any) => i.node) : [item.node];
             }
             else {
-                nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true);
+                nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true, 'Select one or more nodes for opening in the browser');
                 if (undefined === nodes) { return false; }
             }
             for (let n of nodes) {
@@ -107,12 +107,16 @@ export class NodeJack extends JackBase {
      * re-enabled.
      */
     public async setOnline(nodes?: any[]) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master' && n.offline, true);
+        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+            (n: any) => n.displayName !== 'master' && n.offline,
+            true,
+            'Select one or more offline nodes for re-enabling');
+
         if (undefined === nodes) { return undefined; }
 
         return await this.actionOnNodes(nodes, async (node: any) => {
             await ext.connectionsManager.host.client.node.enable(node.displayName);
-            return 'Node Online!';
+            return `Online command sent to "${node.displayName}"`;
         });
     }
 
@@ -126,12 +130,16 @@ export class NodeJack extends JackBase {
             if (undefined === offlineMessage) { return undefined; }
         }
 
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master' && !n.offline, true);
+        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+            (n: any) => n.displayName !== 'master' && !n.offline,
+            true,
+            'Select one or more nodes for temporary offline');
+
         if (undefined === nodes) { return undefined; }
 
         return await this.actionOnNodes(nodes, async (node: any) => {
             await ext.connectionsManager.host.client.node.disable(node.displayName, offlineMessage);
-            return 'Node Offline';
+            return `Offline command sent to "${node.displayName}"`;
         });
     }
 
@@ -140,17 +148,25 @@ export class NodeJack extends JackBase {
      * disconnected from the server.
      */
     public async disconnect(nodes?: any[]) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master', true);
+        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+            (n: any) => n.displayName !== 'master',
+            true,
+            'Select one or more nodes for disconnect');
+
         if (undefined === nodes) { return undefined; }
 
         return await this.actionOnNodes(nodes, async (node: any) => {
             await ext.connectionsManager.host.client.node.disconnect(node.displayName);
-            return 'Disconnected';
+            return `Disconnect command sent to "${node.displayName}"`;
         });
     }
 
     public async updateLabels(nodes?: any) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow((n: any) => n.displayName !== 'master', true);
+        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+            (n: any) => n.displayName !== 'master',
+            true,
+            'Select one or more nodes for updating labels');
+
         if (undefined === nodes) { return undefined; }
 
         // Pull the labels from the first node to use as a pre-filled value

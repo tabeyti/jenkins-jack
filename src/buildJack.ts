@@ -20,7 +20,7 @@ export class BuildJack extends JackBase {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
             }
             else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow();
+                let job = await ext.connectionsManager.host.jobSelectionFlow(undefined, false, 'Select a job to grab builds from');
                 if (undefined === job) { return; }
 
                 let builds = await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
@@ -55,7 +55,7 @@ export class BuildJack extends JackBase {
                 let job = await ext.connectionsManager.host.jobSelectionFlow();
                 if (undefined === job) { return; }
 
-                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
+                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true, 'Select a build');
                 if (undefined === builds) { return; }
 
                 items = builds.map((b: any) => { return { job: job, build: b }; } );
@@ -177,10 +177,10 @@ export class BuildJack extends JackBase {
      * @param build Optional build to target. If none, build selection will be presented.
      */
     public async downloadLog(job?: any, build?: any) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(undefined, false, 'Select a job to grab builds from');
         if (undefined === job) { return; }
 
-        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job);
+        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, false, 'Select a build');
         if (undefined === build) { return; }
 
         // Stream it. Stream it until the editor crashes.
@@ -197,10 +197,14 @@ export class BuildJack extends JackBase {
     public async downloadReplayScript(job?: any, build?: any) {
 
         // Grab only pipeline jobs
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow((job: any) => job.buildable && job.type !== JobType.Default);
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(
+            (job: any) => job.buildable && job.type !== JobType.Default,
+            false,
+            'Select a job to grab builds from');
+
         if (undefined === job) { return; }
 
-        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job);
+        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, false, 'Select a build');
         if (undefined === build) { return; }
 
         // Pull script and display as an Untitled document
