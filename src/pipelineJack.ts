@@ -114,12 +114,12 @@ export class PipelineJack extends JackBase {
 
         // Grab source from active editor.
         let source = editor.document.getText();
-        if ("" === source) { return; }
 
         // Build the pipeline.
         this.activeJob = await this.build(source, config);
         if (undefined === this.activeJob) { return; }
 
+        // Refresh tree views.
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
 
@@ -202,7 +202,7 @@ export class PipelineJack extends JackBase {
     }
 
     /**
-     * Creates or update the provides job with the passed Pipeline source.
+     * Creates or update the provided job on the Jenkins server with the passed Pipeline source.
      * @param source The scripted Pipeline source.
      * @param config The local pipeline config for the job
      * @returns A Jenkins 'job' json object.
@@ -253,7 +253,7 @@ export class PipelineJack extends JackBase {
 
         // If job doesn't exist, see if user wants to make it
         let r = await this.showInformationModal(
-            `"${jobName}" doesn't exist. Do you want us to create it?`, { title: 'Yes' } );
+            `"${jobName}" job doesn't exist on "${ext.connectionsManager.activeConnection.name}". Do you want us to create it?`, { title: 'Yes' } );
         if (undefined === r) { return undefined; }
         console.log(`${jobName} doesn't exist. Creating...`);
 
@@ -456,12 +456,17 @@ export class PipelineJack extends JackBase {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                this.showWarningMessage(`User canceled pipeline build.`, this.messageItem);
+                this.showWarningMessage(`User cancelled pipeline build.`, this.messageItem);
             });
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
             let currentJob = await this.createUpdate(source, config);
             if (undefined === currentJob) { return; }
+
+            if (!currentJob.buildable) {
+                this.showWarningMessage(`"${currentJob.fullName}" is disabled on "${ext.connectionsManager.activeConnection.name}"`)
+                return undefined;
+            }
 
             let jobName = currentJob.fullName;
             let buildNumber = currentJob.nextBuildNumber;
