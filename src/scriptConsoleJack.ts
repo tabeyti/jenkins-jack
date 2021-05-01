@@ -13,7 +13,7 @@ export class ScriptConsoleJack extends JackBase {
 
             // If View items were passed in, grab the agent names, otherwise prompt user for agent selection
             if (item instanceof NodeTreeItem) {
-                items = !items ? [item] : items.map((item: NodeTreeItem) => item.node.displayName);
+                items = !items ? [item.node.displayName] : items.map((item: NodeTreeItem) => item.node.displayName);
             }
             else {
                 let nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true);
