@@ -132,8 +132,8 @@ export class PipelineJack extends JackBase {
 
         }
         else {
-            ext.connectionsManager.host.openBrowserAtPath(
-                `/job/${this.activeJob.fullName}/${this.activeJob.nextBuildNumber}/console`);
+            ext.connectionsManager.host.openBrowserAt(
+                `${this.activeJob.url}${this.activeJob.nextBuildNumber}/console`);
         }
 
         this.cachedJob = this.activeJob;
