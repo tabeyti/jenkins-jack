@@ -18,6 +18,7 @@ export class NodeTree {
         }));
     }
 
+    // @ts-ignore
     public refresh() {
         this._treeView.title = `Nodes (${ext.connectionsManager.host.connection.name})`;
         this._treeViewDataProvider.refresh();
@@ -77,8 +78,10 @@ export class NodeTreeItem extends vscode.TreeItem {
         let iconPrefix = 'node-enabled';
         if (node.offline && node.temporarilyOffline) {
             iconPrefix = 'node-disabled';
+            this.contextValue = 'nodeTreeItemDisabled';
         } else if (node.offline) {
             iconPrefix = 'node-disconnected';
+            this.contextValue = 'nodeTreeItemDisconnected';
         }
 
         this.iconPath = {

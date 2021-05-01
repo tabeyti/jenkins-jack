@@ -252,12 +252,12 @@
         },
         {
           "command": "extension.jenkins-jack.node.open",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.node.open",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/",
           "group": "navigation"
         },
         {
@@ -267,22 +267,22 @@
         },
         {
           "command": "extension.jenkins-jack.node.setOnline",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem != nodeTreeItem",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.disconnect",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/ && viewItem != nodeTreeItemDisconnected",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.updateLabels",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/",
           "group": "action"
         },
         {
           "command": "extension.jenkins-jack.scriptConsole.execute",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem != nodeTreeItemDisconnected",
           "group": "action"
         }
       ]
