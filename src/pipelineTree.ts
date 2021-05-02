@@ -78,7 +78,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     }
 
     public async openScript(item: PipelineTreeItem) {
-        let config = this.getTreeItemConfig(item.label);
+        let config = this.getTreeItemConfig(item.job.fullName);
 
         // If there is a mapping, but we can't find the file, ask to link to a local script
         if (null !== config.filepath && undefined !== config.filepath && !fs.existsSync(config.filepath)) {
@@ -183,7 +183,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private async pullJobScript(item: PipelineTreeItem) {
 
         // See if script source exists on job
-        let xml = await ext.connectionsManager.host.client.job.config(item.label).then((data: any) => {
+        let xml = await ext.connectionsManager.host.client.job.config(item.job.fullName).then((data: any) => {
             return data;
         }).catch((err: any) => {
             // TODO: Handle better
@@ -199,7 +199,9 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             return;
         }
 
-        await this.saveAndEditScript(script[0], item);
+        let pipelineConfig = await ext.pipelineJack.saveAndEditPipelineScript(script, item.job.fullName);
+        if (undefined === pipelineConfig) { return; }
+        await this.linkScript(item.job.fullName, pipelineConfig?.scriptPath);
     }
 
     private async pullReplayScript(item: PipelineTreeItem) {
@@ -212,62 +214,9 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         let script = await ext.connectionsManager.host.getReplayScript(item.job, build);
         if (undefined === script) { return; }
 
-        await this.saveAndEditScript(script, item);
-    }
-
-    private async saveAndEditScript(script: string, item: PipelineTreeItem) {
-
-        // If this pipeline is in a folder, grab the name of job only
-        let jobName = path.parse(item.job.fullName).base
-
-        // Check for files of the same name, even with extension .groovy, and
-        // ask user if they want to overwrite
-        let scriptPathResult = await vscode.window.showSaveDialog({
-            defaultUri: vscode.Uri.parse(`file:${jobName}`)
-        });
-        if (undefined === scriptPathResult) { return; }
-
-        // Ensure filepath slashes are standard, otherwise vscode.window.showTextDocument will create
-        // a new document instead of refreshing the existing one.
-        let filepath = scriptPathResult.fsPath.replace(/\\/g, '/');
-
-        if (fs.existsSync(filepath)) {
-
-            // If there is a folder present of the same name as file, add .groovy extension
-            if (fs.lstatSync(filepath).isDirectory()) {
-                vscode.window.showInformationMessage(
-                    `Folder of name "${filepath}" exists in this directory. Adding .groovy extension to file name.` );
-                filepath = `${filepath}.groovy`;
-            } else {
-                let r = await vscode.window.showInformationMessage(
-                    `File ${filepath} already exists. Overwrite?`, { modal: true }, { title: "Yes" } );
-                 if (undefined === r) { return; }
-            }
-        }
-
-        // Create local script file.
-        try {
-            fs.writeFileSync(filepath, script, 'utf-8');
-        } catch (err) {
-            vscode.window.showInformationMessage(err);
-            return;
-        }
-
-        // Create associated jenkins-jack pipeline script config, with folder location if present.
-        let pipelineJobConfig = new PipelineConfig(filepath);
-        pipelineJobConfig.name = jobName;
-        if (path.parse(item.job.fullName).dir !== '') {
-            pipelineJobConfig.folder = path.dirname(item.job.fullName);
-        }
-        pipelineJobConfig.save();
-
-        // Open script in vscode with supported language id
-        let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${filepath}`));
-        await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
-
-        // Update the filepath of this tree item's config, save it globally, and refresh tree items.
-        this.getTreeItemConfig(item.label).filepath = filepath;
-        await this.saveTreeItemsConfig();
+        let pipelineConfig = await ext.pipelineJack.saveAndEditPipelineScript(script, item.job.fullName);
+        if (undefined === pipelineConfig) { return; }
+        await this.linkScript(item.job.fullName, pipelineConfig?.scriptPath);
     }
 
     private async openLocalScriptConfig(item: PipelineTreeItem) {
