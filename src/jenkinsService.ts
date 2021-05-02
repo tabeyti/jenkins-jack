@@ -545,6 +545,7 @@ export class JenkinsService {
      * Provides a quick pick selection of one or more jobs, returning the selected items.
      * @param filter A function for filtering the job list retrieved from the Jenkins host.
      * @param canPickMany Optional flag for retrieving more than one job in the selection.
+     * @param message Optional help message to display to the user.
      */
     public async jobSelectionFlow(
         filter?: ((job: any) => boolean),
@@ -567,6 +568,7 @@ export class JenkinsService {
      * Provides a quick pick selection of one or more builds, returning the selected items.
      * @param job The target job for retrieval the builds.
      * @param canPickMany Optional flag for retrieving more than one build in the selection.
+     * @param message Optional help message to display to the user.
      */
     public async buildSelectionFlow(
         job: any,
@@ -586,6 +588,8 @@ export class JenkinsService {
      * Provides a quick pick selection of one or more nodes, returning the selected items.
      * @param filter A function for filtering the nodes retrieved from the Jenkins host.
      * @param canPickMany Optional flag for retrieving more than one node in the selection.
+     * @param message Optional help message to display to the user.
+     * @param includeMaster Optional flag for including master in the selection to the user.
      */
     public async nodeSelectionFlow(
         filter?: ((node: any) => boolean),
@@ -607,6 +611,26 @@ export class JenkinsService {
         let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message }) as any;
         if (undefined === selections) { return; }
         return selections;
+    }
+
+    /**
+     * Provides a quick pick selection of one or more Jenkins Folders jobs, returning the selected folder names.
+     * @param canPickMany Optional flag for retrieving more than one node in the selection.
+     * @param message Optional help message to display to the user.
+     */
+    public async folderSelectionFlow(canPickMany?: boolean, message?: string): Promise<any[]|any|undefined> {
+        let folders = (await this.getJobs(null, { includeFolderJobs: true }))
+                        .filter((j: any) => j.type === JobType.Folder)
+                        .map((j: any) => j.fullName)
+                        // Sort alphabetically, then by length of job name
+                        .sort((a: any, b: any) => a.localeCompare(b) || a.length - b.length);
+
+        let rootFolder = this.connection.folderFilter ?? '.';
+        folders.unshift(rootFolder);
+
+        let selection = await vscode.window.showQuickPick(folders, { ignoreFocusOut: true, placeHolder: message });
+        if (undefined === selection) { return undefined; }
+        return selection;
     }
 
     /**

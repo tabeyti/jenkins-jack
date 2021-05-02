@@ -77,10 +77,12 @@ export class ConnectionsTreeItem extends vscode.TreeItem {
         };
     }
 
+    // @ts-ignore
 	get tooltip(): string {
         return '';
 	}
 
+    // @ts-ignore
 	get description(): string {
 		return `${this.connection.uri} (${this.connection.username})`;
     }

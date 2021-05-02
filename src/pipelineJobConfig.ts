@@ -10,7 +10,7 @@ export class PipelineConfig {
     public folder: string | undefined;
     public path: string;
 
-    constructor(scriptPath: string, overwrite: boolean = false) {
+    constructor(public readonly scriptPath: string, overwrite: boolean = false) {
         let parsed = path.parse(scriptPath);
         this.path = PipelineConfig.pathFromScript(scriptPath);
 

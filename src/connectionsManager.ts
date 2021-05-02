@@ -308,7 +308,7 @@ export class ConnectionsManager implements QuickpickSet {
         });
         if (undefined === folderFilter) { return undefined; }
 
-        folderFilter = !folderFilter || '' === folderFilter?.trim() ? undefined : folderFilter;
+        folderFilter = '' !== folderFilter?.trim() ? folderFilter : undefined;
 
         return new JenkinsConnection(hostName, hostUri, username, password, true, folderFilter);
     }

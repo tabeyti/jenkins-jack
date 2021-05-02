@@ -119,6 +119,11 @@
           "group": "navigation"
         },
         {
+          "command": "extension.jenkins-jack.pipeline.create",
+          "when": "view == pipelineTree",
+          "group": "navigation"
+        },
+        {
           "command": "extension.jenkins-jack.tree.job.refresh",
           "when": "view == jobTree",
           "group": "navigation"
@@ -451,6 +456,15 @@
         "command": "extension.jenkins-jack.pipeline.sharedLibrary",
         "title": "Shared Library Reference",
         "category": "Jenkins Jack: Pipeline"
+      },
+      {
+        "command": "extension.jenkins-jack.pipeline.create",
+        "title": "Create",
+        "category": "Jenkins Jack: Pipeline",
+        "icon": {
+          "light": "images/add-light.svg",
+          "dark": "images/add-dark.svg"
+        }
       },
       {
         "command": "extension.jenkins-jack.tree.pipeline.openScript",

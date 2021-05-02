@@ -27,6 +27,7 @@ export class PipelineTree {
     }
 
     public refresh() {
+        // @ts-ignore
         this._treeView.title = `Pipelines (${ext.connectionsManager.host.connection.name})`;
         this._treeViewDataProvider.refresh();
     }
@@ -79,7 +80,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     public async openScript(item: PipelineTreeItem) {
         let config = this.getTreeItemConfig(item.label);
 
-        // If there is a mapping, but we can't find the file, as to link to a local script
+        // If there is a mapping, but we can't find the file, ask to link to a local script
         if (null !== config.filepath && undefined !== config.filepath && !fs.existsSync(config.filepath)) {
             let r = await vscode.window.showInformationMessage(
                 `"${config.filepath}" doesn't exist. Do you want to link to another script?`, { modal: true }, { title: "Yes"});
@@ -87,8 +88,8 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             if (undefined === r) { return false; }
         }
 
-        // If the script file path is not mapped, or we can't find the mapped script,
-        // ask the user if they want to link it to an existing local script.
+        // If the script file path is not mapped, or we can't find the mapped script locally,
+        // allow the user to select one locally.
         if (null === config.filepath || undefined === config.filepath || !fs.existsSync(config.filepath)) {
             let scriptResult = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
@@ -153,7 +154,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         });
         if (undefined === scriptFile) { return; }
 
-        // Create pipeline config for selected script
+        // Create local pipeline config for selected script
         let scriptFilePath = scriptFile[0].fsPath.replace(/\\/g, '/');
         if (PipelineConfig.exists(scriptFilePath)) {
             let result = await vscode.window.showInformationMessage(
@@ -169,8 +170,13 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         }
         pipelineJobConfig.save();
 
+        // Link the script
+        await this.linkScript(item.job.fullName, scriptFilePath);
+    }
+
+    public async linkScript(jobName: string, scriptFilePath: string) {
         // Update the filepath of this tree item's config, save it globally, and refresh tree items.
-        this.getTreeItemConfig(item.label).filepath = scriptFilePath;
+        this.getTreeItemConfig(jobName).filepath = scriptFilePath;
         await this.saveTreeItemsConfig();
     }
 

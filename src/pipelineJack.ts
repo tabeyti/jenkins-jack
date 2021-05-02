@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as xml2js from "xml2js";
 import * as util from 'util';
+import * as path from 'path';
+import * as fs from 'fs';
 
 import { pipelineJobConfigXml, getValidEditor } from './utils';
 import { ext } from './extensionVariables';
@@ -30,6 +32,10 @@ export class PipelineJack extends JackBase {
                 if (!opened) { return; }
             }
             await this.executePipeline();
+        }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.pipeline.create', async () => {
+            await this.createPipeline();
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.pipeline.sharedLibrary', async () => {
@@ -79,6 +85,11 @@ export class PipelineJack extends JackBase {
                 target: () => this.abortPipeline(),
             });
         }
+        commands.push({
+            label: "$(add)  Pipeline: Create",
+            description: "Creates a local script and associated Pipeline job on the Jenkins server.",
+            target: () => vscode.commands.executeCommand('extension.jenkins-jack.pipeline.create')
+        });
         commands = commands.concat([{
                 label: "$(file-text)  Pipeline: Shared Library Reference",
                 description: "Provides a list of steps from the Shares Library and global variables.",
@@ -90,6 +101,53 @@ export class PipelineJack extends JackBase {
 
     public updateSettings() {
         this.config = vscode.workspace.getConfiguration('jenkins-jack.pipeline');
+    }
+
+    private async createPipeline() {
+
+        // Get pipeline name from the user
+        let jobName = await vscode.window.showInputBox({
+            ignoreFocusOut: true,
+            prompt: 'Enter in a name for your Pipeline job'
+        });
+        if (undefined === jobName) { return undefined; }
+
+        // Provide list of Folder jobs from the server to create the pipeline under
+        let folder = await ext.connectionsManager.host.folderSelectionFlow(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
+        if (undefined === folder) { return undefined; }
+
+        jobName = folder !== '.' ? `${folder}/${jobName}` : jobName;
+
+        // If pipeline doesn't exist, create it on the server
+        let job = await ext.connectionsManager.host.getJob(jobName);
+        if (job) {
+            this.showWarningMessage(`"${jobName}" already exists on "${ext.connectionsManager.activeConnection.name}"`)
+        } else {
+            // Create empty pipeline xml configuration
+            let parsed = await parseXmlString(pipelineJobConfigXml());
+            let root = parsed['flow-definition'];
+            root.definition[0].script = '';
+            root.quietPeriod = 0;
+            let xml = new xml2js.Builder().buildObject(parsed);
+
+            // Create the pipeline job on da Jenkles!
+            try {
+                await ext.connectionsManager.host.client.job.create(jobName, xml);
+                this.showInformationMessage(`Pipeline "${jobName}" created on "${ext.connectionsManager.activeConnection.name}"`);
+                ext.pipelineTree.refresh();
+            } catch (ex) {
+                console.log(ex.message);
+                this.showWarningMessage(ex.message);
+                throw ex;
+            }
+        }
+
+        // Allow user to save their script locally
+        let pipelineJobConfig = await this.saveAndEditPipelineScript('', jobName);
+        if (undefined === pipelineJobConfig) { return undefined; }
+
+        // Link script to TreeView item
+        await ext.pipelineTree.provider.linkScript(jobName, pipelineJobConfig.scriptPath);
     }
 
     // @ts-ignore
@@ -207,7 +265,7 @@ export class PipelineJack extends JackBase {
      * @param config The local pipeline config for the job
      * @returns A Jenkins 'job' json object.
      */
-    private async createUpdate(source: string, config: PipelineConfig): Promise<any> {
+    private async createUpdateJenkinsJob(source: string, config: PipelineConfig): Promise<any> {
         let jobName = config.buildableName;
 
         let xml = pipelineJobConfigXml();
@@ -260,19 +318,13 @@ export class PipelineJack extends JackBase {
         // Provide option for selecting a folder job on the server to create the job under
         let fullJobName = jobName;
         if (!config.folder) {
-            let options = (await ext.connectionsManager.host
-                                .getJobs())
-                                .filter((j: any) => j.type === JobType.Folder)
-                                .map((j: any) => j.fullName);
-            options.unshift('.');
+            let folder = await ext.connectionsManager.host.folderSelectionFlow(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
+            if (undefined === folder) { return undefined; }
 
-            let selection = await vscode.window.showQuickPick(options, { placeHolder: 'Select the Jenkins folder to create your job under.' });
-            if (undefined === selection) { return undefined; }
-
-            if ('.' !== selection) {
+            if ('.' !== folder) {
                 // If folder selected, add it to job name and update pipeline config
-                fullJobName = `${selection}/${jobName}`
-                config.folder = selection;
+                fullJobName = `${folder}/${jobName}`
+                config.folder = folder;
                 config.save();
             }
         }
@@ -410,7 +462,7 @@ export class PipelineJack extends JackBase {
             });
             progress.report({ increment: 50 });
             return new Promise<void>(async resolve => {
-                await this.createUpdate(source, config);
+                await this.createUpdateJenkinsJob(source, config);
                 this.outputChannel.appendLine(this.barrierLine);
                 this.outputChannel.appendLine(`Pipeline ${config.buildableName} updated!`);
                 this.outputChannel.appendLine(this.barrierLine);
@@ -460,7 +512,7 @@ export class PipelineJack extends JackBase {
             });
 
             progress.report({ increment: 0, message: `Creating/updating Pipeline job.` });
-            let currentJob = await this.createUpdate(source, config);
+            let currentJob = await this.createUpdateJenkinsJob(source, config);
             if (undefined === currentJob) { return; }
 
             if (!currentJob.buildable) {
@@ -511,5 +563,55 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 50, message: 'Build is ready!' });
             return currentJob;
         });
+    }
+
+    /**
+     * Saves the provided script source locally, using job name provided.
+     * @param source The script source to save locally
+     * @param fullJobName The full name of the job (folder paths includes) that this script will associate with.
+     *                    If blank, will use the file name as job name.
+     */
+    public async saveAndEditPipelineScript(source: string, fullJobName: string): Promise<PipelineConfig | undefined> {
+
+        let jobName = path.parse(fullJobName ?? 'test').base;
+        let folderName = path.parse(fullJobName ?? 'test').dir;
+
+        let scriptPathResult = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.parse(`file:${jobName}`)
+        });
+        if (undefined === scriptPathResult) { return; }
+
+        // Ensure filepath slashes are standard, otherwise vscode.window.showTextDocument will create
+        // a new document instead of refreshing the existing one.
+        let filepath = scriptPathResult.fsPath.replace(/\\/g, '/');
+
+        // If there is a folder present of the same name as file, add .groovy extension
+        if (fs.existsSync(filepath) && fs.lstatSync(filepath).isDirectory()) {
+            vscode.window.showInformationMessage(
+                `Folder of name "${filepath}" exists in this directory. Adding .groovy extension to file name.` );
+            filepath = `${filepath}.groovy`;
+        }
+
+        // Create local script file.
+        try {
+            fs.writeFileSync(filepath, source, 'utf-8');
+        } catch (err) {
+            vscode.window.showInformationMessage(err);
+            return;
+        }
+
+        // Create associated jenkins-jack pipeline script config, with folder location if present.
+        let pipelineJobConfig = new PipelineConfig(filepath);
+        pipelineJobConfig.name = jobName;
+        if (folderName !== '') {
+            pipelineJobConfig.folder = folderName;
+        }
+        pipelineJobConfig.save();
+
+        // Open script in vscode with supported language id
+        let editor = await vscode.window.showTextDocument(vscode.Uri.parse(`file:${filepath}`));
+        await vscode.languages.setTextDocumentLanguage(editor.document, "groovy");
+
+        return pipelineJobConfig;
     }
 }
