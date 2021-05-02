@@ -322,6 +322,9 @@ export class JenkinsService {
                 let r = await request.get(url);
 
                 const root = htmlParser.load(r);
+                if (root('textarea')[0].childNodes && 0 >= root('textarea')[0].childNodes.length) {
+                    return '';
+                }
                 let source  = root('textarea')[0].childNodes[0].data?.toString();
                 if (undefined === source) {
                     throw new Error('Could not locate script text in <textarea>.');
