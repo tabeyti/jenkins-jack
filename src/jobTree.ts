@@ -90,17 +90,18 @@ export class JobTreeItem extends vscode.TreeItem {
 
         let iconPrefix = 'job-enabled';
         if (JobTreeItemType.Job === type) {
-            this.contextValue = 'jobTreeItemJob';
+            this.contextValue = 'job';
 
             if (!job.buildable) {
-                iconPrefix = 'job-disabled';
+                iconPrefix = this.contextValue = 'job-disabled';
             }
         }
         else {
-            this.contextValue = "default" !== job.type ? 'jobTreeItemBuildPipeline' : 'jobTreeItemBuild';
+            this.contextValue = [JobType.Multi, JobType.Org, JobType.Pipeline].includes(job.type) ? 'build-pipeline' : 'build';
 
             if (this.build.building) {
                 iconPrefix = 'build-inprogress';
+                this.contextValue += '-inprogress';
             }
             else if ('FAILURE' === build.result) {
                 iconPrefix = 'build-bad';

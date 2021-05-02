@@ -147,27 +147,27 @@
         },
         {
           "command": "extension.jenkins-jack.pipeline.execute",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "when": "view == pipelineTree && viewItem == pipeline-linked",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.pipeline.execute",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "when": "view == pipelineTree && viewItem == pipeline-linked",
           "group": "action"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.openScript",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "when": "view == pipelineTree && viewItem == pipeline-linked",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.openScript",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "when": "view == pipelineTree && viewItem == pipeline-linked",
           "group": "navigation"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.openScriptConfig",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "when": "view == pipelineTree && viewItem == pipeline-linked",
           "group": "navigation"
         },
         {
@@ -182,107 +182,107 @@
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.addLink",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemDefault",
+          "when": "view == pipelineTree && viewItem == pipeline",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.tree.pipeline.removeLink",
-          "when": "view == pipelineTree && viewItem == pipelineTreeItemLinked",
+          "when": "view == pipelineTree && viewItem == pipeline-linked",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.job.open",
-          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "when": "view == jobTree && viewItem =~ /job/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.job.open",
-          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "when": "view == jobTree && viewItem =~ /job/",
           "group": "navigation"
         },
         {
           "command": "extension.jenkins-jack.job.delete",
-          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "when": "view == jobTree && viewItem =~ /job/",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.job.disable",
-          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "when": "view == jobTree && viewItem != job-disabled",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.job.enable",
-          "when": "view == jobTree && viewItem == jobTreeItemJob",
+          "when": "view == jobTree && viewItem == job-disabled",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.build.open",
-          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "when": "view == jobTree && viewItem =~ /build/",
           "group": "navigation"
         },
         {
           "command": "extension.jenkins-jack.build.open",
-          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "when": "view == jobTree && viewItem =~ /build/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.build.abort",
-          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "when": "view == jobTree && viewItem =~ /inprogress/",
           "group": "action"
         },
         {
           "command": "extension.jenkins-jack.build.delete",
-          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "when": "view == jobTree && viewItem =~ /build/",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.build.downloadLog",
-          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "when": "view == jobTree && viewItem =~ /build/",
           "group": "action"
         },
         {
           "command": "extension.jenkins-jack.build.downloadLog",
-          "when": "view == jobTree && viewItem =~ /jobTreeItemBuild/",
+          "when": "view == jobTree && viewItem =~ /build/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.build.downloadReplayScript",
-          "when": "view == jobTree && viewItem == jobTreeItemBuildPipeline",
+          "when": "view == jobTree && viewItem =~ /pipeline/ ",
           "group": "action"
         },
         {
           "command": "extension.jenkins-jack.node.open",
-          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/",
+          "when": "view == nodeTree && viewItem =~ /node/",
           "group": "inline"
         },
         {
           "command": "extension.jenkins-jack.node.open",
-          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/",
+          "when": "view == nodeTree && viewItem =~ /node/",
           "group": "navigation"
         },
         {
           "command": "extension.jenkins-jack.node.setOffline",
-          "when": "view == nodeTree && viewItem == nodeTreeItem",
+          "when": "view == nodeTree && viewItem == node",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.setOnline",
-          "when": "view == nodeTree && viewItem != nodeTreeItem",
+          "when": "view == nodeTree && viewItem != node",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.disconnect",
-          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/ && viewItem != nodeTreeItemDisconnected",
+          "when": "view == nodeTree && viewItem =~ /node/ && viewItem != node-disconnected",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.updateLabels",
-          "when": "view == nodeTree && viewItem =~ /nodeTreeItem/",
+          "when": "view == nodeTree && viewItem =~ /node/",
           "group": "action"
         },
         {
           "command": "extension.jenkins-jack.scriptConsole.execute",
-          "when": "view == nodeTree && viewItem != nodeTreeItemDisconnected",
+          "when": "view == nodeTree && viewItem != node-disconnected",
           "group": "action"
         }
       ]

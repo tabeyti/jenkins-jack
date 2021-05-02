@@ -73,15 +73,15 @@ export class NodeTreeItem extends vscode.TreeItem {
 	) {
         super(label, treeItemState);
 
-        this.contextValue = 'nodeTreeItem';
+        this.contextValue = 'node';
 
         let iconPrefix = 'node-enabled';
         if (node.offline && node.temporarilyOffline) {
             iconPrefix = 'node-disabled';
-            this.contextValue = 'nodeTreeItemDisabled';
+            this.contextValue = 'node-disabled';
         } else if (node.offline) {
             iconPrefix = 'node-disconnected';
-            this.contextValue = 'nodeTreeItemDisconnected';
+            this.contextValue = 'node-disconnected';
         }
 
         this.iconPath = {

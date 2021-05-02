@@ -312,7 +312,7 @@ export class PipelineTreeItem extends vscode.TreeItem {
         super(label, vscode.TreeItemCollapsibleState.None);
 
         let iconPrefix = (this.config) ? 'pipe-icon-linked' : 'pipe-icon-default';
-        this.contextValue = (this.config) ? 'pipelineTreeItemLinked' : 'pipelineTreeItemDefault';
+        this.contextValue = (this.config) ? 'pipeline-linked' : 'pipeline';
         this.iconPath = {
             light: filepath('images', `${iconPrefix}-light.svg`),
 		    dark: filepath('images', `${iconPrefix}-dark.svg`)
