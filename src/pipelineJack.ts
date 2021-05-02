@@ -10,7 +10,6 @@ import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 import { PipelineConfig } from './pipelineJobConfig';
 import { PipelineTreeItem } from './pipelineTree';
-import { JobType } from './jobType';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -148,6 +147,7 @@ export class PipelineJack extends JackBase {
 
         // Link script to TreeView item
         await ext.pipelineTree.provider.linkScript(jobName, pipelineJobConfig.scriptPath);
+        ext.jobTree.refresh();
     }
 
     // @ts-ignore
