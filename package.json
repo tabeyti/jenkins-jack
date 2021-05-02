@@ -634,8 +634,8 @@
         "title": "Add",
         "category": "Jenkins Jack: Connections",
         "icon": {
-          "light": "images/connection-add-light.svg",
-          "dark": "images/connection-add-dark.svg"
+          "light": "images/add-light.svg",
+          "dark": "images/add-dark.svg"
         }
       },
       {
