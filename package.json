@@ -252,7 +252,7 @@
         },
         {
           "command": "extension.jenkins-jack.build.downloadReplayScript",
-          "when": "view == jobTree && viewItem =~ /pipeline/ ",
+          "when": "view == jobTree && viewItem =~ /pipeline/",
           "group": "action"
         },
         {
@@ -396,6 +396,11 @@
             "type": "boolean",
             "default": true,
             "markdownDescription": "Enable Pipeline step snippets for supported languageIds"
+          },
+          "jenkins-jack.tree.directorySeparator": {
+            "type": "string",
+            "default": "/",
+            "markdownDescription": "Directory separator string for job names in the Jenkins Jack TreeViews (default is `/`)"
           },
           "jenkins-jack.pipeline.tree.items": {
             "type": "array",

@@ -9,7 +9,8 @@ export enum JobType {
 export class JobTypeUtil {
     public static classNameToType(classStr: string): JobType {
         switch(classStr) {
-            case 'com.cloudbees.hudson.plugins.folder.Folder': {
+            case 'com.cloudbees.hudson.plugins.folder.Folder':
+            case 'com.cloudbees.opscenter.bluesteel.folder.BlueSteelTeamFolder': {
                 return JobType.Folder;
             }
             case 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject': {

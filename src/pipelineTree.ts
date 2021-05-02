@@ -38,7 +38,8 @@ export class PipelineTree {
 }
 
 export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTreeItem> {
-    private _config: any;
+    private _pipelineTreeConfig: any;
+    private _treeConfig: any;
 	private _onDidChangeTreeData: vscode.EventEmitter<PipelineTreeItem | undefined> = new vscode.EventEmitter<PipelineTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<PipelineTreeItem | undefined> = this._onDidChangeTreeData.event;
     private _cancelTokenSource: vscode.CancellationTokenSource;
@@ -47,7 +48,8 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         this._cancelTokenSource = new vscode.CancellationTokenSource();
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('jenkins-jack.pipeline.tree.items')) {
+            if (event.affectsConfiguration('jenkins-jack.pipeline.tree.items') ||
+                event.affectsConfiguration('jenkins-jack.tree')) {
                 this.updateSettings();
             }
         });
@@ -113,35 +115,36 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     }
 
     private updateSettings() {
-        this._config = vscode.workspace.getConfiguration('jenkins-jack.pipeline.tree');
+        this._pipelineTreeConfig = vscode.workspace.getConfiguration('jenkins-jack.pipeline.tree');
+        this._treeConfig = vscode.workspace.getConfiguration('jenkins-jack.tree');
         this.refresh();
     }
 
     private async saveTreeItemsConfig() {
         await vscode.workspace.getConfiguration().update(
             'jenkins-jack.pipeline.tree.items',
-            this._config.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
+            this._pipelineTreeConfig.items.filter((i: any) => null !== i.filepath && undefined !== i.filepath),
             vscode.ConfigurationTarget.Global);
         this.refresh();
     }
 
     private getTreeItemConfig(key: string): any {
-        if (undefined === this._config.items) { this._config.items = []; }
-        if (undefined === this._config.items || undefined === this._config.items.find(
+        if (undefined === this._pipelineTreeConfig.items) { this._pipelineTreeConfig.items = []; }
+        if (undefined === this._pipelineTreeConfig.items || undefined === this._pipelineTreeConfig.items.find(
                 (i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.connection.name)) {
-            this._config.items.push({
+            this._pipelineTreeConfig.items.push({
                 hostId: ext.connectionsManager.host.connection.name,
                 jobName: key,
                 filepath: null,
             });
         }
-        return this._config.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.connection.name);
+        return this._pipelineTreeConfig.items.find((i: any) => i.jobName === key && i.hostId === ext.connectionsManager.host.connection.name);
     }
 
     private async deleteTreeItemConfig(item: PipelineTreeItem) {
         await vscode.workspace.getConfiguration().update(
             'jenkins-jack.pipeline.tree.items',
-            this._config.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.connection.name || i.jobName !== item.job.fullName ),
+            this._pipelineTreeConfig.items.filter((i: any) => i.hostId !== ext.connectionsManager.host.connection.name || i.jobName !== item.job.fullName ),
             vscode.ConfigurationTarget.Global);
     }
 
@@ -249,7 +252,8 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
             let list =  [];
             for(let job of jobs) {
-                let pipelineTreeItem = new PipelineTreeItem(job.fullName, job, this._config.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.connectionsManager.host.connection.name));
+                let label  = job.fullName.replace(/\//g, this._treeConfig.directorySeparator);
+                let pipelineTreeItem = new PipelineTreeItem(label, job, this._pipelineTreeConfig.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.connectionsManager.host.connection.name));
                 // If there is an entry for this job tree item in the config, set the context of the tree item appropriately
                 list.push(pipelineTreeItem);
             }

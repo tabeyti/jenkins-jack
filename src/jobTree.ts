@@ -30,12 +30,23 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
     readonly onDidChangeTreeData: vscode.Event<JobTreeItem | undefined> = this._onDidChangeTreeData.event;
     private _cancelTokenSource: vscode.CancellationTokenSource;
 
+    private _config: any;
+
 	public constructor() {
         this._cancelTokenSource = new vscode.CancellationTokenSource();
+
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('jenkins-jack.tree')) {
+                this.updateSettings();
+            }
+        });
+
         this.updateSettings();
     }
 
     private updateSettings() {
+        this._config = vscode.workspace.getConfiguration('jenkins-jack.tree');
+        this.refresh();
     }
 
 	refresh(): void {
@@ -64,7 +75,8 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                 jobs = jobs.filter((job: any) =>  job.type !== JobType.Folder);
 
                 for(let job of jobs) {
-                    let jobTreeItem = new JobTreeItem(job.fullName, JobTreeItemType.Job, vscode.TreeItemCollapsibleState.Collapsed,job);
+                    let label  = job.fullName.replace(/\//g, this._config.directorySeparator);
+                    let jobTreeItem = new JobTreeItem(label, JobTreeItemType.Job, vscode.TreeItemCollapsibleState.Collapsed,job);
                     list.push(jobTreeItem);
                 }
             }
