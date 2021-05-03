@@ -1,11 +1,11 @@
 # Tutorial
 
-All commands can either be handled in the quickpick command menu (`ctrl+shift+j`) or through the Jenkins Jack Views (bow icon on the left bar).
+All commands can either be handled in the quick-pick command menu (`ctrl+shift+j`) or through the Jenkins Jack Views (bow icon on the left bar).
 
 ## Setting up a Connection
 ![setup](images/doc/demo_setup.gif)
 
-Add a host connection through quickpick command or the Connection Tree View (connections are stored in `settings.json`)
+Add a host connection through quick-pick command or the Connection Tree View (connections are stored in `settings.json`)
 
 ```javascript
 "jenkins-jack.jenkins.connections": [
@@ -31,6 +31,13 @@ Add a host connection through quickpick command or the Connection Tree View (con
     ...
 ]
 ```
+
+---
+
+## Creating a Pipeline
+
+![pipeline](images/doc/demo_pipelinecreate.gif)
+* Create a Pipeline job and local script through the quick-pick command or the Tree View. User can select root or a Jenkins Folder job to create the Pipeline under.
 
 ---
 
