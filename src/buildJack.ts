@@ -104,9 +104,10 @@ export class BuildJack extends JackBase {
             }
             else {
                 let job = await ext.connectionsManager.host.jobSelectionFlow();
-                if (undefined === job) { return false; }
+                if (undefined === job) { return; }
 
                 builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
+                if (undefined === builds) { return; }
             }
             for (let build of builds) {
                 ext.connectionsManager.host.openBrowserAt(build.url);

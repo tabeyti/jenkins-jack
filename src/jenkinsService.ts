@@ -581,6 +581,10 @@ export class JenkinsService {
 
         // Ask what build they want to download.
         let builds = await this.getBuildsWithProgress(job);
+        if (0 >= builds.length) {
+            vscode.window.showWarningMessage(`No builds found for "${job.fullName}"`);
+            return undefined;
+        }
         if (undefined !== filter) { builds = builds.filter(filter); }
         let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message }) as any;
         if (undefined === selections) { return undefined; }
