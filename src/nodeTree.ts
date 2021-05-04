@@ -103,13 +103,17 @@ export class NodeTreeItem extends vscode.TreeItem {
         }
 
         if (this.node.temporarilyOffline) {
-            return `${tooltip}: ${this.node.offlineCauseReason}`;
+            return `${tooltip}\n${this.node.offlineCauseReason}`;
         }
         return tooltip;
 	}
 
      // @ts-ignore
 	get description(): string {
-		return this.node.description;
+        let description = this.node.description;
+        if (this.node.temporarilyOffline) {
+            description += ` (${this.node.offlineCauseReason})`;
+        }
+        return description;
     }
 }
