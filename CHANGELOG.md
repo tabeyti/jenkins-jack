@@ -1,6 +1,21 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.1.3
+
+### Features
+* __Pipeline Jack: Create Job Command__: Added script/job/config create flow for scripted Pipeline jobs. This command will:
+  *  Prompt the user for a job name and a folder path (or root) to create the job under
+  *  Create the job on the Jenkins server
+  *  Prompt the user to save a local script
+  *  Auto-create the local pipeline config and link the local script for tree view commands
+* __Added Folder Selection on Pipeline Execute Job Creation ([#56](https://github.com/tabeyti/jenkins-jack/issues/56))__: Executing/creating pipelines under a Folder job on the Jenkins server isn't intuitive or user friendly. Now, on job creation, the user will be presented with a list of folders to select from to create their new pipeline under.
+* __Tree View Directory Separator Setting ([#47](https://github.com/tabeyti/jenkins-jack/issues/47))__: Users can specify what they want the directory separator string to be via the `jenkins-jack.tree.directorySeparator` setting. Default is `/`.
+
+### Fixes
+* __Fixed Broken Open Browser Links ([#49](https://github.com/tabeyti/jenkins-jack/issues/49))__: Fixed usage of `Url.pathname` on a jenkins connection with a path (e.g. http://myhost/jenkins) which caused issues with url creation links for opening jobs/builds/nodes in the browser.
+* __Fixed Job/Folder Naming Issues with Pipeline Config__ ([#48](https://github.com/tabeyti/jenkins-jack/issues/48)): Fixed issue(s) around incorrect job name and folder paths being saved to a script's Pipeline json config.
+
 ## 1.1.2
 
 ### Fixes
