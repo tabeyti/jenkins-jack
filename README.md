@@ -96,6 +96,7 @@ Any file in the editor with the Groovy language id set will have these completio
 | `jenkins-jack.pipeline.params.interactiveInput` | If true, will grab parameters from the remote jenkins job and prompt user for builder parameter input using input boxes and quick picks. |
 | `jenkins-jack.pipeline.tree.items` | Remote jenkins job to local pipeline script associations |
 | `jenkins-jack.snippets.enabled` | Enable Pipeline step snippets for supported languageIds |
+| `jenkins-jack.tree.directorySeparator` | Directory separator string for job names in the Jenkins Jack TreeViews (default is `/`) |
 <!-- settings-end -->
 
 ## Setup
