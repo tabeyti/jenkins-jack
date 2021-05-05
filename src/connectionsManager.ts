@@ -296,6 +296,7 @@ export class ConnectionsManager implements QuickpickSet {
 
         let password = await vscode.window.showInputBox({
             ignoreFocusOut: true,
+            password: true,
             prompt: `Enter in the password of "${username}" for authentication`,
             value: jenkinsConnection?.password
         });
