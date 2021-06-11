@@ -176,6 +176,7 @@ export class ConnectionsManager implements QuickpickSet {
                 c.username = editedConnection.username;
                 c.password = editedConnection.password;
                 c.folderFilter = editedConnection.folderFilter;
+                c.crumbIssuer = editedConnection.crumbIssuer;
             }
         });
         await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
@@ -311,6 +312,17 @@ export class ConnectionsManager implements QuickpickSet {
 
         folderFilter = '' !== folderFilter?.trim() ? folderFilter : undefined;
 
-        return new JenkinsConnection(hostName, hostUri, username, password, true, folderFilter);
+        let enableCSRF = await vscode.window.showQuickPick([{
+            label: 'CSRF Protection Enabled',
+            picked: jenkinsConnection?.crumbIssuer ?? true
+        }], {
+            canPickMany: true,
+            placeHolder: 'CSRF Protection support. Only disable for older Jenkins versions with connection issues.'
+        });
+        if (undefined === enableCSRF) { return undefined; }
+
+        let crumbIssuer = enableCSRF.length > 0;
+
+        return new JenkinsConnection(hostName, hostUri, username, password, crumbIssuer, folderFilter);
     }
 }
