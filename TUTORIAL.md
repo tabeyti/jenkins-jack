@@ -3,9 +3,20 @@
 All commands can either be handled in the quick-pick command menu (`ctrl+shift+j`) or through the Jenkins Jack Views (bow icon on the left bar).
 
 ## Setting up a Connection
+
+The preferred method of authentication for the extension uses a generated [API token](https://www.jenkins.io/blog/2018/07/02/new-api-token-system/) which can be made by visiting your user configuration (e.g. `https://jenkins-server/user/tabeyti/configure`)
+
 ![setup](images/doc/demo_setup.gif)
 
-Add a host connection through quick-pick command or the Connection Tree View (connections are stored in `settings.json`)
+Host connections can be added through the __Connection: Add__ quick-pick command or the Connection Tree View. Inputs needed:
+* A unique name for this connection (e.g. `myconn`)
+* The base Jenkins address with `http/https` prefix
+* Your user name for the Jenkins server
+* The API token you generated for your user
+* (Optional) A folder path on the Jenkins to filter job queries and commands. Can be used for performance (limits number of jobs queried) or for quality-of-life when working within a specific location on Jenkins.
+* (Optional) CSRF projection for your connection (default true). __Only disable this for older [Jenkins versions](https://www.jenkins.io/doc/book/security/csrf-protection/)__ (pre 2.222) if you experience issues creating/editing jobs, builds, and nodes.
+
+Connection data is stored in the `settings.json`:
 
 ```javascript
 "jenkins-jack.jenkins.connections": [
@@ -55,12 +66,11 @@ Add a host connection through quick-pick command or the Connection Tree View (co
 
 ![pipeline](images/doc/demo_pipelineparams.gif)
 
-* A user can modify build input/parameters in the `.<your_script>.json` config file local to the script (created on pipeline execution). You can also access script config quickly through the Pipeline Tree View context menu
+* A user can modify build input/parameters in the `.<your_script>.config.json` config file local to the script (created on pipeline execution). You can also access script config quickly through the Pipeline Tree View context menu
 * Interactive input can be enabled in settings to prompt a user for values on each build parameter (only supports Jenkins default parameter types) during Pipeline execution
 
 ---
 
 ## Job and Build Management
 
-* Open/disable/enable/delete jobs from the targeted Jenkins
-* Open/delete/abort builds as well as download logs and replay scripts (if Pipeline)
+> TODO
