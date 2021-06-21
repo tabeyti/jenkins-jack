@@ -16,3 +16,7 @@ vsc-extension-quickstart.md
 temp
 Jenkinsfile*
 images/doc
+*.orig
+*.html
+test.json
+notes.md

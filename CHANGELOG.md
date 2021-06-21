@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.1.4
+
+### Fixes
+* __CSRF Enabled Toggle for Connection Manager__: Added a toggle-able quick-pick for enabling and disabling CSRF protection when adding or editing a connection. This already existed but was somewhat hidden from the user and documentation wasn't really apparent in the TUTORIAL.md.
+  >__NOTE__: This should only be disabled for older [Jenkins versions](https://www.jenkins.io/doc/book/security/csrf-protection/) pre 2.222.
+* __Connection Manager Password Field__: Password input box during connection add/edit is now set as "password input" so that characters aren't displayed when typing within the field.
+* __Node Tree Offline Reason in Description__: Offline reason now displayed in the tree item description (if any).
+
 ## 1.1.3
 
 ### Features
