@@ -116,6 +116,7 @@ export class ConnectionsManager implements QuickpickSet {
             "username": conn.username,
             "password": conn.password,
             "folderFilter": conn.folderFilter,
+            "crumbIssuer": conn.crumbIssuer,
             "active": true
         });
 
