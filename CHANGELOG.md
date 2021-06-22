@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.1.5
+
+### Fixes
+* __CSRF Protection Enabled for Connection Add Now Saving__: Fix for a bug where toggling the CSRF Protection Enabled while adding a connection wasn't being saved.
+
 ## 1.1.4
 
 ### Fixes
