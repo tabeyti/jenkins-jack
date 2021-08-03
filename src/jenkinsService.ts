@@ -253,7 +253,7 @@ export class JenkinsService {
             cancellable: true
         }, async (progress, token) => {
             token.onCancellationRequested(() => {
-                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+                vscode.window.showWarningMessage(`User canceled build retrieval.`, this.messageItem);
             });
             progress.report({ message: `Retrieving builds.` });
             return await this.getBuilds(job, token);
@@ -562,7 +562,13 @@ export class JenkinsService {
         }
         for (let job of jobs) { job.label = job.fullName; }
 
-        let selectedJobs = await vscode.window.showQuickPick(jobs, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message });
+        let selectedJobs = await vscode.window.showQuickPick(jobs, {
+            canPickMany: canPickMany,
+            ignoreFocusOut: true,
+            placeHolder: message,
+            matchOnDetail: true,
+            matchOnDescription: true
+        });
         if (undefined === selectedJobs) { return undefined; }
         return selectedJobs;
     }
@@ -582,11 +588,17 @@ export class JenkinsService {
         // Ask what build they want to download.
         let builds = await this.getBuildsWithProgress(job);
         if (0 >= builds.length) {
-            vscode.window.showWarningMessage(`No builds found for "${job.fullName}"`);
+            vscode.window.showWarningMessage(`No builds retrieved for "${job.fullName}"`);
             return undefined;
         }
         if (undefined !== filter) { builds = builds.filter(filter); }
-        let selections = await vscode.window.showQuickPick(builds, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message }) as any;
+        let selections = await vscode.window.showQuickPick(builds, {
+            canPickMany: canPickMany,
+            ignoreFocusOut: true,
+            placeHolder: message,
+            matchOnDetail: true,
+            matchOnDescription: true
+        }) as any;
         if (undefined === selections) { return undefined; }
         return selections;
     }
@@ -615,7 +627,13 @@ export class JenkinsService {
 
         nodes.forEach((n: any) => n.label = (n.offline ? "$(alert) " : "$(check) ") + n.displayName);
 
-        let selections = await vscode.window.showQuickPick(nodes, { canPickMany: canPickMany, ignoreFocusOut: true, placeHolder: message }) as any;
+        let selections = await vscode.window.showQuickPick(nodes, {
+            canPickMany: canPickMany,
+            ignoreFocusOut: true,
+            placeHolder: message,
+            matchOnDetail: true,
+            matchOnDescription: true
+        }) as any;
         if (undefined === selections) { return; }
         return selections;
     }
