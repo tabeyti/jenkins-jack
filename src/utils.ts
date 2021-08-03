@@ -217,6 +217,12 @@ export async function parallelTasks<T>(items: any, action: ((item: any) => Promi
     return await Promise.all<T>(tasks);
 }
 
+/**
+ * Groovy script for updating labels on the provided list of in nodes.
+ * @param nodes A list of node names as strings
+ * @param labels A list of labels to update on the nodes
+ * @returns A script for updating nodes on the Jenkins server.
+ */
 export function updateNodeLabelsScript(nodes: string[], labels: string[]): string {
     let labelsToken = '';
     let nodesToken = '';
@@ -244,6 +250,27 @@ export function updateNodeLabelsScript(nodes: string[], labels: string[]): strin
     jenkins.save();`.replace('<<LABELS>>', labelsToken).replace('<<NODES>>', nodesToken);
 }
 
+/**
+ * Converts a standard folder path into a supported Jenkins uri folder path.
+ * @param folderPath The folder path (e.g. folder1/folder2/folder3)
+ * @returns A supported Jenkins uri folder path (/folder1/job/folder2/job/folder3)
+ */
 export function folderToUri(folderPath: string) {
 	return folderPath.split('/').join('/job/');
+}
+
+/**
+ * Converts timestamp into a date/time string.
+ * @param timestamp Timestamp in milliseconds
+ * @returns A formatted date/time string
+ */
+export function toDateString(timestamp: number): string {
+    return `${new Date(timestamp).toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false})}`
 }

@@ -66,8 +66,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
             if (element) {
                 let builds = await ext.connectionsManager.host.getBuildsWithProgress(element.job, this._cancelTokenSource.token);
                 for (let build of builds) {
-                    let dateOptions = { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-                    let label = `${build.number}    ${new Date(build.timestamp).toLocaleString('en-US', dateOptions)}`;
+                    let label = `${build.number}    ${toDateString(build.timestamp)}`;
                     list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build));
                 }
             } else {
