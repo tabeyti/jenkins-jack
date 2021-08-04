@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
 import { JobType } from './jobType';
-import { filepath } from './utils';
+import { filepath, toDateString } from './utils';
 
 export class JobTree {
     private readonly _treeView: vscode.TreeView<JobTreeItem>;
@@ -30,13 +30,14 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
     readonly onDidChangeTreeData: vscode.Event<JobTreeItem | undefined> = this._onDidChangeTreeData.event;
     private _cancelTokenSource: vscode.CancellationTokenSource;
 
-    private _config: any;
+    private _treeConfig: any;
+    private _jobTreeConfig: any;
 
 	public constructor() {
         this._cancelTokenSource = new vscode.CancellationTokenSource();
 
         vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('jenkins-jack.tree')) {
+            if (event.affectsConfiguration('jenkins-jack.tree') || event.affectsConfiguration('jenkins-jack.job.tree')) {
                 this.updateSettings();
             }
         });
@@ -45,7 +46,8 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
     }
 
     private updateSettings() {
-        this._config = vscode.workspace.getConfiguration('jenkins-jack.tree');
+        this._treeConfig = vscode.workspace.getConfiguration('jenkins-jack.tree');
+        this._jobTreeConfig = vscode.workspace.getConfiguration('jenkins-jack.job.tree');
         this.refresh();
     }
 
@@ -64,7 +66,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
         return new Promise(async resolve => {
             let list =  [];
             if (element) {
-                let builds = await ext.connectionsManager.host.getBuildsWithProgress(element.job, this._cancelTokenSource.token);
+                let builds = await ext.connectionsManager.host.getBuildsWithProgress(element.job, this._jobTreeConfig.numBuilds, this._cancelTokenSource.token);
                 for (let build of builds) {
                     let label = `${build.number}    ${toDateString(build.timestamp)}`;
                     list.push(new JobTreeItem(label, JobTreeItemType.Build, vscode.TreeItemCollapsibleState.None, element.job, build));
@@ -74,7 +76,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
                 jobs = jobs.filter((job: any) =>  job.type !== JobType.Folder);
 
                 for(let job of jobs) {
-                    let label  = job.fullName.replace(/\//g, this._config.directorySeparator);
+                    let label  = job.fullName.replace(/\//g, this._treeConfig.directorySeparator);
                     let jobTreeItem = new JobTreeItem(label, JobTreeItemType.Job, vscode.TreeItemCollapsibleState.Collapsed,job);
                     list.push(jobTreeItem);
                 }

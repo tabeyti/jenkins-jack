@@ -402,6 +402,11 @@
             "default": "/",
             "markdownDescription": "Directory separator string for job names in the Jenkins Jack TreeViews (default is `/`)"
           },
+          "jenkins-jack.job.tree.numBuilds": {
+            "type": "number",
+            "default": 100,
+            "markdownDescription": "Number of builds to retrieve in the Job Tree view (NOTE: values over **100** will utilize the `allBuilds` field in the query, which may slow performance on the Jenkins server)"
+          },
           "jenkins-jack.pipeline.tree.items": {
             "type": "array",
             "items": {

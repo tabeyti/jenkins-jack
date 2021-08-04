@@ -274,3 +274,21 @@ export function toDateString(timestamp: number): string {
         second: '2-digit',
         hour12: false})}`
 }
+
+/**
+ * Converts milliseconds into HH:MM:SS.MS string.
+ * Taken from: https://stackoverflow.com/a/19700358
+ * @param duration Time in milliseconds
+ */
+export function msToTime(duration: number): string {
+    var milliseconds = Math.floor((duration % 1000) / 100),
+      seconds = Math.floor((duration / 1000) % 60),
+      minutes = Math.floor((duration / (1000 * 60)) % 60),
+      hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    let hrs = (hours < 10) ? "0" + hours : hours;
+    let mins = (minutes < 10) ? "0" + minutes : minutes;
+    let secs = (seconds < 10) ? "0" + seconds : seconds;
+
+    return hrs + ":" + mins + ":" + secs + "." + milliseconds;
+  }

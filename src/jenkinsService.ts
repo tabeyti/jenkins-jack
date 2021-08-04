@@ -4,7 +4,7 @@ import * as request from 'request-promise-native';
 import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 
-import { sleep, timer, folderToUri } from './utils';
+import { sleep, timer, folderToUri, toDateString, msToTime } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 import { JobType, JobTypeUtil } from './jobType';
 
@@ -33,6 +33,7 @@ export class JenkinsService {
         'result',
         'description',
         'url',
+        'duration',
         'timestamp',
         'building'
     ].join(',');
@@ -245,8 +246,10 @@ export class JenkinsService {
     /**
      * Wrapper around getBuilds with progress notification.
      * @param job The Jenkins JSON job object
+     * @param numBuilds The number of builds to retrieve in the query
+     * @param token (Optional) The cancellation token
      */
-    public async getBuildsWithProgress(job: any, token?: vscode.CancellationToken) {
+    public async getBuildsWithProgress(job: any, numBuilds? : number, token?: vscode.CancellationToken) {
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
             title: `Jenkins Jack`,
@@ -256,16 +259,21 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled build retrieval.`, this.messageItem);
             });
             progress.report({ message: `Retrieving builds.` });
-            return await this.getBuilds(job, token);
+            return await this.getBuilds(job, numBuilds, token);
         });
     }
 
     /**
      * Retrieves build numbers for the job url provided.
-     * @param rootUrl Base 'job' url for the request.
-     * @returns List of showQuickPick build objects or undefined.
+     * @param job The Jenkins job object
+     * @param numBuilds (Optional) The number of builds to retrieve in the query
+     * @param token (Optional) The cancellation token
+     * @returns List of showQuickPick compatible Jenkins build objects or undefined.
      */
-    public async getBuilds(job: any, token?: vscode.CancellationToken) {
+    public async getBuilds(
+        job: any,
+        numBuilds?: number,
+        token?: vscode.CancellationToken,) {
         let resultIconMap = new Map([
             ['SUCCESS', '$(check)'],
             ['FAILURE', '$(x)'],
@@ -276,9 +284,15 @@ export class JenkinsService {
 
         return new Promise<any>(async resolve => {
             try {
+                // Determine if we need to switch to the `allBuilds` field if the numBuilds
+                // is over 100 (default number of results in Jenkins)
+                numBuilds = numBuilds ?? 100;
+                let buildsOrAllBuilds = (numBuilds > 100) ? 'allBuilds' : 'builds'
+
                 let sw = timer();
                 let rootUrl = this.fromUrlFormat(job.url);
-                let url = `${rootUrl}/api/json?tree=builds[${this._buildProps}]`;
+                let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${this._buildProps}]{0,${numBuilds}}`;
+                console.log(url);
                 let requestPromise = request.get(url);
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
@@ -287,10 +301,14 @@ export class JenkinsService {
                 let r = await requestPromise;
                 let json = JSON.parse(r);
                 console.log(`getBuilds: ${sw.seconds}`);
-                resolve(json.builds.map((n: any) => {
+                resolve(json[buildsOrAllBuilds].map((n: any) => {
                     let buildStatus = resultIconMap.get(n.result);
                     buildStatus = null === n.result && n.building ? '$(loading~spin)' : buildStatus;
                     n.label = String(`${n.number} ${buildStatus}`);
+
+
+                    // Add build meta-data to details for querying
+                    n.detail = `(${toDateString(n.timestamp)}) (${n.result ?? 'IN PROGRESS'}) (${msToTime(n.duration)}) - ${n.description ?? 'no description'}`
                     return n;
                 }));
             } catch (err) {
@@ -586,8 +604,21 @@ export class JenkinsService {
         canPickMany?: boolean,
         message?: string): Promise<any[]|any|undefined> {
 
+        // Get number of builds to retrieve, defaulting to 100 for performance.
+        let numBuilds = await vscode.window.showInputBox({
+            ignoreFocusOut: true,
+            placeHolder: 'Enter number of builds to retrieve',
+            prompt: 'Number of builds to query on (NOTE: values over 100 will utilize the "allBuilds" field in the query, which may slow performance on the Jenkins server)',
+            validateInput: text => {
+                if (!/^\d+$/.test(text) || parseInt(text) <= 0 ) { return 'Must provide a number greater than 0.'}
+                return undefined;
+            },
+            value: '100'
+        });
+        if (undefined == numBuilds) { return undefined; }
+
         // Ask what build they want to download.
-        let builds = await this.getBuildsWithProgress(job);
+        let builds = await this.getBuildsWithProgress(job, parseInt(numBuilds));
         if (0 >= builds.length) {
             vscode.window.showWarningMessage(`No builds retrieved for "${job.fullName}"`);
             return undefined;
