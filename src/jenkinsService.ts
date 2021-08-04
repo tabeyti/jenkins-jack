@@ -308,7 +308,7 @@ export class JenkinsService {
 
 
                     // Add build meta-data to details for querying
-                    n.detail = `(${toDateString(n.timestamp)}) (${n.result ?? 'IN PROGRESS'}) (${msToTime(n.duration)}) - ${n.description ?? 'no description'}`
+                    n.detail = `[${toDateString(n.timestamp)}] [${n.result ?? 'IN PROGRESS'}] [${msToTime(n.duration)}] - ${n.description ?? 'no description'}`
                     return n;
                 }));
             } catch (err) {
@@ -573,6 +573,8 @@ export class JenkinsService {
         filter?: ((job: any) => boolean),
         canPickMany?: boolean,
         message?: string): Promise<any[]|undefined> {
+
+        message = message ?? 'Select a job to grab builds from'
 
         let jobs = await this.getJobs();
         if (undefined === jobs) { return undefined; }

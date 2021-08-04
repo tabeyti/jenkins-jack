@@ -20,7 +20,7 @@ export class BuildJack extends JackBase {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
             }
             else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow(undefined, false, 'Select a job to grab builds from');
+                let job = await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
                 if (undefined === job) { return; }
 
                 let builds = await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
@@ -178,7 +178,7 @@ export class BuildJack extends JackBase {
      * @param build Optional build to target. If none, build selection will be presented.
      */
     public async downloadLog(job?: any, build?: any) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(undefined, false, 'Select a job to grab builds from');
+        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
         if (undefined === job) { return; }
 
         build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, false, 'Select a build');

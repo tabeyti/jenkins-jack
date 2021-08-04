@@ -265,7 +265,7 @@ export function folderToUri(folderPath: string) {
  * @returns A formatted date/time string
  */
 export function toDateString(timestamp: number): string {
-    return `${new Date(timestamp).toLocaleString('en-US', {
+    return `${new Date(timestamp).toLocaleString(undefined, {
         month: '2-digit',
         day: '2-digit',
         year: '2-digit',
