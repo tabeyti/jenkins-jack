@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.1.6
+
+### Features
+* __Enable Build API Results Over 100 via `allBuilds`__: Any build operation will now prompt the user to enter a number of builds to retrieve (default 100). If over 100, the `allBuilds` field will be used within the query to pull more results.
+  > __NOTE:__ Any value over 100, invoking the `allBuilds` filed, may have a performance impact on your Jenkins server due to it forcing the server (by default) to iterate over all builds.
+* __Job Tree Number of Build Results:__ A new setting `jenkins-jack.job.tree.numBuilds` is now available for configuring the number of build results to return for a job expansion (default 100).
+  > __NOTE:__ Same performance impact as above applies.
+
 ## 1.1.5
 
 ### Fixes

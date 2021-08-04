@@ -5,7 +5,7 @@
   "description": "Jack into your Jenkins to streamline your Pipeline development and Jenkins management in VSCode. Execute Pipeline scripts remotely with real-time syntax highlighted output, access Pipeline step auto-completions, pull Pipeline step documentation, run console groovy scripts across multiple agents, manage jobs/builds/agents, and more!",
   "icon": "images/logo.png",
   "homepage": "https://github.com/tabeyti/jenkins-jack/blob/master/README.md",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "license": "See LICENSE.md",
   "galleryBanner": {
     "color": "#168bb9",

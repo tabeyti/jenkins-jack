@@ -71,6 +71,15 @@ Connection data is stored in the `settings.json`:
 
 ---
 
+## Query Builds
+
+* Use VSCode's quick-pick search with wild-card support to query builds by date, result, duration, and description for any build operation (e.g. open, delete, download log, etc.)
+* Limit or expand the number of builds to retrieve for performance or more search results
+
+![build](images/doc/demo_build_query.gif)
+
+
+
 ## Job and Build Management
 
 > TODO
