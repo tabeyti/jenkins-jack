@@ -480,7 +480,8 @@ export class JenkinsService {
                 log.on('data', (text: string) => {
                     if (token.isCancellationRequested) { return; }
                     if (suppressPipelineLog) {
-                        let regex = new RegExp('^\\[Pipeline\\] .*');
+                        // Captures any "[Pipeline]" log line, including ones with timestamps
+                        let regex = new RegExp('^(\\S+\\s+)?\\[Pipeline\\] .*');
                         let content = text.split(/\r?\n/).filter((l: string) => !regex.test(l));
                         outputChannel.append(content.join('\n'));
                     } else {
