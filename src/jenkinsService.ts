@@ -387,7 +387,7 @@ export class JenkinsService {
                 rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
                 rootUrl = this.fromUrlFormat(rootUrl);
                 let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(encodeURI(url));
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
