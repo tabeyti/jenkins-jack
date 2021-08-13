@@ -190,7 +190,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
             return data;
         }).catch((err: any) => {
             // TODO: Handle better
-            console.log(err);
+            ext.logger.error(err);
             throw err;
         });
 

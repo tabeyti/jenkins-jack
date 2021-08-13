@@ -47,7 +47,7 @@ export class PipelineSnippets {
      */
     public async refresh() {
         if (!this.enabled) { return; }
-        console.log('Refreshing Pipeline step auto-completions.');
+        ext.logger.info('refresh - Refreshing Pipeline step auto-completions.');
 
         this.completionItems = new Array<vscode.CompletionItem>();
         this.stepDocs = new Array<PipelineStepDoc>();

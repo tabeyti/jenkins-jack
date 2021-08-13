@@ -7,6 +7,7 @@ import * as htmlParser from 'cheerio';
 import { sleep, timer, folderToUri, toDateString, msToTime } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 import { JobType, JobTypeUtil } from './jobType';
+import { ext } from './extensionVariables';
 
 export class JenkinsService {
     // @ts-ignore
@@ -56,8 +57,7 @@ export class JenkinsService {
         this._jenkinsUri = (null === this.connection.username || null === this.connection.password) ?
                             `${protocol}://${host}` :
                             `${protocol}://${encodeURIComponent(this.connection.username)}:${encodeURIComponent(this.connection.password)}@${host}`;
-
-        console.log(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
+        ext.logger.info(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
 
         this.updateSettings();
 
@@ -108,6 +108,7 @@ export class JenkinsService {
     /**
      * Initiates a 'get' request at the desired path from the Jenkins host.
      * @param path The targeted path from the Jenkins host.
+     * @param token Optional cancellation token
      */
     public async get(endpoint: string, token?: vscode.CancellationToken) {
         return new Promise<any>(async (resolve) => {
@@ -120,7 +121,7 @@ export class JenkinsService {
                 });
                 resolve(await requestPromise);
             } catch (err) {
-                console.log(err);
+                ext.logger.error(err);
                 resolve(undefined);
             }
         });
@@ -237,7 +238,7 @@ export class JenkinsService {
             let json = JSON.parse(r);
             return json.computer;
         } catch (err) {
-            console.log(err);
+            ext.logger.error(err);
             this.showCantConnectMessage();
             return undefined;
         }
@@ -292,7 +293,8 @@ export class JenkinsService {
                 let sw = timer();
                 let rootUrl = this.fromUrlFormat(job.url);
                 let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${this._buildProps}]{0,${numBuilds}}`;
-                console.log(url);
+                ext.logger.info(`getBuilds - ${url}`);
+
                 let requestPromise = request.get(url);
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
@@ -300,19 +302,19 @@ export class JenkinsService {
                 });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
-                console.log(`getBuilds: ${sw.seconds}`);
+
+                ext.logger.debug(`getBuilds - ${sw.seconds}s`);
                 resolve(json[buildsOrAllBuilds].map((n: any) => {
                     let buildStatus = resultIconMap.get(n.result);
                     buildStatus = null === n.result && n.building ? '$(loading~spin)' : buildStatus;
                     n.label = String(`${n.number} ${buildStatus}`);
-
 
                     // Add build meta-data to details for querying
                     n.detail = `[${toDateString(n.timestamp)}] [${n.result ?? 'IN PROGRESS'}] [${msToTime(n.duration)}] - ${n.description ?? 'no description'}`
                     return n;
                 }));
             } catch (err) {
-                console.log(err);
+                ext.logger.error(err);
                 this.showCantConnectMessage();
                 resolve(undefined);
             }
@@ -349,7 +351,7 @@ export class JenkinsService {
                 }
                 return source;
             } catch (err) {
-                console.log(err);
+                ext.logger.error(err);
                 vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
                 return undefined;
             }
@@ -370,7 +372,7 @@ export class JenkinsService {
             if (302 === err.statusCode) {
                 return `${job.fullName} #${buildNumber} deleted`;
             }
-            console.log(err);
+            ext.logger.error(err);
             this.showCantConnectMessage();
         }
     }
@@ -387,6 +389,7 @@ export class JenkinsService {
                 rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
                 rootUrl = this.fromUrlFormat(rootUrl);
                 let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
+                ext.logger.info(`getJobsFromUrl - ${url}`);
                 let requestPromise = request.get(url);
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
@@ -394,13 +397,13 @@ export class JenkinsService {
                 });
                 let r = await requestPromise;
                 let json = JSON.parse(r);
-                console.log(`getJobsFromUrl: ${sw.seconds}`);
+                ext.logger.debug(`getJobsFromUrl - ${sw.seconds}`);
 
                 this.addJobMetadata(json.jobs);
 
                 resolve(json.jobs);
             } catch (err) {
-                console.log(err);
+                ext.logger.error(err);
                 this.showCantConnectMessage();
                 resolve(undefined);
             }
@@ -443,7 +446,7 @@ export class JenkinsService {
             let output = await r;
             return output;
         } catch (err) {
-            console.log(err);
+            ext.logger.error(err);
             this.showCantConnectMessage();
             return err.error;
         }
@@ -509,7 +512,7 @@ export class JenkinsService {
 
                 log.on('error', (err: string) => {
                     if (token.isCancellationRequested) { return; }
-                    console.log(`[ERROR]: ${err}`);
+                    ext.logger.error(`[ERROR]: ${err}`);
                     resolve(undefined);
                 });
 
@@ -547,7 +550,7 @@ export class JenkinsService {
         let timeoutSecs = 10;
         let timeout = timeoutSecs;
         let exists = false;
-        console.log('Waiting for build to start...');
+        ext.logger.info(`buildReady - Waiting for ${jobName} #${buildNumber} to start...`);
         while (timeout-- > 0) {
             exists = await this.client.build.get(jobName, buildNumber).then((data: any) => {
                 return true;
@@ -560,7 +563,7 @@ export class JenkinsService {
         if (!exists) {
             throw new Error(`Timed out waiting waiting for build after ${timeoutSecs} seconds: ${jobName}`);
         }
-        console.log('Build ready!');
+        ext.logger.info(`buildReady - ${jobName} #${buildNumber} build is ready!`);
     }
 
     /**

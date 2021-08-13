@@ -1,8 +1,3 @@
-/**
- * Provide link in "error dialog: you must select a jenkins connection to use this plugin"
- * When there are no hosts to select in the command, open settings for user to add a host.
- */
-
 import * as vscode from 'vscode';
 import { PipelineJack } from './pipelineJack';
 import { PipelineSnippets } from './snippets';
@@ -19,12 +14,15 @@ import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
 import { applyDefaultHost } from './utils';
 import { ConnectionsTree } from './connectionsTree';
+import { Logger } from './logger';
 
 export async function activate(context: vscode.ExtensionContext) {
 
     await applyDefaultHost();
 
     ext.context = context;
+
+    ext.logger = new Logger();
 
     // We initialize the Jenkins service first in order to avoid
     // a race condition during onDidChangeConfiguration
@@ -36,8 +34,8 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize the output panel provider for jack command output
     ext.outputPanelProvider = new OutputPanelProvider();
 
-    // Initialize top level jacks and gather their subcommands for the Jack command
-    // quickpick display
+    // Initialize top level jacks and gather their sub-commands for the Jack command
+    // quick-pick display
     ext.pipelineJack = new PipelineJack();
     commandSets.push(ext.pipelineJack);
 
@@ -54,6 +52,8 @@ export async function activate(context: vscode.ExtensionContext) {
     commandSets.push(ext.nodeJack);
 
     commandSets.push(ext.connectionsManager);
+
+    ext.logger.info('Extension Jenkins Jack now active!');
 
     ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.jacks', async () => {
 
@@ -80,8 +80,6 @@ export async function activate(context: vscode.ExtensionContext) {
     ext.pipelineTree = new PipelineTree();
     ext.jobTree = new JobTree();
     ext.nodeTree = new NodeTree();
-
-    console.log('Extension Jenkins Jack now active!');
 }
 
 export function deactivate() {}

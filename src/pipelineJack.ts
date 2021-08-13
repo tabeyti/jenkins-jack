@@ -135,7 +135,7 @@ export class PipelineJack extends JackBase {
                 this.showInformationMessage(`Pipeline "${jobName}" created on "${ext.connectionsManager.activeConnection.name}"`);
                 ext.pipelineTree.refresh();
             } catch (ex) {
-                console.log(ex.message);
+                ext.logger.warn(ex.message);
                 this.showWarningMessage(ex.message);
                 throw ex;
             }
@@ -278,7 +278,7 @@ export class PipelineJack extends JackBase {
                 return data;
             }).catch((err: any) => {
                 // TODO: Handle better
-                console.log(err);
+                ext.logger.error(err);
                 throw err;
             });
         }
@@ -304,7 +304,7 @@ export class PipelineJack extends JackBase {
 
         // If job exists already, update the config
         if (job) {
-            console.log(`${jobName} already exists. Updating...`);
+            ext.logger.info(`${jobName} already exists. Updating...`);
             await ext.connectionsManager.host.client.job.config(jobName, xml);
             return job;
         }
@@ -313,7 +313,7 @@ export class PipelineJack extends JackBase {
         let r = await this.showInformationModal(
             `"${jobName}" job doesn't exist on "${ext.connectionsManager.activeConnection.name}". Do you want us to create it?`, { title: 'Yes' } );
         if (undefined === r) { return undefined; }
-        console.log(`${jobName} doesn't exist. Creating...`);
+        ext.logger.info(`createUpdateJenkinsJob - ${jobName} doesn't exist. Creating...`);
 
         // Provide option for selecting a folder job on the server to create the job under
         let fullJobName = jobName;
@@ -333,7 +333,7 @@ export class PipelineJack extends JackBase {
         try {
             await ext.connectionsManager.host.client.job.create(fullJobName, xml);
         } catch (ex) {
-            console.log(ex.message);
+            ext.logger.error(ex.message);
             this.showWarningMessage(ex.message);
             throw ex;
         }
@@ -543,7 +543,7 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 20, message: `Building "${jobName}" #${buildNumber}` });
             let buildOptions = params !== undefined ? { name: jobName, parameters: params } : { name: jobName };
             await ext.connectionsManager.host.client.job.build(buildOptions).catch((err: any) => {
-                console.log(err);
+                ext.logger.error(err);
                 throw err;
             });
             if (token.isCancellationRequested) { return undefined;  }

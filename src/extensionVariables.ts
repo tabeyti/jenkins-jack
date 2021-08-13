@@ -11,6 +11,7 @@ import { PipelineTree } from "./pipelineTree";
 import { NodeTree } from "./nodeTree";
 import { OutputPanelProvider } from "./outputProvider";
 import { ConnectionsTree } from "./connectionsTree";
+import { Logger } from "./logger";
 
 /**
  * Namespace for common variables used throughout the extension. They must be initialized in the activate() method of extension.ts
@@ -32,4 +33,5 @@ export namespace ext {
     export let pipelineTree: PipelineTree;
     export let nodeTree: NodeTree;
     export let connectionsManager: ConnectionsManager;
+    export let logger: Logger;
 }
