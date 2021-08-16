@@ -39,6 +39,18 @@ export class JenkinsService {
         'building'
     ].join(',');
 
+    private _nodeProps = [
+        'assignedLabels',
+        'description',
+        'displayName',
+        'executors[idle,currentExecutable[displayName,timestamp,url]]',
+        'idle',
+        'offline',
+        'offlineCause',
+        'offlineCauseReason',
+        'temporarilyOffline'
+    ].join(',');
+
     private readonly messageItem: vscode.MessageItem = {
         title: 'Okay'
     };
@@ -233,10 +245,10 @@ export class JenkinsService {
      */
     public async getNodes(token?: vscode.CancellationToken) {
         try {
-            let r = await this.get('computer/api/json', token);
+            let url = `computer/api/json?tree=computer[${this._nodeProps}]`;
+            let r = await this.get(url, token);
             if (undefined === r) { return undefined; }
-            let json = JSON.parse(r);
-            return json.computer;
+            return JSON.parse(r).computer;
         } catch (err) {
             ext.logger.error(err);
             this.showCantConnectMessage();

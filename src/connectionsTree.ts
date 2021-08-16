@@ -70,7 +70,7 @@ export class ConnectionsTreeItem extends vscode.TreeItem {
 
         this.contextValue = connection.active ? 'connectionsTreeItemActive' : 'connectionsTreeItemInactive';
 
-        let iconPrefix = connection.active ? 'connection-active' : 'connection-inactive';
+        let iconPrefix = connection.active ? 'active' : 'inactive';
         this.iconPath = {
             light: filepath('images', `${iconPrefix}-light.svg`),
             dark: filepath('images', `${iconPrefix}-dark.svg`),

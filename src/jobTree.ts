@@ -101,12 +101,13 @@ export class JobTreeItem extends vscode.TreeItem {
 	) {
         super(label, treeItemState);
 
-        let iconPrefix = 'job-enabled';
+        let iconPrefix = 'active';
         if (JobTreeItemType.Job === type) {
             this.contextValue = 'job';
 
             if (!job.buildable) {
-                iconPrefix = this.contextValue = 'job-disabled';
+                this.contextValue += '-disabled';
+                iconPrefix = 'inactive';
             }
         }
         else {

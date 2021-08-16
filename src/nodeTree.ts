@@ -52,13 +52,20 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
-            if (undefined === nodes) {
-                resolve([]);
-            }
-            nodes = nodes?.filter((n: any) => n.displayName !== 'master');
-            for (let n of nodes) {
-                list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.None, n));
+            if (element) {
+                for (let e of element.node.executors) {
+                    let label = (!e.currentExecutable || e.currentExecutable.idle) ? 'Idle' : e.currentExecutable?.displayName;
+                    list.push(new NodeTreeItem(label, vscode.TreeItemCollapsibleState.None, element.node, e));
+                }
+            } else {
+                let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
+                if (undefined === nodes) {
+                    resolve([]);
+                }
+                nodes = nodes?.filter((n: any) => n.displayName !== 'master');
+                for (let n of nodes) {
+                    list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.Collapsed, n));
+                }
             }
             resolve(list);
         });
@@ -69,19 +76,24 @@ export class NodeTreeItem extends vscode.TreeItem {
 	constructor(
         public readonly label: string,
         public readonly treeItemState: vscode.TreeItemCollapsibleState,
-        public readonly node: any
+        public readonly node: any,
+        public readonly executor?: any
 	) {
         super(label, treeItemState);
 
-        this.contextValue = 'node';
-
         let iconPrefix = 'node-enabled';
-        if (node.offline && node.temporarilyOffline) {
-            iconPrefix = 'node-disabled';
-            this.contextValue = 'node-disabled';
-        } else if (node.offline) {
-            iconPrefix = 'node-disconnected';
-            this.contextValue = 'node-disconnected';
+        this.contextValue = 'node-enabled';
+        if (!this.executor) {
+            if (node.offline && node.temporarilyOffline) {
+                iconPrefix = 'node-disabled';
+                this.contextValue = 'node-disabled';
+            } else if (node.offline) {
+                iconPrefix = 'node-disconnected';
+                this.contextValue = 'node-disconnected';
+            }
+        } else {
+            iconPrefix = (!this.executor.idle) ? 'executor-active' : 'executor-idle';
+            this.contextValue = iconPrefix;
         }
 
         this.iconPath = {
@@ -94,25 +106,37 @@ export class NodeTreeItem extends vscode.TreeItem {
 	get tooltip(): string {
         let tooltip = this.label;
 
-        if (this.node.temporarilyOffline) {
-            tooltip += ' (OFFLINE)';
-        } else if (this.node.offline) {
-            tooltip += ' (DISCONNECTED)';
-        } else {
-            tooltip += ' (ONLINE)';
-        }
+        if (!this.executor) {
+            if (this.node.temporarilyOffline) {
+                tooltip += ' (OFFLINE)';
+            } else if (this.node.offline) {
+                tooltip += ' (DISCONNECTED)';
+            } else {
+                tooltip += ' (ONLINE)';
+            }
 
-        if (this.node.temporarilyOffline) {
-            return `${tooltip}\n${this.node.offlineCauseReason}`;
+            if (this.node.temporarilyOffline) {
+                tooltip = `${tooltip}\n${this.node.offlineCauseReason}`;
+            }
+        } else if (!this.executor.idle) {
+            tooltip += ` (${toDateString(this.executor.currentExecutable.timestamp)})`
         }
         return tooltip;
 	}
 
      // @ts-ignore
 	get description(): string {
-        let description = this.node.description;
-        if (this.node.temporarilyOffline) {
-            description += ` (${this.node.offlineCauseReason})`;
+        let description = '';
+
+        if (this.executor) {
+            if (!this.executor.idle) {
+                description = `(${toDateString(this.executor.currentExecutable.timestamp)})`;
+            }
+        } else {
+            description += this.node.description;
+            if (this.node.temporarilyOffline) {
+                description += ` (${this.node.offlineCauseReason})`;
+            }
         }
         return description;
     }

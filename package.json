@@ -34,7 +34,7 @@
         {
           "id": "jenkins-jack-explorer",
           "title": "Jenkins Jack",
-          "icon": "images/jenkins_bow_icon.svg"
+          "icon": "images/jenkins-bow-icon.svg"
         }
       ]
     },
@@ -212,7 +212,7 @@
         },
         {
           "command": "extension.jenkins-jack.job.disable",
-          "when": "view == jobTree && viewItem != job-disabled",
+          "when": "view == jobTree && && viewItem =~ /job/ && viewItem != job-disabled",
           "group": "modification"
         },
         {
@@ -267,12 +267,12 @@
         },
         {
           "command": "extension.jenkins-jack.node.setOffline",
-          "when": "view == nodeTree && viewItem == node",
+          "when": "view == nodeTree && viewItem == node-enabled",
           "group": "modification"
         },
         {
           "command": "extension.jenkins-jack.node.setOnline",
-          "when": "view == nodeTree && viewItem != node",
+          "when": "view == nodeTree && viewItem =~ /node/ && viewItem != node-enabled",
           "group": "modification"
         },
         {
@@ -287,7 +287,7 @@
         },
         {
           "command": "extension.jenkins-jack.scriptConsole.execute",
-          "when": "view == nodeTree && viewItem != node-disconnected",
+          "when": "view == nodeTree && viewItem =~ /node/ && viewItem != node-disconnected",
           "group": "action"
         }
       ]
@@ -737,6 +737,7 @@
     "@types/url-parse": "^1.4.3",
     "cheerio": "^1.0.0-rc.3",
     "jenkins": "^0.28.1",
+    "moment": "^2.29.1",
     "open": "^6.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
