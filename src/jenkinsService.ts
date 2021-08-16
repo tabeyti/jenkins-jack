@@ -139,6 +139,7 @@ export class JenkinsService {
         });
     }
 
+
     /**
      * Uses the jenkins client to retrieve a job.
      * @param job The Jenkins job JSON object.
@@ -277,7 +278,7 @@ export class JenkinsService {
     }
 
     /**
-     * Retrieves build numbers for the job url provided.
+     * Retrieves build quick pick objects for the job and build number provided.
      * @param job The Jenkins job object
      * @param numBuilds (Optional) The number of builds to retrieve in the query
      * @param token (Optional) The cancellation token
@@ -616,10 +617,16 @@ export class JenkinsService {
      * @param message Optional help message to display to the user.
      */
     public async buildSelectionFlow(
-        job: any,
+        job?: any,
         filter?: ((build: any) => boolean),
         canPickMany?: boolean,
         message?: string): Promise<any[]|any|undefined> {
+
+        message = message ?? 'Select a build.'
+
+        // If job wasn't provided, prompt user to select one.
+        job = job ?? (await this.jobSelectionFlow(undefined, false));
+        if (undefined == job) { return undefined;}
 
         // Get number of builds to retrieve, defaulting to 100 for performance.
         let numBuilds = await vscode.window.showInputBox({
