@@ -182,6 +182,7 @@ export class PipelineJack extends JackBase {
         // Refresh tree views.
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
+        ext.nodeTree.refresh(2); // delay to give Jenkins time to assign the job to a node
 
         if (!this.config.browserBuildOutput) {
             // Stream the output. Yep.

@@ -4,6 +4,7 @@ import { JobTreeItem, JobTreeItemType } from './jobTree';
 import { ext } from './extensionVariables';
 import { withProgressOutputParallel } from './utils';
 import { JobType } from './jobType'
+import { NodeTreeItem } from './nodeTree';
 
 export class BuildJack extends JackBase {
 
@@ -15,11 +16,17 @@ export class BuildJack extends JackBase {
     constructor() {
         super('Build Jack', 'extension.jenkins-jack.build');
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.abort', async (item?: any[] | JobTreeItem, items?: JobTreeItem[]) => {
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.abort', async (item?: any | JobTreeItem | NodeTreeItem, items?: any[]) => {
+
             if (item instanceof JobTreeItem) {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
-            }
-            else {
+            } else if (item instanceof NodeTreeItem) {
+                // HACKERY: For every NodeTreeItem "executor", parse the job name and build number
+                // from the build "url"
+                items = (items ?? [item]).map((i: any) => {
+                    return this.getJobBuildFromUrl(i.executor.currentExecutable.url);
+                });
+            } else {
                 let job = await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
                 if (undefined === job) { return; }
 
@@ -45,6 +52,7 @@ export class BuildJack extends JackBase {
             this.outputChannel.show();
             this.outputChannel.appendLine(output);
             ext.jobTree.refresh();
+            ext.nodeTree.refresh(2);
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.delete', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
@@ -79,9 +87,13 @@ export class BuildJack extends JackBase {
             ext.jobTree.refresh();
         }));
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (content?: any | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                await this.downloadLog(content.job, content.build);
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (item?: any | JobTreeItem) => {
+            if (item instanceof JobTreeItem) {
+                await this.downloadLog(item.job, item.build);
+            }
+            else if (item instanceof NodeTreeItem) {
+                item = this.getJobBuildFromUrl(item.executor.currentExecutable.url);
+                await ext.connectionsManager.host.streamBuildOutput(item.job.fullName, item.build.number, this.outputChannel);
             }
             else {
                 await this.downloadLog();
@@ -97,20 +109,21 @@ export class BuildJack extends JackBase {
             }
         }));
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: JobTreeItem[]) => {
-            let builds = [];
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: any[]) => {
+            let urls = [];
             if (item instanceof JobTreeItem) {
-                builds = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build) : [item.build];
+                urls = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => i.build.url) : [item.build.url];
+            }
+            else if (item instanceof NodeTreeItem) {
+                urls = (items ?? [item]).map((i: any) => { return i.executor.currentExecutable.url });
             }
             else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow();
-                if (undefined === job) { return; }
-
-                builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
-                if (undefined === builds) { return; }
+                urls = (await ext.connectionsManager.host.buildSelectionFlow(undefined, undefined, true))?.map((b: any) => b.build.url);
+                if (undefined === urls) { return; }
             }
-            for (let build of builds) {
-                ext.connectionsManager.host.openBrowserAt(build.url);
+
+            for (let url of urls) {
+                ext.connectionsManager.host.openBrowserAt(url);
             }
         }));
     }
@@ -216,5 +229,16 @@ export class BuildJack extends JackBase {
             language: 'groovy'
         });
         await vscode.window.showTextDocument(doc);
+    }
+
+    private getJobBuildFromUrl(url: string) {
+        let jenkinsUri = ext.connectionsManager.host.connection.uri;
+        url = url.replace(`${jenkinsUri}/`, '');
+        url = url.replace(/job\//g, '');
+        let urlParts = url.split('/').filter((c: string) => c !== '' );
+        return {
+            job: { fullName: urlParts.slice(0, -1).join('/') },
+            build: { number: urlParts.slice(-1)[0] }
+        };
     }
 }

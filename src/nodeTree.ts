@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
-import { filepath } from './utils';
+import { filepath, sleep, toDateString } from './utils';
 
 export class NodeTree {
     private readonly _treeView: vscode.TreeView<NodeTreeItem>;
@@ -19,9 +19,11 @@ export class NodeTree {
     }
 
     // @ts-ignore
-    public refresh() {
-        this._treeView.title = `Nodes (${ext.connectionsManager.host.connection.name})`;
-        this._treeViewDataProvider.refresh();
+    public refresh(delayMs?: int = 0) {
+        sleep(delayMs*1000).then(() => {
+            this._treeView.title = `Nodes (${ext.connectionsManager.host.connection.name})`;
+            this._treeViewDataProvider.refresh();
+        })
     }
 }
 
@@ -36,6 +38,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
     }
 
     private updateSettings() {
+        this.refresh();
     }
 
 	refresh(): void {
@@ -92,8 +95,8 @@ export class NodeTreeItem extends vscode.TreeItem {
                 this.contextValue = 'node-disconnected';
             }
         } else {
-            iconPrefix = (!this.executor.idle) ? 'executor-active' : 'executor-idle';
-            this.contextValue = iconPrefix;
+            iconPrefix = (!this.executor.idle) ? 'active' : 'inactive';
+            this.contextValue = `executor-${iconPrefix}`;
         }
 
         this.iconPath = {

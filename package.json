@@ -238,8 +238,18 @@
           "group": "inline"
         },
         {
+          "command": "extension.jenkins-jack.build.open",
+          "when": "view == nodeTree && viewItem == executor-active",
+          "group": "navigation"
+        },
+        {
           "command": "extension.jenkins-jack.build.abort",
           "when": "view == jobTree && viewItem =~ /inprogress/",
+          "group": "action"
+        },
+        {
+          "command": "extension.jenkins-jack.build.abort",
+          "when": "view == nodeTree && viewItem == executor-active",
           "group": "action"
         },
         {
@@ -250,6 +260,11 @@
         {
           "command": "extension.jenkins-jack.build.downloadLog",
           "when": "view == jobTree && viewItem =~ /build/",
+          "group": "action"
+        },
+        {
+          "command": "extension.jenkins-jack.build.downloadLog",
+          "when": "view == nodeTree && viewItem == executor-active",
           "group": "action"
         },
         {
@@ -611,6 +626,15 @@
       {
         "command": "extension.jenkins-jack.tree.node.refresh",
         "title": "Refresh",
+        "category": "Jenkins Jack: Node Tree",
+        "icon": {
+          "light": "images/refresh-light.svg",
+          "dark": "images/refresh-dark.svg"
+        }
+      },
+      {
+        "command": "extension.jenkins-jack.tree.node.expand",
+        "title": "Expand",
         "category": "Jenkins Jack: Node Tree",
         "icon": {
           "light": "images/refresh-light.svg",
