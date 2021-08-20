@@ -479,10 +479,7 @@
         "command": "extension.jenkins-jack.pipeline.execute",
         "title": "Execute",
         "category": "Jenkins Jack: Pipeline",
-        "icon": {
-          "light": "images/pipeline-execute-light.svg",
-          "dark": "images/pipeline-execute-dark.svg"
-        }
+        "icon": "$(run)"
       },
       {
         "command": "extension.jenkins-jack.pipeline.sharedLibrary",
@@ -493,19 +490,13 @@
         "command": "extension.jenkins-jack.pipeline.create",
         "title": "Create",
         "category": "Jenkins Jack: Pipeline",
-        "icon": {
-          "light": "images/add-light.svg",
-          "dark": "images/add-dark.svg"
-        }
+        "icon": "$(add)"
       },
       {
         "command": "extension.jenkins-jack.tree.pipeline.openScript",
         "title": "Open script",
         "category": "Jenkins Jack: Pipeline",
-        "icon": {
-          "light": "images/pipeline-open-script-light.svg",
-          "dark": "images/pipeline-open-script-dark.svg"
-        }
+        "icon": "$(folder-opened)"
       },
       {
         "command": "extension.jenkins-jack.tree.pipeline.openScriptConfig",
@@ -526,10 +517,7 @@
         "command": "extension.jenkins-jack.tree.pipeline.refresh",
         "title": "Refresh",
         "category": "Jenkins Jack: Pipeline Tree",
-        "icon": {
-          "light": "images/refresh-light.svg",
-          "dark": "images/refresh-dark.svg"
-        }
+        "icon": "$(refresh)"
       },
       {
         "command": "extension.jenkins-jack.tree.pipeline.addLink",
@@ -565,10 +553,7 @@
         "command": "extension.jenkins-jack.build.open",
         "title": "Open",
         "category": "Jenkins Jack: Build",
-        "icon": {
-          "light": "images/open-light.svg",
-          "dark": "images/open-dark.svg"
-        }
+        "icon": "$(link-external)"
       },
       {
         "command": "extension.jenkins-jack.build.delete",
@@ -579,10 +564,7 @@
         "command": "extension.jenkins-jack.build.downloadLog",
         "title": "Download Log",
         "category": "Jenkins Jack: Build",
-        "icon": {
-          "light": "images/build-log-light.svg",
-          "dark": "images/build-log-dark.svg"
-        }
+        "icon": "$(file)"
       },
       {
         "command": "extension.jenkins-jack.build.downloadReplayScript",
@@ -613,10 +595,7 @@
         "command": "extension.jenkins-jack.node.open",
         "title": "Open",
         "category": "Jenkins Jack: Node",
-        "icon": {
-          "light": "images/open-light.svg",
-          "dark": "images/open-dark.svg"
-        }
+        "icon": "$(link-external)"
       },
       {
         "command": "extension.jenkins-jack.node.updateLabels",
@@ -627,10 +606,7 @@
         "command": "extension.jenkins-jack.tree.node.refresh",
         "title": "Refresh",
         "category": "Jenkins Jack: Node Tree",
-        "icon": {
-          "light": "images/refresh-light.svg",
-          "dark": "images/refresh-dark.svg"
-        }
+        "icon": "$(refresh)"
       },
       {
         "command": "extension.jenkins-jack.tree.node.expand",
@@ -665,19 +641,13 @@
         "command": "extension.jenkins-jack.job.open",
         "title": "Open",
         "category": "Jenkins Jack: Job",
-        "icon": {
-          "light": "images/open-light.svg",
-          "dark": "images/open-dark.svg"
-        }
+        "icon": "$(link-external)"
       },
       {
         "command": "extension.jenkins-jack.tree.job.refresh",
         "title": "Refresh",
         "category": "Jenkins Jack: Job Tree",
-        "icon": {
-          "light": "images/refresh-light.svg",
-          "dark": "images/refresh-dark.svg"
-        }
+        "icon": "$(refresh)"
       },
       {
         "command": "extension.jenkins-jack.connections.select",
@@ -688,10 +658,7 @@
         "command": "extension.jenkins-jack.connections.add",
         "title": "Add",
         "category": "Jenkins Jack: Connections",
-        "icon": {
-          "light": "images/add-light.svg",
-          "dark": "images/add-dark.svg"
-        }
+        "icon": "$(add)"
       },
       {
         "command": "extension.jenkins-jack.connections.edit",
@@ -707,19 +674,13 @@
         "command": "extension.jenkins-jack.tree.connections.settings",
         "title": "Settings JSON",
         "category": "Jenkins Jack: Connections Tree",
-        "icon": {
-          "light": "images/treeview-settings-light.svg",
-          "dark": "images/treeview-settings-dark.svg"
-        }
+        "icon": "$(settings-gear)"
       },
       {
         "command": "extension.jenkins-jack.tree.connections.refresh",
         "title": "Refresh",
         "category": "Jenkins Jack: Connections Tree",
-        "icon": {
-          "light": "images/refresh-light.svg",
-          "dark": "images/refresh-dark.svg"
-        }
+        "icon": "$(refresh)"
       }
     ],
     "languages": [
