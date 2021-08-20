@@ -40,7 +40,7 @@ export class JenkinsService {
     ].join(',');
 
     private _nodeProps = [
-        'assignedLabels',
+        'assignedLabels[name]',
         'description',
         'displayName',
         'executors[idle,currentExecutable[displayName,timestamp,url]]',
@@ -249,7 +249,34 @@ export class JenkinsService {
             let url = `computer/api/json?tree=computer[${this._nodeProps}]`;
             let r = await this.get(url, token);
             if (undefined === r) { return undefined; }
-            return JSON.parse(r).computer;
+            let json = JSON.parse(r).computer;
+
+            // Build label and details for quick-pick
+            for (let n of json) {
+                if (n.temporarilyOffline) {
+                    n.label = '$(alert)';
+                    n.detail = '[OFFLINE]';
+                }
+                else if (n.offline) {
+                    n.label = '$(error)';
+                    n.detail = '[DISCONNECTED]';
+                }
+                else {
+                    n.label = '$(check)';
+                    n.detail = '[ONLINE]';
+                }
+                n.label += ` ${n.displayName}`
+
+                n.detail += n.description && n.description !== '' ? ` - ${n.description}` : '';
+                n.detail += n.temporarilyOffline ? ` - ${n.offlineCauseReason}` : ''
+
+                let nodeLabels = this.getLabelsFromNode(n);
+                n.detail += nodeLabels && nodeLabels.length > 0 ?
+                    ` - ${n.assignedLabels.map((l: any) => l.name).filter((l: string) => l.toUpperCase() !== n.displayName.toUpperCase()).join(',')}` :
+                    '';
+
+            }
+            return json;
         } catch (err) {
             ext.logger.error(err);
             this.showCantConnectMessage();
@@ -681,8 +708,6 @@ export class JenkinsService {
             return undefined;
         }
 
-        nodes.forEach((n: any) => n.label = (n.offline ? "$(alert) " : "$(check) ") + n.displayName);
-
         let selections = await vscode.window.showQuickPick(nodes, {
             canPickMany: canPickMany,
             ignoreFocusOut: true,
@@ -712,6 +737,12 @@ export class JenkinsService {
         let selection = await vscode.window.showQuickPick(folders, { ignoreFocusOut: true, placeHolder: message });
         if (undefined === selection) { return undefined; }
         return selection;
+    }
+
+    public getLabelsFromNode(node: any): string[] {
+        return node.assignedLabels.map((l: any) => l.name).filter((l: string) =>
+            l.toUpperCase() !== node.displayName.toUpperCase()
+        );
     }
 
     /**
