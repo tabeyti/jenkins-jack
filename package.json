@@ -139,6 +139,11 @@
           "command": "extension.jenkins-jack.tree.node.refresh",
           "when": "view == nodeTree",
           "group": "navigation"
+        },
+        {
+            "command": "extension.jenkins-jack.tree.node.expandAll",
+            "when": "view == nodeTree",
+            "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -609,13 +614,10 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "extension.jenkins-jack.tree.node.expand",
-        "title": "Expand",
+        "command": "extension.jenkins-jack.tree.node.expandAll",
+        "title": "Expand All",
         "category": "Jenkins Jack: Node Tree",
-        "icon": {
-          "light": "images/refresh-light.svg",
-          "dark": "images/refresh-dark.svg"
-        }
+        "icon": "$(expand-all)"
       },
       {
         "command": "extension.jenkins-jack.job",

@@ -136,15 +136,14 @@ export class JobTreeItem extends vscode.TreeItem {
     // @ts-ignore
 	get tooltip(): string {
         if (JobTreeItemType.Job === this.type) {
-            if (undefined === this.job.description || '' === this.job.description) {
-                return this.label;
-            }
-            else {
-                return `${this.label} - ${this.job.description}`;
-            }
+            return (undefined === this.job.description || '' === this.job.description) ?
+                this.label :
+                `${this.label} - ${this.job.description}`;
         }
         else {
-            return this.build.building ? `${this.label}: BUILDING` : `${this.label}: ${this.build.result}`;
+            return this.build.building ?
+                `${this.label}: IN PROGRESS` :
+                `${this.label}: ${this.build.result}`;
         }
 	}
 

@@ -3,7 +3,7 @@ import { ext } from './extensionVariables';
 import { filepath, sleep, toDateString } from './utils';
 
 export class NodeTree {
-    private readonly _treeView: vscode.TreeView<NodeTreeItem>;
+    private readonly _treeView: vscode.TreeView<NodeTreeItem | undefined>;
     private readonly _treeViewDataProvider: NodeTreeProvider;
 
     public constructor() {
@@ -15,6 +15,12 @@ export class NodeTree {
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.node.refresh', () => {
             this.refresh();
+        }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.tree.node.expandAll', () => {
+            for (let item of this._treeViewDataProvider.nodeTreeItems) {
+                this._treeView.reveal(item, { expand: 1, select: false, focus: false } )
+            }
         }));
     }
 
@@ -31,6 +37,10 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<NodeTreeItem | undefined> = new vscode.EventEmitter<NodeTreeItem | undefined>();
     readonly onDidChangeTreeData: vscode.Event<NodeTreeItem | undefined> = this._onDidChangeTreeData.event;
     private _cancelTokenSource: vscode.CancellationTokenSource;
+    private _nodeTreeItems: NodeTreeItem[] = [];
+    public get nodeTreeItems(): NodeTreeItem[] {
+        return this._nodeTreeItems;
+    }
 
 	public constructor() {
         this._cancelTokenSource = new vscode.CancellationTokenSource();
@@ -52,13 +62,20 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 		return element;
 	}
 
+    getParent(element?: NodeTreeItem): NodeTreeItem | null {
+        if (!element?.parent) {
+            return null
+        }
+        return element.parent;
+    }
+
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
             if (element) {
                 for (let e of element.node.executors) {
                     let label = (!e.currentExecutable || e.currentExecutable.idle) ? 'Idle' : e.currentExecutable?.displayName;
-                    list.push(new NodeTreeItem(label, vscode.TreeItemCollapsibleState.None, element.node, e));
+                    list.push(new NodeTreeItem(label, vscode.TreeItemCollapsibleState.None, element.node, e, element));
                 }
             } else {
                 let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
@@ -66,8 +83,11 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
                     resolve([]);
                 }
                 nodes = nodes?.filter((n: any) => n.displayName !== 'master');
+                this._nodeTreeItems = [];
                 for (let n of nodes) {
-                    list.push(new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.Collapsed, n));
+                    let nodeTreeItem = new NodeTreeItem(`${n.displayName}`, vscode.TreeItemCollapsibleState.Collapsed, n)
+                    this._nodeTreeItems.push(nodeTreeItem);
+                    list.push(nodeTreeItem);
                 }
             }
             resolve(list);
@@ -80,7 +100,8 @@ export class NodeTreeItem extends vscode.TreeItem {
         public readonly label: string,
         public readonly treeItemState: vscode.TreeItemCollapsibleState,
         public readonly node: any,
-        public readonly executor?: any
+        public readonly executor?: any,
+        public readonly parent?: NodeTreeItem
 	) {
         super(label, treeItemState);
 
