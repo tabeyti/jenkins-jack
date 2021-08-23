@@ -82,7 +82,7 @@ export function filepath(...filenameParts: string[]): string {
 
 /**
  * Applies a default host config if one doesn't exist.
- * NOTE: also for backwards compatability for older host settings found in v0.0.*
+ * NOTE: also for backwards compatibility for older host settings found in v0.0.*
  */
 export async function applyDefaultHost() {
 
@@ -276,7 +276,7 @@ export function toDateString(timestamp: number): string {
 }
 
 /**
- * Converts milliseconds into HH:MM:SS.MS string.
+ * Converts milliseconds into HH:MM:SS string.
  * Taken from: https://stackoverflow.com/a/19700358
  * @param duration Time in milliseconds
  */
@@ -290,5 +290,5 @@ export function msToTime(duration: number): string {
     let mins = (minutes < 10) ? "0" + minutes : minutes;
     let secs = (seconds < 10) ? "0" + seconds : seconds;
 
-    return hrs + ":" + mins + ":" + secs + "." + milliseconds;
+    return hrs + ":" + mins + ":" + secs; // + "." + milliseconds;
   }
