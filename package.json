@@ -224,7 +224,7 @@
         },
         {
           "command": "extension.jenkins-jack.job.disable",
-          "when": "view == jobTree && && viewItem =~ /job/ && viewItem != job-disabled",
+          "when": "view == jobTree && viewItem =~ /job/ && viewItem != job-disabled",
           "group": "modification"
         },
         {

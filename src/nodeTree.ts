@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
-import { filepath, sleep, toDateString } from './utils';
+import { filepath, msToTime, sleep, toDateString } from './utils';
 
 export class NodeTree {
     private readonly _treeView: vscode.TreeView<NodeTreeItem | undefined>;
@@ -8,7 +8,7 @@ export class NodeTree {
 
     public constructor() {
         this._treeViewDataProvider = new NodeTreeProvider();
-        this._treeView = vscode.window.createTreeView('nodeTree', { treeDataProvider: this._treeViewDataProvider, canSelectMany: true });
+        this._treeView = vscode.window.createTreeView('nodeTree', { showCollapseAll: true, treeDataProvider: this._treeViewDataProvider, canSelectMany: true });
         this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
             if (e.visible) { this.refresh(); }
           });
@@ -143,7 +143,7 @@ export class NodeTreeItem extends vscode.TreeItem {
                 tooltip = `${tooltip}\n${this.node.offlineCauseReason}`;
             }
         } else if (!this.executor.idle) {
-            tooltip += ` (${toDateString(this.executor.currentExecutable.timestamp)})`
+            tooltip += ` (${msToTime(Date.now() - this.executor.currentExecutable.timestamp)})`
         }
         return tooltip;
 	}
@@ -154,7 +154,7 @@ export class NodeTreeItem extends vscode.TreeItem {
 
         if (this.executor) {
             if (!this.executor.idle) {
-                description = `(${toDateString(this.executor.currentExecutable.timestamp)})`;
+                description = `Duration: ${msToTime(Date.now() - this.executor.currentExecutable.timestamp)}`;
             }
         } else {
             description += this.node.description;
