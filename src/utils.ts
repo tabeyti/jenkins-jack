@@ -115,7 +115,7 @@ export function readjson(path: string): any {
     let json: any;
     try {
         json = JSON.parse(raw);
-    } catch (err) {
+    } catch (err: any) {
         err.message = `Could not parse parameter JSON from ${path}`;
         throw err;
     }
@@ -131,7 +131,7 @@ export function writejson(path: string, json: any) {
     try {
         let jsonString = JSON.stringify(json, null, 4);
         fs.writeFileSync(path, jsonString, 'utf8');
-    } catch (err) {
+    } catch (err: any) {
         err.message = `Could not write parameter JSON to ${path}`;
         throw err;
     }
@@ -281,6 +281,7 @@ export function toDateString(timestamp: number): string {
  * @param duration Time in milliseconds
  */
 export function msToTime(duration: number): string {
+    // @ts-ignore
     var milliseconds = Math.floor((duration % 1000) / 100),
       seconds = Math.floor((duration / 1000) % 60),
       minutes = Math.floor((duration / (1000 * 60)) % 60),
@@ -290,5 +291,9 @@ export function msToTime(duration: number): string {
     let mins = (minutes < 10) ? "0" + minutes : minutes;
     let secs = (seconds < 10) ? "0" + seconds : seconds;
 
-    return hrs + ":" + mins + ":" + secs + "." + milliseconds;
-  }
+    return "+" + hrs + ":" + mins + ":" + secs; //  + "." + milliseconds;
+}
+
+export function addDetail(detail: string): string {
+    return `[${detail}] `;
+}

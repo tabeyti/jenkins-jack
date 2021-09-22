@@ -233,7 +233,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         this._cancelTokenSource.cancel();
         this._cancelTokenSource.dispose();
         this._cancelTokenSource = new vscode.CancellationTokenSource();
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: PipelineTreeItem): PipelineTreeItem {

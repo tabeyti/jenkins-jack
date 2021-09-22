@@ -136,10 +136,10 @@ export class PipelineJack extends JackBase {
                 await ext.connectionsManager.host.client.job.create(jobName, xml);
                 this.showInformationMessage(`Pipeline "${jobName}" created on "${ext.connectionsManager.activeConnection.name}"`);
                 ext.pipelineTree.refresh();
-            } catch (ex) {
-                ext.logger.warn(ex.message);
-                this.showWarningMessage(ex.message);
-                throw ex;
+            } catch (err: any) {
+                ext.logger.warn(err.message);
+                this.showWarningMessage(err.message);
+                throw err;
             }
         }
 
@@ -183,6 +183,7 @@ export class PipelineJack extends JackBase {
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
         ext.nodeTree.refresh(2); // delay to give Jenkins time to assign the job to a node
+        ext.queueTree.refresh();
 
         if (!this.config.browserBuildOutput) {
             // Stream the output. Yep.
@@ -335,10 +336,10 @@ export class PipelineJack extends JackBase {
         // Create the job on da Jenkles!
         try {
             await ext.connectionsManager.host.client.job.create(fullJobName, xml);
-        } catch (ex) {
-            ext.logger.error(ex.message);
-            this.showWarningMessage(ex.message);
-            throw ex;
+        } catch (err: any) {
+            ext.logger.error(err.message);
+            this.showWarningMessage(err.message);
+            throw err;
         }
 
         return await ext.connectionsManager.host.getJob(fullJobName);
@@ -536,7 +537,7 @@ export class PipelineJack extends JackBase {
                         config.params = params;
                         config.save();
                     }
-                } catch (err) {
+                } catch (err: any) {
                     this.showWarningMessage(err.message);
                     return undefined;
                 }
@@ -558,7 +559,7 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 40, message: 'Waiting for build to be ready...' });
             try {
                 await ext.connectionsManager.host.buildReady(jobName, buildNumber);
-            } catch (err) {
+            } catch (err: any) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNumber}`);
                 return undefined;
             }
@@ -598,7 +599,7 @@ export class PipelineJack extends JackBase {
         // Create local script file.
         try {
             fs.writeFileSync(filepath, source, 'utf-8');
-        } catch (err) {
+        } catch (err: any) {
             vscode.window.showInformationMessage(err);
             return;
         }

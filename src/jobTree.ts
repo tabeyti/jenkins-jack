@@ -55,7 +55,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
         this._cancelTokenSource.cancel();
         this._cancelTokenSource.dispose();
         this._cancelTokenSource = new vscode.CancellationTokenSource();
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: JobTreeItem): JobTreeItem {

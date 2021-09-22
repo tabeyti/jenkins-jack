@@ -22,6 +22,7 @@ export class ConnectionsTree {
             ext.pipelineTree.refresh();
             ext.jobTree.refresh();
             ext.nodeTree.refresh();
+            ext.queueTree.refresh();
         }));
     }
 
@@ -42,7 +43,7 @@ export class ConnectionsTreeProvider implements vscode.TreeDataProvider<Connecti
     }
 
 	refresh(): void {
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: ConnectionsTreeItem): ConnectionsTreeItem {

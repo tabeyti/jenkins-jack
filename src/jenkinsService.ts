@@ -4,7 +4,7 @@ import * as request from 'request-promise-native';
 import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 
-import { sleep, timer, folderToUri, toDateString, msToTime } from './utils';
+import { sleep, timer, folderToUri, toDateString, msToTime, addDetail } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 import { JobType, JobTypeUtil } from './jobType';
 import { ext } from './extensionVariables';
@@ -12,9 +12,7 @@ import { ext } from './extensionVariables';
 export class JenkinsService {
     // @ts-ignore
     public client: any;
-
     private _config: any;
-
     private _jenkinsUri: string;
 
     private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.connection.name}".`;
@@ -132,7 +130,7 @@ export class JenkinsService {
                     resolve(undefined);
                 });
                 resolve(await requestPromise);
-            } catch (err) {
+            } catch (err: any) {
                 ext.logger.error(err);
                 resolve(undefined);
             }
@@ -146,7 +144,7 @@ export class JenkinsService {
      */
     public async getJob(job: string) {
         try { return await this.client.job.get(job); }
-        catch (err) { return undefined; }
+        catch (err: any) { return undefined; }
     }
 
     /**
@@ -277,7 +275,7 @@ export class JenkinsService {
 
             }
             return json;
-        } catch (err) {
+        } catch (err: any) {
             ext.logger.error(err);
             this.showCantConnectMessage();
             return undefined;
@@ -353,7 +351,7 @@ export class JenkinsService {
                     n.detail = `[${toDateString(n.timestamp)}] [${n.result ?? 'IN PROGRESS'}] [${msToTime(n.duration)}] - ${n.description ?? 'no description'}`
                     return n;
                 }));
-            } catch (err) {
+            } catch (err: any) {
                 ext.logger.error(err);
                 this.showCantConnectMessage();
                 resolve(undefined);
@@ -390,7 +388,7 @@ export class JenkinsService {
                     throw new Error('Could not locate script text in <textarea>.');
                 }
                 return source;
-            } catch (err) {
+            } catch (err: any) {
                 ext.logger.error(err);
                 vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
                 return undefined;
@@ -408,7 +406,7 @@ export class JenkinsService {
         try {
             let url = `${this.fromUrlFormat(job.url)}/${buildNumber}/doDelete`;
             await request.post(url);
-        } catch (err) {
+        } catch (err: any) {
             if (302 === err.statusCode) {
                 return `${job.fullName} #${buildNumber} deleted`;
             }
@@ -442,12 +440,39 @@ export class JenkinsService {
                 this.addJobMetadata(json.jobs);
 
                 resolve(json.jobs);
-            } catch (err) {
+            } catch (err: any) {
                 ext.logger.error(err);
                 this.showCantConnectMessage();
                 resolve(undefined);
             }
         });
+    }
+
+    public async getQueueItems(token?: vscode.CancellationToken): Promise<any[] | undefined> {
+        try {
+            let url = `queue/api/json`;
+            let r = await this.get(url, token);
+            if (undefined === r) { return undefined; }
+            let items = JSON.parse(r).items;
+
+            // Add queue item meta data for quick-picks
+            for (let item of items) {
+                item.name = `#${item.id} ${item.task?.name ?? '??'}`
+
+                item.label = item.stuck ? '$(warning) ' : '$(watch) '
+                item.label += item.task?.name ?? '??';
+                item.description = item.why;
+                item.detail = item.inQueueSince ? addDetail(msToTime(Date.now() - item.inQueueSince)) : '';
+                item.detail += item.inQueueSince ? addDetail(toDateString(item.inQueueSince)) : '';
+                item.detail += item.stuck ? addDetail('STUCK') : '';
+                item.detail += item.params ? addDetail(item.params.trim().split('\n').join(',')) : '';
+            }
+            return items;
+        } catch (err: any) {
+            ext.logger.error(err);
+            this.showCantConnectMessage();
+            return undefined;
+        }
     }
 
     private addJobMetadata(jobs: any) {
@@ -485,7 +510,7 @@ export class JenkinsService {
             }
             let output = await r;
             return output;
-        } catch (err) {
+        } catch (err: any) {
             ext.logger.error(err);
             this.showCantConnectMessage();
             return err.error;
@@ -578,6 +603,19 @@ export class JenkinsService {
      */
     public openBrowserAtPath(path: string) {
         opn(`${this._jenkinsUri}${path}`);
+    }
+
+    public async queueCancel(itemId: any) {
+        try {
+            let url = `${this._jenkinsUri}/queue/cancelItem?id=${itemId}`;
+            let r = request.post({ url: url });
+            let output = await r;
+            return output;
+        } catch (err: any) {
+            ext.logger.error(err);
+            this.showCantConnectMessage();
+            return err.error;
+        }
     }
 
     /**

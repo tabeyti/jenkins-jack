@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
-import { filepath, msToTime, sleep, toDateString } from './utils';
+import { filepath, msToTime, sleep } from './utils';
 
 export class NodeTree {
     private readonly _treeView: vscode.TreeView<NodeTreeItem | undefined>;
@@ -55,7 +55,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
         this._cancelTokenSource.cancel();
         this._cancelTokenSource.dispose();
         this._cancelTokenSource = new vscode.CancellationTokenSource();
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: NodeTreeItem): NodeTreeItem {

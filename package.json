@@ -12,7 +12,7 @@
     "theme": "dark"
   },
   "engines": {
-    "vscode": "^1.43.0"
+    "vscode": "^1.55.0"
   },
   "categories": [
     "Other"
@@ -42,7 +42,7 @@
       "jenkins-jack-explorer": [
         {
           "id": "connectionsTree",
-          "name": "Jenkins Host Connections"
+          "name": "Jenkins Connections"
         },
         {
           "id": "pipelineTree",
@@ -51,6 +51,10 @@
         {
           "id": "jobTree",
           "name": "Jobs"
+        },
+        {
+          "id": "queueTree",
+          "name": "Queue"
         },
         {
           "id": "nodeTree",
@@ -94,6 +98,10 @@
         },
         {
           "command": "extension.jenkins-jack.tree.node.refresh",
+          "when": "never"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.queue.refresh",
           "when": "never"
         }
       ],
@@ -141,9 +149,14 @@
           "group": "navigation"
         },
         {
-            "command": "extension.jenkins-jack.tree.node.expandAll",
-            "when": "view == nodeTree",
-            "group": "navigation"
+          "command": "extension.jenkins-jack.tree.node.expandAll",
+          "when": "view == nodeTree",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.queue.refresh",
+          "when": "view == queueTree",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -315,6 +328,11 @@
         {
           "command": "extension.jenkins-jack.scriptConsole.execute",
           "when": "view == nodeTree && viewItem =~ /node/ && viewItem != node-disconnected",
+          "group": "action"
+        },
+        {
+          "command": "extension.jenkins-jack.queue.cancel",
+          "when": "view == queueTree",
           "group": "action"
         }
       ]
@@ -650,6 +668,23 @@
         "title": "Refresh",
         "category": "Jenkins Jack: Job Tree",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "extension.jenkins-jack.queue",
+        "title": "Queue Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.tree.queue.refresh",
+        "title": "Refresh",
+        "category": "Jenkins Jack: Queue Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "extension.jenkins-jack.queue.cancel",
+        "title": "Cancel",
+        "category": "Jenkins Jack: Cancel",
+        "icon": "$(stop)"
       },
       {
         "command": "extension.jenkins-jack.connections.select",
