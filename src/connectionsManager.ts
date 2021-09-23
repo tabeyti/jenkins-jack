@@ -25,6 +25,10 @@ export class ConnectionsManager implements QuickpickSet {
             await this.deleteConnection(item?.connection);
         }));
 
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections.selectFolder', async (item?: ConnectionsTreeItem) => {
+            await this.selectFolder();
+        }));
+
         this.updateSettings();
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins.connections')) {
@@ -54,10 +58,18 @@ export class ConnectionsManager implements QuickpickSet {
                 label: "$(circle-slash)  Connections: Delete",
                 description: "Delete a jenkins host connection from settings.",
                 target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.delete')
-            }
+            },
+            {
+                label: "$(list-selection)  Connections: Select Folder",
+                description: "Select a folder on the jenkins host for this connection to filter its queries on.",
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.selectFolder')
+            },
         ];
     }
 
+    /**
+     * The active Jenkins host client service.
+     */
     public get host(): JenkinsService {
         return this._host;
     }
@@ -221,8 +233,26 @@ export class ConnectionsManager implements QuickpickSet {
         vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
     }
 
+    public async selectFolder() {
+        let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+        let connJson = config.connections.find((c: any) => c.active && c.name === this.activeConnection.name);
+
+        let folderFilter = await this.host.folderSelectionFlow(false, 'Select a folder to path for filtering job operations on this connection', true);
+        if (undefined === folderFilter) { return undefined; }
+        if ('.' === folderFilter) { folderFilter = undefined; }
+        connJson.folderFilter = folderFilter;
+
+        this._host = new JenkinsService(JenkinsConnection.fromJSON(connJson));
+
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${connJson.name}: ${connJson.uri}`);
+
+        // Refresh the connection tree and it's dependent tree views
+        vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
+    }
+
     /**
-     * Displays the quicpick host/connection selection list for the user.
+     * Displays the quick-pick host/connection selection list for the user.
      * Active connection is updated in the global config upon selection.
      * If connection already provided, config is just updated and associated
      * treeViews are refreshed.

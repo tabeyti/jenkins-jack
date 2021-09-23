@@ -27,6 +27,7 @@ export class ConnectionsTree {
     }
 
     public refresh() {
+        this._treeView.title = `Jenkins Connections (${ext.connectionsManager.host.connection.name})`;
         this._treeViewDataProvider.refresh();
     }
 }

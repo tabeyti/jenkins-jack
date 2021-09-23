@@ -4,7 +4,7 @@ import * as request from 'request-promise-native';
 import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 
-import { sleep, timer, folderToUri, toDateString, msToTime, addDetail } from './utils';
+import { sleep, timer, folderToUri, toDateString, msToTime, addDetail, QueryProperties } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 import { JobType, JobTypeUtil } from './jobType';
 import { ext } from './extensionVariables';
@@ -17,38 +17,6 @@ export class JenkinsService {
 
     private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.connection.name}".`;
     private _disposed = false;
-
-    private _jobProps = [
-        'name',
-        'fullName',
-        'url',
-        'buildable',
-        'inQueue',
-        'description'
-    ].join(',');
-
-    private _buildProps = [
-        'number',
-        'result',
-        'description',
-        'url',
-        'duration',
-        'timestamp',
-        'building'
-    ].join(',');
-
-    private _nodeProps = [
-        'assignedLabels[name]',
-        'description',
-        'displayName',
-        'executors[idle,currentExecutable[displayName,timestamp,url]]',
-        'idle',
-        'offline',
-        'offlineCause',
-        'offlineCauseReason',
-        'temporarilyOffline'
-    ].join(',');
-
     private readonly messageItem: vscode.MessageItem = {
         title: 'Okay'
     };
@@ -148,7 +116,7 @@ export class JenkinsService {
     }
 
     /**
-     * Wrapper around getJobs with progress notification.
+     * Wrapper around getJobsInternal with progress notification.
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
@@ -178,6 +146,36 @@ export class JenkinsService {
     }
 
     /**
+     * Wrapper around getFoldersInternal with progress notification.
+     * @param job The current Jenkins Folder 'job' object.
+     * @returns A list of Jenkins Folder 'job' objects.
+     */
+    public async getFolders(job?: any, ignoreFolderFilter?: boolean): Promise<any[]> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, t) => {
+            t.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+                return undefined;
+            });
+            progress.report({ message: 'Retrieving Jenkins Folder jobs.' });
+
+            // If no job was provided and and a folder filter is specified in config,
+            // start recursive job retrieval using the folder
+            if (!job && this.connection.folderFilter && !ignoreFolderFilter) {
+                job = {
+                    type: JobType.Folder,
+                    url: `${this._jenkinsUri}/job/${folderToUri(this.connection.folderFilter)}`
+                };
+            }
+
+            return await this.getFoldersInternal(job, t);
+        });
+    }
+
+    /**
      * Recursive descent method for retrieving Jenkins jobs from
      * various job types (e.g. Multi-branch, Github Org, etc.).
      * @param job The current Jenkins 'job' object.
@@ -189,8 +187,8 @@ export class JenkinsService {
 
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API, otherwise, grab all child jobs from the given parent job
-        let jobs = job ?    await this.getJobsFromUrl(job.url, token) :
-                            await this.getJobsFromUrl(this._jenkinsUri, token);
+        let jobs = job ?    await this.getJobsFromUrl(job.url, QueryProperties.job, token) :
+                            await this.getJobsFromUrl(this._jenkinsUri, QueryProperties.job, token);
 
         if (undefined === jobs) { return []; }
 
@@ -240,11 +238,44 @@ export class JenkinsService {
     }
 
     /**
+     * Recursive descent method for retrieving Jenkins Folder jobs.
+     * @param job The current Jenkins 'job' object.
+     * @returns A list of Jenkins Folder 'job' objects.
+     */
+     private async getFoldersInternal(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+        if (token?.isCancellationRequested) { return []; }
+
+        // If this is the first call of the recursive function, retrieve all jobs from the
+        // Jenkins API, otherwise, grab all child jobs from the given parent job
+        let jobs = [];
+        if (job) {
+            // If there are already child jobs attached to the parent, use those, otherwise query.
+            jobs = job.jobs ?? await this.getJobsFromUrl(job.url, QueryProperties.jobMinimal, token);
+        } else {
+            jobs = await this.getJobsFromUrl(this._jenkinsUri, QueryProperties.jobMinimal, token);
+        }
+
+        if (!jobs) { return []; }
+
+        let jobList: any[] = [];
+        for (let j of jobs) {
+            let type = JobTypeUtil.classNameToType(j._class);
+            if (type === JobType.Folder) {
+                j.type = JobType.Folder;
+                jobList.push(j);
+                jobList = jobList.concat(await this.getFoldersInternal(j, token));
+            }
+        }
+        return jobList;
+    }
+
+    /**
      * Retrieves the list of machines/nodes from Jenkins.
+     * @param token The cancellation token.
      */
     public async getNodes(token?: vscode.CancellationToken) {
         try {
-            let url = `computer/api/json?tree=computer[${this._nodeProps}]`;
+            let url = `computer/api/json?tree=computer[${QueryProperties.node}]`;
             let r = await this.get(url, token);
             if (undefined === r) { return undefined; }
             let json = JSON.parse(r).computer;
@@ -330,7 +361,7 @@ export class JenkinsService {
 
                 let sw = timer();
                 let rootUrl = this.fromUrlFormat(job.url);
-                let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${this._buildProps}]{0,${numBuilds}}`;
+                let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${QueryProperties.build}]{0,${numBuilds}}`;
                 ext.logger.info(`getBuilds - ${url}`);
 
                 let requestPromise = request.get(url);
@@ -420,13 +451,14 @@ export class JenkinsService {
      * @param rootUrl Root jenkins url for the request.
      * @returns Jobs json object or undefined.
      */
-    public async getJobsFromUrl(rootUrl: string, token?: vscode.CancellationToken) {
+    private async getJobsFromUrl(rootUrl: string, properties?: string, token?: vscode.CancellationToken) {
         return new Promise<any>(async (resolve) => {
             try {
                 let sw = timer();
+                properties = properties ?? QueryProperties.job;
                 rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
                 rootUrl = this.fromUrlFormat(rootUrl);
-                let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
+                let url = `${rootUrl}/api/json?tree=jobs[${properties},jobs[${properties},jobs[${properties}]]]`;
                 ext.logger.info(`getJobsFromUrl - ${url}`);
                 let requestPromise = request.get(url);
                 token?.onCancellationRequested(() => {
@@ -762,17 +794,18 @@ export class JenkinsService {
      * @param canPickMany Optional flag for retrieving more than one node in the selection.
      * @param message Optional help message to display to the user.
      */
-    public async folderSelectionFlow(canPickMany?: boolean, message?: string): Promise<any[]|any|undefined> {
-        let folders = (await this.getJobs(null, { includeFolderJobs: true }))
-                        .filter((j: any) => j.type === JobType.Folder)
-                        .map((j: any) => j.fullName)
-                        // Sort alphabetically, then by length of job name
-                        .sort((a: any, b: any) => a.localeCompare(b) || a.length - b.length);
+    public async folderSelectionFlow(canPickMany?: boolean, message?: string, ignoreFolderFilter?: boolean): Promise<any[]|any|undefined> {
+        let folders = await this.getFolders(undefined, ignoreFolderFilter);
+        folders = folders.map((f: any) => f.fullName );
 
-        let rootFolder = this.connection.folderFilter ?? '.';
+        let rootFolder = (!ignoreFolderFilter && this.connection.folderFilter) ? this.connection.folderFilter : '.';
         folders.unshift(rootFolder);
 
-        let selection = await vscode.window.showQuickPick(folders, { ignoreFocusOut: true, placeHolder: message });
+        let selection = await vscode.window.showQuickPick(folders, {
+            canPickMany: canPickMany,
+            ignoreFocusOut: true,
+            placeHolder: message
+        });
         if (undefined === selection) { return undefined; }
         return selection;
     }

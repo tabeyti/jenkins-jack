@@ -170,7 +170,7 @@ export class PipelineJack extends JackBase {
         }
 
         let groovyScriptPath = editor.document.uri.fsPath;
-        let config = new PipelineConfig(groovyScriptPath);
+        let config = new PipelineConfig(groovyScriptPath, ext.connectionsManager.activeConnection.folderFilter);
 
         // Grab source from active editor.
         let source = editor.document.getText();

@@ -3,6 +3,49 @@ import * as fs from 'fs';
 import { ext } from './extensionVariables';
 import * as path from 'path';
 
+/**
+ * Static class holding API query properties for jobs, builds, and nodes.
+ */
+export class QueryProperties {
+    public static readonly job = [
+        'name',
+        'fullName',
+        'url',
+        'buildable',
+        'inQueue',
+        'description'
+    ].join(',');
+
+    public static readonly jobMinimal = [
+        'name',
+        'fullName',
+        'url',
+        'description'
+    ].join(',');
+
+    public static readonly build = [
+        'number',
+        'result',
+        'description',
+        'url',
+        'duration',
+        'timestamp',
+        'building'
+    ].join(',');
+
+    public static readonly node = [
+        'assignedLabels[name]',
+        'description',
+        'displayName',
+        'executors[idle,currentExecutable[displayName,timestamp,url]]',
+        'idle',
+        'offline',
+        'offlineCause',
+        'offlineCauseReason',
+        'temporarilyOffline'
+    ].join(',');
+}
+
 function _sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -166,7 +166,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
                 { title: 'Okay' });
             if (undefined === result) { return; }
         }
-        let pipelineJobConfig = new PipelineConfig(scriptFilePath, true);
+        let pipelineJobConfig = new PipelineConfig(scriptFilePath, undefined, true);
         pipelineJobConfig.name = jobName;
         if (path.parse(item.job.fullName).dir !== '') {
             pipelineJobConfig.folder = path.dirname(item.job.fullName);
