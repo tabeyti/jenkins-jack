@@ -14,8 +14,7 @@ export class JenkinsService {
     public client: any;
     private _config: any;
     private _jenkinsUri: string;
-
-    private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.connection.name}".`;
+    private _headers: any;
     private _disposed = false;
     private readonly messageItem: vscode.MessageItem = {
         title: 'Okay'
@@ -23,43 +22,10 @@ export class JenkinsService {
 
     public constructor(public readonly connection: JenkinsConnection) {
 
-        let protocol = 'http';
-        let host = this.connection.uri;
+        this._jenkinsUri = this.connection.uri;
 
-        let match = this.connection.uri.match('(http|https)://(.*)');
-        if (null !== match && match.length === 3) {
-            protocol = match[1];
-            host = match[2];
-        }
-
-        this._jenkinsUri = (null === this.connection.username || null === this.connection.password) ?
-                            `${protocol}://${host}` :
-                            `${protocol}://${encodeURIComponent(this.connection.username)}:${encodeURIComponent(this.connection.password)}@${host}`;
         ext.logger.info(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
-
         this.updateSettings();
-
-        this.client = jenkins({
-            baseUrl: this._jenkinsUri,
-            crumbIssuer: this.connection.crumbIssuer,
-            promisify: true
-        });
-
-        // Will error if no connection can be made to the remote host
-        this.client.info().catch((err: any) => {
-            if (this._disposed) { return; }
-            this.showCantConnectMessage();
-        });
-
-        // If a folder filter path was provided, check that it exists
-        if (this.connection.folderFilter) {
-            let folderUriPath = folderToUri(this.connection.folderFilter);
-            this.client.job.exists(`${this._jenkinsUri}/job/${folderUriPath}`, (err: any, exists: any) => {
-                if (err || !exists) {
-                    this.showCantConnectMessage(`Folder filter path invalid: ${this.connection.folderFilter}`);
-                }
-            });
-        }
 
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins')) {
@@ -78,6 +44,47 @@ export class JenkinsService {
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this._config.strictTls ? '1' : '0';
     }
 
+    public async initialize(): Promise<boolean> {
+        // Will error if no connection can be made to the remote host
+        let password = await this.connection.getPassword();
+        if (null == password) {
+            if (this._disposed) { return false; }
+            this.showCantConnectMessage(`Could not retrieve password for ${this.connection.serviceName} - ${this.connection.username}`);
+            return false;
+        }
+
+        this._headers = {
+            'Authorization': 'Basic ' + new Buffer(`${this.connection.username}:${password}`).toString('base64')
+        }
+
+        try {
+            this.client = jenkins({
+                baseUrl: this.connection.uri,
+                crumbIssuer: this.connection.crumbIssuer,
+                promisify: true,
+                headers: this._headers
+            });
+            await this.client.info();
+        }
+        catch (err) {
+            if (this._disposed) { return false; }
+            this.showCantConnectMessage();
+            return false;
+        }
+
+        // If a folder filter path was provided, check that it exists
+        if (this.connection.folderFilter) {
+            let exists = await this.client.job.exists(this.connection.folderFilter);
+            if (!exists) {
+                this.showCantConnectMessage(`Folder filter path invalid: ${this.connection.folderFilter}`);
+                return false;
+            }
+        }
+
+        ext.logger.info('Jenkins service initialized.');
+        return true;
+    }
+
     public dispose() {
         this.client = undefined;
         this._disposed = true;
@@ -92,13 +99,13 @@ export class JenkinsService {
         return new Promise<any>(async (resolve) => {
             try {
                 let url = `${this._jenkinsUri}/${endpoint}`;
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(url, { headers: this._headers })
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve(undefined);
                 });
                 resolve(await requestPromise);
-            } catch (err: any) {
+            } catch (err) {
                 ext.logger.error(err);
                 resolve(undefined);
             }
@@ -112,7 +119,7 @@ export class JenkinsService {
      */
     public async getJob(job: string) {
         try { return await this.client.job.get(job); }
-        catch (err: any) { return undefined; }
+        catch (err) { return undefined; }
     }
 
     /**
@@ -130,7 +137,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
                 return undefined;
             });
-            progress.report({ message: 'Retrieving jenkins jobs.' });
+            progress.report({ message: 'Retrieving Jenkins jobs.' });
 
             // If no job was provided and and a folder filter is specified in config,
             // start recursive job retrieval using the folder
@@ -306,7 +313,7 @@ export class JenkinsService {
 
             }
             return json;
-        } catch (err: any) {
+        } catch (err) {
             ext.logger.error(err);
             this.showCantConnectMessage();
             return undefined;
@@ -364,7 +371,7 @@ export class JenkinsService {
                 let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${QueryProperties.build}]{0,${numBuilds}}`;
                 ext.logger.info(`getBuilds - ${url}`);
 
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(url, { headers: this._headers });
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
@@ -382,7 +389,7 @@ export class JenkinsService {
                     n.detail = `[${toDateString(n.timestamp)}] [${n.result ?? 'IN PROGRESS'}] [${msToTime(n.duration)}] - ${n.description ?? 'no description'}`
                     return n;
                 }));
-            } catch (err: any) {
+            } catch (err) {
                 ext.logger.error(err);
                 this.showCantConnectMessage();
                 resolve(undefined);
@@ -408,7 +415,7 @@ export class JenkinsService {
             progress.report({ message: `Pulling replay script from ${job.fullName} #${build.number}` });
             try {
                 let url = `${this.fromUrlFormat(job.url)}/${build.number}/replay`;
-                let r = await request.get(url);
+                let r = await request.get(url, { headers: this._headers });
 
                 const root = htmlParser.load(r);
                 if (root('textarea')[0].childNodes && 0 >= root('textarea')[0].childNodes.length) {
@@ -419,7 +426,7 @@ export class JenkinsService {
                     throw new Error('Could not locate script text in <textarea>.');
                 }
                 return source;
-            } catch (err: any) {
+            } catch (err) {
                 ext.logger.error(err);
                 vscode.window.showWarningMessage('Jenkins Jack: Could not pull replay script.');
                 return undefined;
@@ -436,8 +443,8 @@ export class JenkinsService {
     public async deleteBuild(job: any, buildNumber: any) {
         try {
             let url = `${this.fromUrlFormat(job.url)}/${buildNumber}/doDelete`;
-            await request.post(url);
-        } catch (err: any) {
+            await request.post(url, { headers: this._headers });
+        } catch (err) {
             if (302 === err.statusCode) {
                 return `${job.fullName} #${buildNumber} deleted`;
             }
@@ -460,7 +467,7 @@ export class JenkinsService {
                 rootUrl = this.fromUrlFormat(rootUrl);
                 let url = `${rootUrl}/api/json?tree=jobs[${properties},jobs[${properties},jobs[${properties}]]]`;
                 ext.logger.info(`getJobsFromUrl - ${url}`);
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(url, { headers: this._headers });
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
@@ -472,7 +479,7 @@ export class JenkinsService {
                 this.addJobMetadata(json.jobs);
 
                 resolve(json.jobs);
-            } catch (err: any) {
+            } catch (err) {
                 ext.logger.error(err);
                 this.showCantConnectMessage();
                 resolve(undefined);
@@ -500,7 +507,7 @@ export class JenkinsService {
                 item.detail += item.params ? addDetail(item.params.trim().split('\n').join(',')) : '';
             }
             return items;
-        } catch (err: any) {
+        } catch (err) {
             ext.logger.error(err);
             this.showCantConnectMessage();
             return undefined;
@@ -534,7 +541,7 @@ export class JenkinsService {
             if (undefined !== node) {
                 url = `${this._jenkinsUri}/computer/${node}/scriptText`;
             }
-            let r = request.post({ url: url, form: { script: source } });
+            let r = request.post({ url: url, form: { script: source }, headers: this._headers });
             if (undefined !== token) {
                 token.onCancellationRequested(() => {
                     r.abort();
@@ -542,7 +549,7 @@ export class JenkinsService {
             }
             let output = await r;
             return output;
-        } catch (err: any) {
+        } catch (err) {
             ext.logger.error(err);
             this.showCantConnectMessage();
             return err.error;
@@ -562,7 +569,7 @@ export class JenkinsService {
         outputChannel: vscode.OutputChannel) {
 
         outputChannel.clear();
-        outputChannel.show();
+        await outputChannel.show();
 
         let outputConfig = await vscode.workspace.getConfiguration('jenkins-jack.outputView');
         let suppressPipelineLog = outputConfig.suppressPipelineLog;
@@ -640,10 +647,10 @@ export class JenkinsService {
     public async queueCancel(itemId: any) {
         try {
             let url = `${this._jenkinsUri}/queue/cancelItem?id=${itemId}`;
-            let r = request.post({ url: url });
+            let r = request.post({ url: url, headers: this._headers });
             let output = await r;
             return output;
-        } catch (err: any) {
+        } catch (err) {
             ext.logger.error(err);
             this.showCantConnectMessage();
             return err.error;
@@ -832,8 +839,7 @@ export class JenkinsService {
     }
 
     private async showCantConnectMessage(message?: string) {
-        message = message ?? this._cantConnectMessage;
-
+        message = message ?? `Could not connect to the remote Jenkins "${this.connection.name}".`;
         let result = await vscode.window.showWarningMessage(message, { title: 'Okay' }, { title: 'Edit Connection' });
         if ('Edit Connection' === result?.title) {
             vscode.commands.executeCommand('extension.jenkins-jack.connections.edit');

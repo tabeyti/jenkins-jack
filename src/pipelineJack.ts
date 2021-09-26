@@ -136,7 +136,7 @@ export class PipelineJack extends JackBase {
                 await ext.connectionsManager.host.client.job.create(jobName, xml);
                 this.showInformationMessage(`Pipeline "${jobName}" created on "${ext.connectionsManager.activeConnection.name}"`);
                 ext.pipelineTree.refresh();
-            } catch (err: any) {
+            } catch (err) {
                 ext.logger.warn(err.message);
                 this.showWarningMessage(err.message);
                 throw err;
@@ -336,7 +336,7 @@ export class PipelineJack extends JackBase {
         // Create the job on da Jenkles!
         try {
             await ext.connectionsManager.host.client.job.create(fullJobName, xml);
-        } catch (err: any) {
+        } catch (err) {
             ext.logger.error(err.message);
             this.showWarningMessage(err.message);
             throw err;
@@ -537,7 +537,7 @@ export class PipelineJack extends JackBase {
                         config.params = params;
                         config.save();
                     }
-                } catch (err: any) {
+                } catch (err) {
                     this.showWarningMessage(err.message);
                     return undefined;
                 }
@@ -559,7 +559,7 @@ export class PipelineJack extends JackBase {
             progress.report({ increment: 40, message: 'Waiting for build to be ready...' });
             try {
                 await ext.connectionsManager.host.buildReady(jobName, buildNumber);
-            } catch (err: any) {
+            } catch (err) {
                 this.showWarningMessage(`Timed out waiting for build: ${jobName} #${buildNumber}`);
                 return undefined;
             }
@@ -599,7 +599,7 @@ export class PipelineJack extends JackBase {
         // Create local script file.
         try {
             fs.writeFileSync(filepath, source, 'utf-8');
-        } catch (err: any) {
+        } catch (err) {
             vscode.window.showInformationMessage(err);
             return;
         }

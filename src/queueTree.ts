@@ -66,6 +66,8 @@ export class QueueTreeProvider implements vscode.TreeDataProvider<QueueTreeItem>
 	getChildren(element?: QueueTreeItem): Thenable<QueueTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
+            if (!ext.connectionsManager.connected) { resolve(list); }
+
             let items = await ext.connectionsManager.host.getQueueItems(this._cancelTokenSource.token);
             if (undefined === items) {
                 resolve([]);

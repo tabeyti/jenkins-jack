@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
+import { JenkinsConnection } from './jenkinsConnection';
 import { filepath } from './utils';
 
 export class ConnectionsTree {
@@ -8,7 +9,7 @@ export class ConnectionsTree {
 
     public constructor() {
         this._treeViewDataProvider = new ConnectionsTreeProvider();
-        this._treeView = vscode.window.createTreeView('connectionsTree', { treeDataProvider: this._treeViewDataProvider, canSelectMany: true });
+        this._treeView = vscode.window.createTreeView('connectionsTree', { treeDataProvider: this._treeViewDataProvider, canSelectMany: false });
         this._treeView.onDidChangeVisibility((e: vscode.TreeViewVisibilityChangeEvent) => {
             if (e.visible) { this.refresh(); }
         });
@@ -56,7 +57,7 @@ export class ConnectionsTreeProvider implements vscode.TreeDataProvider<Connecti
             let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
             let list =  [];
             for (let c of config.connections) {
-                list.push(new ConnectionsTreeItem(c.name, c));
+                list.push(new ConnectionsTreeItem(c.name, JenkinsConnection.fromJSON(c)));
             }
             resolve(list);
         });
@@ -66,7 +67,7 @@ export class ConnectionsTreeProvider implements vscode.TreeDataProvider<Connecti
 export class ConnectionsTreeItem extends vscode.TreeItem {
 	constructor(
         public readonly label: string,
-        public readonly connection: any
+        public readonly connection: JenkinsConnection
 	) {
         super(label, vscode.TreeItemCollapsibleState.None);
 
@@ -86,6 +87,11 @@ export class ConnectionsTreeItem extends vscode.TreeItem {
 
     // @ts-ignore
 	get description(): string {
-		return `${this.connection.uri} (${this.connection.username})`;
+        let description = this.connection.uri;
+        description += null != this.connection.folderFilter && '' != this.connection.folderFilter ?
+            ` (${this.connection.folderFilter})` :
+            '';
+        description += ` (${this.connection.username})`;
+		return description;
     }
 }

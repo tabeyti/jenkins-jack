@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { ext } from './extensionVariables';
 import * as path from 'path';
+import { JenkinsConnection } from './jenkinsConnection';
 
 /**
  * Static class holding API query properties for jobs, builds, and nodes.
@@ -124,27 +125,45 @@ export function filepath(...filenameParts: string[]): string {
 }
 
 /**
- * Applies a default host config if one doesn't exist.
- * NOTE: also for backwards compatability for older host settings found in v0.0.*
+ * Runs through logic that shores up backwards-compatibility issues found in settings.json.
+ * NOTE: also for backwards compatibility for older host settings found in v0.0.*
  */
-export async function applyDefaultHost() {
+export async function applyBackwardsCompat() {
+    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
 
     // Applies default host or the legacy host connection info to the
     // list of jenkins hosts.
-    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-
-    if (0 === jenkinsConfig.connections.length) {
-        let conns = [
+    let conns: any[] = (0 === jenkinsConfig.connections.length) ?
+        [
             {
                 "name": "default",
                 "uri": undefined === jenkinsConfig.uri ? 'http://127.0.0.1:8080' : jenkinsConfig.uri,
                 "username": undefined === jenkinsConfig.username ? null : jenkinsConfig.username,
-                "password": undefined === jenkinsConfig.password ? null : jenkinsConfig.password,
                 "active": true
             }
-        ];
-        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
+        ] :
+        jenkinsConfig.connections;
+
+
+    // If any existing connections in settings.json have the "password" field, ask the user
+    // if they would like to store them in the local-keystore for each connection.
+    let connectionsWithPassword = jenkinsConfig.connections.filter((c: any) => null != c.password && '' != c.password);
+    if (!connectionsWithPassword.length) { return; }
+
+    let connectionsString = connectionsWithPassword.map((c: any) => c.name).join('\n');
+
+    let message = `Jenkins Jack: The latest version manages passwords from your system's key-store.\nWould you like to migrate your connection passwords in settings.json to the local key-store?\n\n${connectionsString}`;
+    let result = await vscode.window.showInformationMessage(message, { modal: true }, { title: 'Yes' } );
+    if (undefined === result) { return undefined; }
+
+    for (let c of connectionsWithPassword) {
+        let conn = JenkinsConnection.fromJSON(c);
+        await conn.setPassword(c.password);
+        delete c.password;
     }
+    vscode.window.showInformationMessage('Jenkins Jack: Passwords migrated successfully!');
+
+    await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
 }
 
 /**
@@ -158,7 +177,7 @@ export function readjson(path: string): any {
     let json: any;
     try {
         json = JSON.parse(raw);
-    } catch (err: any) {
+    } catch (err) {
         err.message = `Could not parse parameter JSON from ${path}`;
         throw err;
     }
@@ -174,7 +193,7 @@ export function writejson(path: string, json: any) {
     try {
         let jsonString = JSON.stringify(json, null, 4);
         fs.writeFileSync(path, jsonString, 'utf8');
-    } catch (err: any) {
+    } catch (err) {
         err.message = `Could not write parameter JSON to ${path}`;
         throw err;
     }
