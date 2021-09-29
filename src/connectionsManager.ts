@@ -236,7 +236,7 @@ export class ConnectionsManager implements QuickpickSet {
         await removedConnection.deletePassword();
 
         // If this host was active, make the first host in the list active.
-        if (conn.active) {
+        if (conn.active && 0 < modifiedConnections.length) {
             return await this.selectConnection(modifiedConnections[0]);
         }
 
