@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as moment from 'moment';
+import * as dayjs from 'dayjs';
 
 export class Logger {
     private _outputChannel: vscode.OutputChannel;
@@ -56,7 +56,7 @@ export class Logger {
             // HACK: parses the call-stack for a specific line to grab the calling module
             caller = ex.stack.split('\n')[3].match(/.*[\/|\\](.*)\.js.*/)[1];
         }
-        let logLine = `[${moment().format('DD-MM-YYYY HH:mm:ss')}] [${caller}] [${this.levelStringMap[level]}] - ${message}`;
+        let logLine = `[${dayjs().format('DD-MM-YYYY HH:mm:ss')}] [${caller}] [${this.levelStringMap[level]}] - ${message}`;
 
         this._outputChannel.appendLine(logLine);
         console.log(logLine);

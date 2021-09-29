@@ -770,9 +770,9 @@
   "dependencies": {
     "@types/url-parse": "^1.4.3",
     "cheerio": "^1.0.0-rc.3",
+    "dayjs": "^1.10.7",
     "jenkins": "^0.28.1",
     "keytar": "^7.7.0",
-    "moment": "^2.29.1",
     "open": "^6.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",
