@@ -1,6 +1,23 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.2.0
+
+Bumping minor version to accommodate a potentially breaking change to how connection passwords are stored. See __Changed__ section for details.
+
+### Added
+* __Quick Folder Select for Active Connection:__ Users can now update the folder filter for the active connection on the fly without needing to edit the entire connection (`Connections: Select Folder`).
+* __Queue Jack and Queue TreeView:__ Allows the user to view items in the queue of the connected Jenkins. Users can also cancel one or more queued items (`Queue: Cancel`).
+* __Node Tree View Executors:__ The node tree now displays available executors for each node, along with active builds occupying these executors. This is similar to the agent/node pane on the left-hand side of a Jenkins' main page. Build operations can also be invoked on these items, such as `Abort` or `Download Log`.
+* __Jenkins Jack Log Output:__ Added a logger that writes to an output channel called `Jenkins Jack Log` to surface debug and exception information.
+
+### Changed
+* __Password Stored on System Key-Store:__ To mitigate the security issue of connection passwords living in the `settings.json`, Jenkins Jack will now store a user's password for a connection/username under the local system's key-store using `keytar`:
+  *  New connections will automatically store  passwords on the key-store.
+  *  Existing connections in `settings.json` with a `password` field will prompt the user on extension startup if they would like to migrate these passwords to the key-store and remove them from `settings.json`.
+  > __NOTE:__ If a user declines to migrate the passwords, the extension will prompt the user to re-enter a password for the connection when attempting connect _if_ it is unable to locate it on the system's key-store
+* __Removed Auth Information from Connection URL:__ The connection URL used for requests will no longer include the username/password in URL format and now utilizes authentication headers like every other application on planet earth. Apologies for how long this took.
+
 ## 1.1.6
 
 ### Features

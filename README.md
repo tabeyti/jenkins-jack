@@ -87,6 +87,7 @@ Any file in the editor with the Groovy language id set will have these completio
 | --- | ---------- |
 | `jenkins-jack.jenkins.connections` | List of jenkins connections (uri, username, and password) to target when running commands |
 | `jenkins-jack.jenkins.strictTls` | If unchecked, the extension will **not** check certificate validity when connecting through HTTPS |
+| `jenkins-jack.job.tree.numBuilds` | Number of builds to retrieve in the Job Tree view (NOTE: values over **100** will utilize the `allBuilds` field in the query, which may slow performance on the Jenkins server) |
 | `jenkins-jack.outputView.panel.defaultViewColumn` | The default view column (location) in vscode the output panel will spawn on show. See https://code.visualstudio.com/api/references/vscode-api#ViewColumn |
 | `jenkins-jack.outputView.suppressPipelineLog` | If enabled, hides `[Pipeline]` log lines in streamed output. |
 | `jenkins-jack.outputView.type` | The output view for streamed logs |
@@ -119,10 +120,10 @@ vsce package            # Bake some bread.
 code --install-extension .\jenkins-jack-0.0.1.vsix # ...or whatever version was built
 ```
 
-## Support
-Do you have a feature request or would like to report a bug? Super duper! Create an issue via Github's [issue tracker](https://github.com/tabeyti/jenkins-jack/issues).
+## Contributing
+Do you have a feature request or would like to report a bug? Are you super motivated and want to submit a change? Do you think you're better than me? Most excellent!
 
-Currently, there are no hard guidelines defined for feature requests, bugs, or questions since I have no idea what I'm doing. These will become more defined as interest in the project increases or something something.
+Please see the [contribution guide](CONTRIBUTING.md) for more deets.
 
 ## Authors
 

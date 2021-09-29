@@ -12,11 +12,11 @@ Host connections can be added through the __Connection: Add__ quick-pick command
 * A unique name for this connection (e.g. `myconn`)
 * The base Jenkins address with `http/https` prefix
 * Your user name for the Jenkins server
-* The API token you generated for your user
+* The API token you generated for your user (stored on system key-chain)
 * (Optional) A folder path on the Jenkins to filter job queries and commands. Can be used for performance (limits number of jobs queried) or for quality-of-life when working within a specific location on Jenkins.
 * (Optional) CSRF projection for your connection (default true). __Only disable this for older [Jenkins versions](https://www.jenkins.io/doc/book/security/csrf-protection/)__ (pre 2.222) if you experience issues creating/editing jobs, builds, and nodes.
 
-Connection data is stored in the `settings.json`:
+Connection data is stored in the `settings.json`, but passwords are stored on the user's local system key-store. Service name for passwords are of the format `jenkins-jack:<connection name>`
 
 ```javascript
 "jenkins-jack.jenkins.connections": [
@@ -24,10 +24,9 @@ Connection data is stored in the `settings.json`:
         // Unique name for your Jenkins connection
         "name": "localhost",
 
-        // Host and credentials
+        // Host and account name
         "uri": "http://127.0.0.1:8080/jenkins",
         "username": "<your username>",
-        "password": "<your password/token>",
 
         // (Optional) Folder path on the Jenkins for filtering job queries
         "folderFilter": "",
@@ -77,8 +76,6 @@ Connection data is stored in the `settings.json`:
 * Limit or expand the number of builds to retrieve for performance or more search results
 
 ![build](images/doc/demo_build_query.gif)
-
-
 
 ## Job and Build Management
 
