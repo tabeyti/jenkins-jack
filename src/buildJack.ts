@@ -5,6 +5,7 @@ import { ext } from './extensionVariables';
 import { withProgressOutputParallel } from './utils';
 import { JobType } from './jobType'
 import { NodeTreeItem } from './nodeTree';
+import { SelectionFlows } from './selectionFlows';
 
 export class BuildJack extends JackBase {
 
@@ -27,10 +28,10 @@ export class BuildJack extends JackBase {
                     return this.getJobBuildFromUrl(i.executor.currentExecutable.url);
                 });
             } else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
+                let job = await SelectionFlows.jobs(undefined, false);
                 if (undefined === job) { return; }
 
-                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
+                let builds = await SelectionFlows.builds(job, (build: any) => build.building, true);
                 if (undefined === builds) { return; }
 
                 items = builds.map((b: any) => { return { job: job, build: b }; } );
@@ -60,15 +61,14 @@ export class BuildJack extends JackBase {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
             }
             else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow();
+                let job = await SelectionFlows.jobs();
                 if (undefined === job) { return; }
 
-                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true, 'Select a build');
+                let builds = await SelectionFlows.builds(job, undefined, true, 'Select a build');
                 if (undefined === builds) { return; }
 
                 items = builds.map((b: any) => { return { job: job, build: b }; } );
             }
-
             if (undefined === items) { return; }
 
             let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
@@ -166,10 +166,10 @@ export class BuildJack extends JackBase {
      * @param builds Optional builds to target. If none, build selection will be presented.
      */
     public async delete(job?: any, builds?: any[]) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
+        job = job ? job : await SelectionFlows.jobs();
         if (undefined === job) { return; }
 
-        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
+        builds = builds ? builds : await SelectionFlows.builds(job, undefined, true);
         if (undefined === builds) { return; }
 
         let items = builds.map((b: any) => { return { job: job, build: b }; } );
@@ -191,10 +191,10 @@ export class BuildJack extends JackBase {
      * @param build Optional build to target. If none, build selection will be presented.
      */
     public async downloadLog(job?: any, build?: any) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
+        job = job ? job : await SelectionFlows.jobs(undefined, false);
         if (undefined === job) { return; }
 
-        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, false, 'Select a build');
+        build = build ? build : await SelectionFlows.builds(job, undefined, false, 'Select a build');
         if (undefined === build) { return; }
 
         // Stream it. Stream it until the editor crashes.

@@ -4,6 +4,7 @@ import { QuickpickSet } from './quickpickSet';
 import { ext } from './extensionVariables';
 import { ConnectionsTreeItem } from './connectionsTree';
 import { JenkinsConnection } from './jenkinsConnection';
+import { SelectionFlows } from './selectionFlows';
 
 export class ConnectionsManager implements QuickpickSet {
     private _host: JenkinsService;
@@ -248,7 +249,7 @@ export class ConnectionsManager implements QuickpickSet {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         let connJson = config.connections.find((c: any) => c.active && c.name === this.activeConnection.name);
 
-        let folderFilter = await this.host.folderSelectionFlow(false, 'Select a folder to path for filtering job operations on this connection', true);
+        let folderFilter = await SelectionFlows.folders(false, 'Select a folder to path for filtering job operations on this connection', true);
         if (undefined === folderFilter) { return undefined; }
         if ('.' === folderFilter) { folderFilter = undefined; }
         connJson.folderFilter = folderFilter;

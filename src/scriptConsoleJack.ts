@@ -3,6 +3,7 @@ import { ext } from './extensionVariables';
 import { JackBase } from './jack';
 import { getValidEditor } from './utils';
 import { NodeTreeItem } from './nodeTree';
+import { SelectionFlows } from './selectionFlows';
 
 export class ScriptConsoleJack extends JackBase {
 
@@ -16,7 +17,7 @@ export class ScriptConsoleJack extends JackBase {
                 items = !items ? [item.node.displayName] : items.map((item: NodeTreeItem) => item.node.displayName);
             }
             else {
-                let nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true, 'Select one or more nodes to execute your console script on', true);
+                let nodes = await SelectionFlows.nodes(undefined, true, 'Select one or more nodes to execute your console script on', true);
                 if (undefined === nodes) { return; }
                 items = nodes.map((n: any) => n.displayName);
             }

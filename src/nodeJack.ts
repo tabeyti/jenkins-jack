@@ -3,6 +3,7 @@ import { JackBase } from './jack';
 import { NodeTreeItem } from './nodeTree';
 import { updateNodeLabelsScript } from './utils';
 import { ext } from './extensionVariables';
+import { SelectionFlows } from './selectionFlows';
 
 export class NodeJack extends JackBase {
 
@@ -63,7 +64,7 @@ export class NodeJack extends JackBase {
                 nodes = items ? items.map((i: any) => i.node) : [item.node];
             }
             else {
-                nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true, 'Select one or more nodes for opening in the browser');
+                nodes = await SelectionFlows.nodes(undefined, true, 'Select one or more nodes for opening in the browser');
                 if (undefined === nodes) { return false; }
             }
             for (let n of nodes) {
@@ -107,7 +108,7 @@ export class NodeJack extends JackBase {
      * re-enabled.
      */
     public async setOnline(nodes?: any[]) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master' && n.offline,
             true,
             'Select one or more offline nodes for re-enabling');
@@ -130,7 +131,7 @@ export class NodeJack extends JackBase {
             if (undefined === offlineMessage) { return undefined; }
         }
 
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master' && !n.offline,
             true,
             'Select one or more nodes for temporary offline');
@@ -148,7 +149,7 @@ export class NodeJack extends JackBase {
      * disconnected from the server.
      */
     public async disconnect(nodes?: any[]) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master',
             true,
             'Select one or more nodes for disconnect');
@@ -162,7 +163,7 @@ export class NodeJack extends JackBase {
     }
 
     public async updateLabels(nodes?: any) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master',
             true,
             'Select one or more nodes for updating labels');

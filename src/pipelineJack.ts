@@ -10,6 +10,7 @@ import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 import { PipelineConfig } from './pipelineJobConfig';
 import { PipelineTreeItem } from './pipelineTree';
+import { SelectionFlows } from './selectionFlows';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -114,7 +115,7 @@ export class PipelineJack extends JackBase {
         if (undefined === jobName) { return undefined; }
 
         // Provide list of Folder jobs from the server to create the pipeline under
-        let folder = await ext.connectionsManager.host.folderSelectionFlow(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
+        let folder = await SelectionFlows.folders(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
         if (undefined === folder) { return undefined; }
 
         jobName = folder !== '.' ? `${folder}/${jobName}` : jobName;
@@ -322,7 +323,7 @@ export class PipelineJack extends JackBase {
         // Provide option for selecting a folder job on the server to create the job under
         let fullJobName = jobName;
         if (!config.folder) {
-            let folder = await ext.connectionsManager.host.folderSelectionFlow(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
+            let folder = await SelectionFlows.folders(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
             if (undefined === folder) { return undefined; }
 
             if ('.' !== folder) {

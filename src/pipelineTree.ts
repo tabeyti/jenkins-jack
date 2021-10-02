@@ -7,6 +7,7 @@ import * as xml2js from "xml2js";
 import { PipelineConfig } from './pipelineJobConfig';
 import { JobType } from './jobType';
 import { filepath } from './utils';
+import { SelectionFlows } from './selectionFlows';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -210,7 +211,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private async pullReplayScript(item: PipelineTreeItem) {
 
         // Ask what build they want to download.
-        let build = await ext.connectionsManager.host.buildSelectionFlow(item.job);
+        let build = await SelectionFlows.builds(item.job);
         if (undefined === build) { return; }
 
         // Pull replay script from build number
