@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to the `jenkins-jack` extension will be documented in this file.
 
+## 1.2.1
+
+## Added
+* __Multi Download Support for Build Logs and Replay Scripts:__ Users can now select more than one build for download logs and replay scripts. When multiple items are selected, an individual document/tab will be created for each download.
+  > __NOTE:__ Multi-item downloads will always open up multiple documents in the editor, regardless of the output view the user has defined for `jenkins-jack.outputView.type` in `settings.json`.
+
+### Fixed
+* Broken `extension.jenkins-jack.build.open` command from the last update.
+* Fixed silent exception when item retrieval in `getChildren` for tree classes are undefined.
+* Removed `password` field from connection contribution point in `package.json`.
+
 ## 1.2.0
 
 Bumping minor version to accommodate a potentially breaking change to how connection passwords are stored. See __Changed__ section for details.
