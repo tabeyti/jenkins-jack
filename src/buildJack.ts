@@ -118,7 +118,7 @@ export class BuildJack extends JackBase {
                 urls = (items ?? [item]).map((i: any) => { return i.executor.currentExecutable.url });
             }
             else {
-                urls = (await ext.connectionsManager.host.buildSelectionFlow(undefined, undefined, true))?.map((b: any) => b.build.url);
+                urls = (await SelectionFlows.builds(undefined, undefined, true))?.map((b: any) => b.url);
                 if (undefined === urls) { return; }
             }
 
