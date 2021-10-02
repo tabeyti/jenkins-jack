@@ -85,7 +85,7 @@ Any file in the editor with the Groovy language id set will have these completio
 
 |Name |Description |
 | --- | ---------- |
-| `jenkins-jack.jenkins.connections` | List of jenkins connections (uri, username, and password) to target when running commands |
+| `jenkins-jack.jenkins.connections` | List of jenkins connections to target when running commands. |
 | `jenkins-jack.jenkins.strictTls` | If unchecked, the extension will **not** check certificate validity when connecting through HTTPS |
 | `jenkins-jack.job.tree.numBuilds` | Number of builds to retrieve in the Job Tree view (NOTE: values over **100** will utilize the `allBuilds` field in the query, which may slow performance on the Jenkins server) |
 | `jenkins-jack.outputView.panel.defaultViewColumn` | The default view column (location) in vscode the output panel will spawn on show. See https://code.visualstudio.com/api/references/vscode-api#ViewColumn |

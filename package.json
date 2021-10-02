@@ -397,11 +397,6 @@
                   "default": "",
                   "description": "Username for authentication with Jenkins"
                 },
-                "password": {
-                  "type": "string",
-                  "default": "",
-                  "markdownDescription": "Password or API token to login to jenkins. Token can be found here: `[jenkins_url]/user/[username]/configure`"
-                },
                 "active": {
                   "type": "boolean",
                   "default": false,
@@ -410,7 +405,7 @@
               }
             },
             "default": [],
-            "markdownDescription": "List of jenkins connections (uri, username, and password) to target when running commands"
+            "markdownDescription": "List of jenkins connections to target when running commands"
           },
           "jenkins-jack.jenkins.strictTls": {
             "type": "boolean",
