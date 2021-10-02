@@ -243,7 +243,10 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 	getChildren(element?: PipelineTreeItem): Thenable<PipelineTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            if (!ext.connectionsManager.connected) { resolve(list); }
+            if (!ext.connectionsManager.connected) {
+                resolve(list);
+                return;
+            }
 
             let jobs = await ext.connectionsManager.host.getJobs(null, { token: this._cancelTokenSource.token });
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)

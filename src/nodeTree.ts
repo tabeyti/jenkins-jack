@@ -72,7 +72,10 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            if (!ext.connectionsManager.connected) { resolve(list); }
+            if (!ext.connectionsManager.connected) {
+                resolve(list);
+                return;
+            }
 
             if (element) {
                 for (let e of element.node.executors) {
@@ -81,7 +84,10 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
                 }
             } else {
                 let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
-                if (undefined === nodes) { resolve([]); }
+                if (null == nodes) {
+                    resolve([]);
+                    return;
+                }
 
                 nodes = nodes?.filter((n: any) => n.displayName !== 'master');
                 this._nodeTreeItems = [];

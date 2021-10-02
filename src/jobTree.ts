@@ -65,7 +65,10 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
 	getChildren(element?: JobTreeItem): Thenable<JobTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
-            if (!ext.connectionsManager.connected) { resolve(list); }
+            if (!ext.connectionsManager.connected) {
+                resolve(list);
+                return;
+            }
 
             if (element) {
                 let builds = await ext.connectionsManager.host.getBuildsWithProgress(element.job, this._jobTreeConfig.numBuilds, this._cancelTokenSource.token);
