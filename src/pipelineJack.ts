@@ -599,7 +599,7 @@ export class PipelineJack extends JackBase {
 
         // Create local script file.
         try {
-            fs.writeFileSync(filepath, source, 'utf-8');
+            fs.writeFileSync(filepath, source.toString(), 'utf-8');
         } catch (err) {
             vscode.window.showInformationMessage(err);
             return;
