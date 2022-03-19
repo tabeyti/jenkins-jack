@@ -15,11 +15,11 @@ export class Logger {
 
     protected readonly barrierLine: string = '-'.repeat(80);
 
-    constructor() {
+    constructor(level = Level.Info) {
         this._outputChannel = vscode.window.createOutputChannel("Jenkins Jack Log");
 
         // TODO: make this config driven
-        this._level = Level.Info;
+        this._level = level;
     }
 
     public trace(message: any) {
