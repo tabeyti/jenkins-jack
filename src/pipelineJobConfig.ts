@@ -7,10 +7,9 @@ export class PipelineConfig {
     public name: string;
     public params: any;
     public interactiveInputOverride: any;
-    public folder: string | undefined;
     public path: string;
 
-    constructor(public readonly scriptPath: string, overwrite: boolean = false) {
+    constructor(public readonly scriptPath: string, public folder?: string, overwrite: boolean = false) {
         let parsed = path.parse(scriptPath);
         this.path = PipelineConfig.pathFromScript(scriptPath);
 
@@ -18,7 +17,7 @@ export class PipelineConfig {
         if (!fs.existsSync(this.path) || overwrite) {
             this.name = parsed.name;
             this.params = null;
-            this.folder = undefined;
+            this.folder = folder;
             this.save();
             return;
         }

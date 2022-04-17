@@ -3,8 +3,8 @@ import { JackBase } from './jack';
 import { JobTreeItem, JobTreeItemType } from './jobTree';
 import { ext } from './extensionVariables';
 import { withProgressOutputParallel } from './utils';
-import { JobType } from './jobType'
 import { NodeTreeItem } from './nodeTree';
+import { SelectionFlows } from './selectionFlows';
 
 export class BuildJack extends JackBase {
 
@@ -27,10 +27,10 @@ export class BuildJack extends JackBase {
                     return this.getJobBuildFromUrl(i.executor.currentExecutable.url);
                 });
             } else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
+                let job = await SelectionFlows.jobs(undefined, false);
                 if (undefined === job) { return; }
 
-                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, (build: any) => build.building, true);
+                let builds = await SelectionFlows.builds(job, (build: any) => build.building, true);
                 if (undefined === builds) { return; }
 
                 items = builds.map((b: any) => { return { job: job, build: b }; } );
@@ -60,15 +60,14 @@ export class BuildJack extends JackBase {
                 items = !items ? [item] : items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type);
             }
             else {
-                let job = await ext.connectionsManager.host.jobSelectionFlow();
+                let job = await SelectionFlows.jobs();
                 if (undefined === job) { return; }
 
-                let builds = await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true, 'Select a build');
+                let builds = await SelectionFlows.builds(job, undefined, true, 'Select a build');
                 if (undefined === builds) { return; }
 
                 items = builds.map((b: any) => { return { job: job, build: b }; } );
             }
-
             if (undefined === items) { return; }
 
             let buildNames = items.map((i: any) => `${i.job.fullName}: #${i.build.number}`);
@@ -87,26 +86,50 @@ export class BuildJack extends JackBase {
             ext.jobTree.refresh();
         }));
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (item?: any | JobTreeItem) => {
-            if (item instanceof JobTreeItem) {
-                await this.downloadLog(item.job, item.build);
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadLog', async (item?: any | JobTreeItem, items?: JobTreeItem[] | any[]) => {
+            let targetItems: any[] = null;
+            if (item instanceof JobTreeItem && null != items) {
+                targetItems = items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => {
+                    return { job: i.job, build: i.build };
+                });
+            }
+            else if (item instanceof JobTreeItem) {
+                targetItems = [{ job: item.job, build: item.build }];
             }
             else if (item instanceof NodeTreeItem) {
-                item = this.getJobBuildFromUrl(item.executor.currentExecutable.url);
-                await ext.connectionsManager.host.streamBuildOutput(item.job.fullName, item.build.number, this.outputChannel);
+                // Filter only on non-idle executor tree items
+                targetItems = !items ? [item] : items.filter((i: NodeTreeItem) => i.executor && !i.executor.idle);
+
+                // HACK?: Because Jenkins queue api doesn't have a strong link to an executor's build,
+                // we must extract the job/build information from the url.
+                // @ts-ignore
+                targetItems = targetItems.map((i: any) => { return this.getJobBuildFromUrl(i.executor.currentExecutable.url); });
             }
-            else {
-                await this.downloadLog();
-            }
+
+            await this.downloadLog(targetItems);
         }));
 
-        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (content?: any | JobTreeItem) => {
-            if (content instanceof JobTreeItem) {
-                await this.downloadReplayScript(content.job, content.build);
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.downloadReplayScript', async (item?: any | JobTreeItem, items?: JobTreeItem[] | any[]) => {
+            let targetItems: any[] = null;
+            if (item instanceof JobTreeItem && null != items) {
+                targetItems = items.filter((item: JobTreeItem) => JobTreeItemType.Build === item.type).map((i: any) => {
+                    return { job: i.job, build: i.build };
+                });
             }
-            else {
-                await this.downloadReplayScript();
+            else if (item instanceof JobTreeItem) {
+                targetItems = [{ job: item.job, build: item.build }];
             }
+            else if (item instanceof NodeTreeItem) {
+                // Filter only on non-idle executor tree items
+                targetItems = !items ? [item] : items.filter((i: NodeTreeItem) => i.executor && !i.executor.idle);
+
+                // HACK?: Because Jenkins queue api doesn't have a strong link to an executor's build,
+                // we must extract the job/build information from the url.
+                // @ts-ignore
+                targetItems = targetItems.map((i: any) => { return this.getJobBuildFromUrl(i.executor.currentExecutable.url); });
+            }
+
+            await this.downloadReplayScript(targetItems);
         }));
 
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.build.open', async (item?: any | JobTreeItem, items?: any[]) => {
@@ -118,7 +141,7 @@ export class BuildJack extends JackBase {
                 urls = (items ?? [item]).map((i: any) => { return i.executor.currentExecutable.url });
             }
             else {
-                urls = (await ext.connectionsManager.host.buildSelectionFlow(undefined, undefined, true))?.map((b: any) => b.build.url);
+                urls = (await SelectionFlows.builds(undefined, undefined, true))?.map((b: any) => b.url);
                 if (undefined === urls) { return; }
             }
 
@@ -166,10 +189,10 @@ export class BuildJack extends JackBase {
      * @param builds Optional builds to target. If none, build selection will be presented.
      */
     public async delete(job?: any, builds?: any[]) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow();
+        job = job ? job : await SelectionFlows.jobs();
         if (undefined === job) { return; }
 
-        builds = builds ? builds : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, true);
+        builds = builds ? builds : await SelectionFlows.builds(job, undefined, true);
         if (undefined === builds) { return; }
 
         let items = builds.map((b: any) => { return { job: job, build: b }; } );
@@ -190,45 +213,53 @@ export class BuildJack extends JackBase {
      * @param job Optional job to target. If none, job selection will be presented.
      * @param build Optional build to target. If none, build selection will be presented.
      */
-    public async downloadLog(job?: any, build?: any) {
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(undefined, false);
-        if (undefined === job) { return; }
+    public async downloadLog(items?: { job: any, build: any }[]) {
+        if (!items) {
+            let job = items ? items[0].job : await SelectionFlows.jobs(undefined, false);
+            if (undefined === job) { return; }
 
-        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, false, 'Select a build');
-        if (undefined === build) { return; }
+            let builds = items ? items.map((i: any) => i.build) : await SelectionFlows.builds(job, null, true);
+            if (undefined === builds) { return; }
 
-        // Stream it. Stream it until the editor crashes.
-        await ext.connectionsManager.host.streamBuildOutput(job.fullName, build.number, this.outputChannel);
+            items = builds.map((b: any) => { return { job: job, build: b } } );
+        }
+
+        // If this is a single item, use this instance's output channel to stream the build.
+        if (1 === items.length) {
+            ext.connectionsManager.host.streamBuildOutput(items[0].job.fullName, items[0].build.number, this.outputChannel);
+            return
+        }
+
+        // If there are multiple items to download, create a new document for each build.
+        for (let item of items) {
+            let documentName = `${item.job.fullName.replaceAll('/', '-')}-${item.build.number}`;
+            let outputPanel = ext.outputPanelProvider.get(documentName);
+
+            // Stream it. Stream it until the editor crashes.
+            ext.connectionsManager.host.streamBuildOutput(item.job.fullName, item.build.number, outputPanel);
+        }
     }
 
-    /**
-     * Downloads a pipeline replay scripts for the user by first presenting a list
-     * of jobs to select from, and then a list of build numbers for
-     * the selected job.
-     * @param job Optional job to target. If none, job selection will be presented.
-     * @param build Optional build to target. If none, build selection will be presented.
-     */
-    public async downloadReplayScript(job?: any, build?: any) {
+    public async downloadReplayScript(items?: { job?: any, build?: any }[]) {
+        if (!items) {
+            let job = items ? items[0].job : await SelectionFlows.jobs(undefined, false);
+            if (undefined === job) { return; }
 
-        // Grab only pipeline jobs
-        job = job ? job : await ext.connectionsManager.host.jobSelectionFlow(
-            (job: any) => job.buildable && job.type !== JobType.Default,
-            false,
-            'Select a job to grab builds from');
+            let builds = items ? items.map((i: any) => i.build) : await SelectionFlows.builds(job, null, true);
+            if (undefined === builds) { return; }
 
-        if (undefined === job) { return; }
+            items = builds.map((b: any) => { return { job: job, build: b } } );
+        }
 
-        build = build ? build : await ext.connectionsManager.host.buildSelectionFlow(job, undefined, false, 'Select a build');
-        if (undefined === build) { return; }
-
-        // Pull script and display as an Untitled document
-        let script = await ext.connectionsManager.host.getReplayScript(job, build);
-        if (undefined === script) { return; }
-        let doc = await vscode.workspace.openTextDocument({
-            content: script,
-            language: 'groovy'
-        });
-        await vscode.window.showTextDocument(doc);
+        await Promise.all(items.map(async (item: any) => {
+            let script = await ext.connectionsManager.host.getReplayScript(item.job, item.build);
+            if (undefined === script) { return; }
+            let doc = await vscode.workspace.openTextDocument({
+                content: script,
+                language: 'groovy'
+            });
+            await vscode.window.showTextDocument(doc);
+        }));
     }
 
     private getJobBuildFromUrl(url: string) {

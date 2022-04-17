@@ -3,6 +3,8 @@ import { JackBase } from './jack';
 import { NodeTreeItem } from './nodeTree';
 import { updateNodeLabelsScript } from './utils';
 import { ext } from './extensionVariables';
+import { SelectionFlows } from './selectionFlows';
+import { Label } from './jenkinsService';
 
 export class NodeJack extends JackBase {
 
@@ -57,13 +59,42 @@ export class NodeJack extends JackBase {
             if (result) { ext.nodeTree.refresh(); }
         }));
 
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.queryLabels', async (item?: any[] | NodeTreeItem, items?: NodeTreeItem[]) => {
+            let labels = (await ext.connectionsManager.host.getLabels())?.map((l: Label) => {
+                return {
+                    label: l.name,
+                    target: l.nodes
+                }
+            });
+            if (undefined === labels) { return; }
+
+            let selections = await vscode.window.showQuickPick(labels, { canPickMany: true });
+            if (undefined === selections) { return; }
+
+            let nodeSet = new Map<string, any>();
+            selections.forEach((s: any) => {
+                s.target.forEach((node: any) => {
+                    if (!nodeSet.has(node.name)) {
+                        nodeSet.set(node.name, node);
+                    }
+                });
+            });
+            let nodes = Array.from(nodeSet.values());
+            selections = await vscode.window.showQuickPick(nodes, { canPickMany: true });
+            if (undefined === selections || 0 >= selections.length) { return; }
+
+            for (let n of nodes) {
+                ext.connectionsManager.host.openBrowserAtPath(`/computer/${n.displayName}`);
+            }
+        }));
+
         ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.node.open', async (item?: any | NodeTreeItem, items?: NodeTreeItem[]) => {
             let nodes = [];
             if (item instanceof NodeTreeItem) {
                 nodes = items ? items.map((i: any) => i.node) : [item.node];
             }
             else {
-                nodes = await ext.connectionsManager.host.nodeSelectionFlow(undefined, true, 'Select one or more nodes for opening in the browser');
+                nodes = await SelectionFlows.nodes(undefined, true, 'Select one or more nodes for opening in the browser');
                 if (undefined === nodes) { return false; }
             }
             for (let n of nodes) {
@@ -95,6 +126,11 @@ export class NodeJack extends JackBase {
                 target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.updateLabels')
             },
             {
+                label: "$(list-flat)  Node: Query Labels",
+                description: "Query machines tied to labels.",
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.queryLabels')
+            },
+            {
                 label: "$(browser)  Node: Open",
                 description: "Opens the targeted nodes in the user's browser.",
                 target: () => vscode.commands.executeCommand('extension.jenkins-jack.node.open')
@@ -107,7 +143,7 @@ export class NodeJack extends JackBase {
      * re-enabled.
      */
     public async setOnline(nodes?: any[]) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master' && n.offline,
             true,
             'Select one or more offline nodes for re-enabling');
@@ -130,7 +166,7 @@ export class NodeJack extends JackBase {
             if (undefined === offlineMessage) { return undefined; }
         }
 
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master' && !n.offline,
             true,
             'Select one or more nodes for temporary offline');
@@ -148,7 +184,7 @@ export class NodeJack extends JackBase {
      * disconnected from the server.
      */
     public async disconnect(nodes?: any[]) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master',
             true,
             'Select one or more nodes for disconnect');
@@ -162,7 +198,7 @@ export class NodeJack extends JackBase {
     }
 
     public async updateLabels(nodes?: any) {
-        nodes = nodes ? nodes : await ext.connectionsManager.host.nodeSelectionFlow(
+        nodes = nodes ? nodes : await SelectionFlows.nodes(
             (n: any) => n.displayName !== 'master',
             true,
             'Select one or more nodes for updating labels');

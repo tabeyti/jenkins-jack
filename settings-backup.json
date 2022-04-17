@@ -1,0 +1,196 @@
+{
+    "window.zoomLevel": 0,
+    "terminal.integrated.shell.windows": "C:\\Program Files\\Git\\bin\\bash.exe",
+    "python.pythonPath": "C:\\Users\\tabeyti\\AppData\\Local\\Programs\\Python\\Python38-32\\python.exe",
+    "files.trimTrailingWhitespace": true,
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "java.configuration.runtimes": [
+        {
+          "name": "JavaSE-11",
+          "path": "C:/Program Files/Java/java-11-openjdk-11.0.8-2",
+        },
+    ],
+    "tslint.autoFixOnSave": ["semicolon"],
+
+    "editor.codeActionsOnSave": {
+        "source.fixAll.tslint": true
+    },
+    "latex-workshop.view.pdf.viewer": "tab",
+    "editor.suggestSelection": "first",
+    "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+    "java.configuration.checkProjectSettingsExclusions": false,
+    "cSpell.userWords": [
+        "Github's",
+        "buildable",
+        "superceding"
+    ],
+    "jenkins-jack.jenkins.connections": [
+        {
+            "name": "localhost",
+            "uri": "http://127.0.0.1:8080/jenkins",
+            "username": "tabeyti",
+            "password": "1154b03547201263c1be4385909a9ab967",
+            "active": false
+        },
+        {
+            "name": "otherconnection",
+            "uri": "http://127.0.0.1:8080/jenkins",
+            "username": "tabeyti",
+            "password": "1154b03547201263c1be4385909a9ab967",
+            "active": true
+        },
+        {
+            "name": "docker1",
+            "uri": "http://127.0.0.1:8081",
+            "username": "tabeyti",
+            "password": "116007bb043a9323d6a13c18c9e073dcf4",
+            "active": false
+        }
+    ],
+    "jenkins-jack.pipeline.tree.items": [
+        {
+            "hostId": "localhost",
+            "jobName": "myjob",
+            "filepath": "c:/temp/scripts/myjob"
+        },
+        {
+            "hostId": "localhost",
+            "jobName": "test",
+            "filepath": "c:/temp/scripts/test"
+        },
+        {
+            "hostId": "test",
+            "jobName": "myfolder/folder_test",
+            "filepath": "c:/temp/test2"
+        },
+        {
+            "hostId": "docker1",
+            "jobName": "test",
+            "filepath": "c:/temp/tomatoJob"
+        },
+        {
+            "hostId": "docker1",
+            "jobName": "myfolder/folder-pipeline",
+            "filepath": "c:/temp/folder-pipeline"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "otherfolder/nerts",
+            "filepath": "c:/temp/nerts.groovy"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/nerts",
+            "filepath": "c:/temp/nerts.groovy"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "otherfolder/gerts",
+            "filepath": "c:/temp/gerts"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/subfolder-pipeline",
+            "filepath": "c:/temp/test-subfolder-pipeline"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/folder-pipeline",
+            "filepath": "c:/temp/folder-pipeline"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/gobs",
+            "filepath": "c:/temp/gobs"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/gerts",
+            "filepath": "c:/temp/gerts"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/plumps",
+            "filepath": "c:/temp/plumps"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "test2",
+            "filepath": "c:/temp/test2"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/ham",
+            "filepath": "c:/temp/ham"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "gitjob",
+            "filepath": "c:/temp/gitjob"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "ham",
+            "filepath": "c:/temp/ham"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "otherfolder/ham",
+            "filepath": "c:/temp/ham"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "apples",
+            "filepath": "c:/temp/apples"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/apples",
+            "filepath": "c:/temp/apples"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/pears",
+            "filepath": "c:/temp/pears"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "test",
+            "filepath": "c:/temp/test"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "otherfolder/otherfolder-job",
+            "filepath": "c:/temp/otherfolder-job"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "otherfolder/waffles",
+            "filepath": "c:/temp/waffles"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/bananas",
+            "filepath": "c:/temp/bananas"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "myfolder/subfolder/gobblebobble",
+            "filepath": "c:/temp/gobblebobble"
+        },
+        {
+            "hostId": "otherconnection",
+            "jobName": "builder",
+            "filepath": "c:/temp/builder"
+        }
+    ],
+    "jenkins-jack.outputView.hidePipelineLogLines": true,
+    "explorer.confirmDelete": false,
+    "workbench.colorTheme": "1337",
+    "markdown-preview-enhanced.previewTheme": "github-dark.css",
+    "markdown-preview-enhanced.printBackground": true,
+    "markdown.extension.print.theme": "dark",
+    "typescript.referencesCodeLens.enabled": true,
+    "jenkins-jack.jenkins.csrfProtect": false,
+    "jenkins-jack.tree.folderSeparator": "~~",
+}

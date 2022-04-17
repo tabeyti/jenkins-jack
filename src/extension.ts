@@ -12,13 +12,15 @@ import { PipelineTree } from './pipelineTree';
 import { JobTree } from './jobTree';
 import { NodeTree } from './nodeTree';
 import { ext } from './extensionVariables';
-import { applyDefaultHost } from './utils';
+import { applyBackwardsCompat } from './utils';
 import { ConnectionsTree } from './connectionsTree';
 import { Logger } from './logger';
+import { QueueJack } from './queueJack';
+import { QueueTree } from './queueTree';
 
 export async function activate(context: vscode.ExtensionContext) {
 
-    await applyDefaultHost();
+    await applyBackwardsCompat();
 
     ext.context = context;
 
@@ -28,6 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // a race condition during onDidChangeConfiguration
     let commandSets: QuickpickSet[] = [];
     ext.connectionsManager = new ConnectionsManager();
+    await ext.connectionsManager.initialize();
 
     ext.pipelineSnippets = new PipelineSnippets();
 
@@ -50,6 +53,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     ext.nodeJack = new NodeJack();
     commandSets.push(ext.nodeJack);
+
+    ext.queueJack = new QueueJack();
+    commandSets.push(ext.queueJack);
 
     commandSets.push(ext.connectionsManager);
 
@@ -79,6 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ext.connectionsTree = new ConnectionsTree();
     ext.pipelineTree = new PipelineTree();
     ext.jobTree = new JobTree();
+    ext.queueTree = new QueueTree();
     ext.nodeTree = new NodeTree();
 }
 

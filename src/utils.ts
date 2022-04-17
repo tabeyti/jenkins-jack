@@ -2,6 +2,50 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { ext } from './extensionVariables';
 import * as path from 'path';
+import { JenkinsConnection } from './jenkinsConnection';
+
+/**
+ * Static class holding API query properties for jobs, builds, and nodes.
+ */
+export class QueryProperties {
+    public static readonly job = [
+        'name',
+        'fullName',
+        'url',
+        'buildable',
+        'inQueue',
+        'description'
+    ].join(',');
+
+    public static readonly jobMinimal = [
+        'name',
+        'fullName',
+        'url',
+        'description'
+    ].join(',');
+
+    public static readonly build = [
+        'number',
+        'result',
+        'description',
+        'url',
+        'duration',
+        'timestamp',
+        'building'
+    ].join(',');
+
+    public static readonly node = [
+        'assignedLabels[name]',
+        'description',
+        'displayName',
+        'executors[idle,currentExecutable[displayName,timestamp,url]]',
+        'idle',
+        'offline',
+        'offlineCause',
+        'offlineCauseReason',
+        'temporarilyOffline'
+    ].join(',');
+}
 
 function _sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -81,27 +125,45 @@ export function filepath(...filenameParts: string[]): string {
 }
 
 /**
- * Applies a default host config if one doesn't exist.
+ * Runs through logic that shores up backwards-compatibility issues found in settings.json.
  * NOTE: also for backwards compatibility for older host settings found in v0.0.*
  */
-export async function applyDefaultHost() {
+export async function applyBackwardsCompat() {
+    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
 
     // Applies default host or the legacy host connection info to the
     // list of jenkins hosts.
-    let jenkinsConfig = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-
-    if (0 === jenkinsConfig.connections.length) {
-        let conns = [
+    let conns: any[] = (0 === jenkinsConfig.connections.length) ?
+        [
             {
                 "name": "default",
                 "uri": undefined === jenkinsConfig.uri ? 'http://127.0.0.1:8080' : jenkinsConfig.uri,
                 "username": undefined === jenkinsConfig.username ? null : jenkinsConfig.username,
-                "password": undefined === jenkinsConfig.password ? null : jenkinsConfig.password,
                 "active": true
             }
-        ];
-        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
+        ] :
+        jenkinsConfig.connections;
+
+
+    // If any existing connections in settings.json have the "password" field, ask the user
+    // if they would like to store them in the local-keystore for each connection.
+    let connectionsWithPassword = jenkinsConfig.connections.filter((c: any) => null != c.password && '' != c.password);
+    if (!connectionsWithPassword.length) { return; }
+
+    let connectionsString = connectionsWithPassword.map((c: any) => c.name).join('\n');
+
+    let message = `Jenkins Jack: The latest version manages passwords from your system's key-store.\nWould you like to migrate your connection passwords in settings.json to the local key-store?\n\n${connectionsString}`;
+    let result = await vscode.window.showInformationMessage(message, { modal: true }, { title: 'Yes' } );
+    if (undefined === result) { return undefined; }
+
+    for (let c of connectionsWithPassword) {
+        let conn = JenkinsConnection.fromJSON(c);
+        await conn.setPassword(c.password);
+        delete c.password;
     }
+    vscode.window.showInformationMessage('Jenkins Jack: Passwords migrated successfully!');
+
+    await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', conns, vscode.ConfigurationTarget.Global);
 }
 
 /**
@@ -276,11 +338,12 @@ export function toDateString(timestamp: number): string {
 }
 
 /**
- * Converts milliseconds into HH:MM:SS string.
+ * Converts milliseconds into HH:MM:SS.MS string.
  * Taken from: https://stackoverflow.com/a/19700358
  * @param duration Time in milliseconds
  */
 export function msToTime(duration: number): string {
+    // @ts-ignore
     var milliseconds = Math.floor((duration % 1000) / 100),
       seconds = Math.floor((duration / 1000) % 60),
       minutes = Math.floor((duration / (1000 * 60)) % 60),
@@ -290,5 +353,9 @@ export function msToTime(duration: number): string {
     let mins = (minutes < 10) ? "0" + minutes : minutes;
     let secs = (seconds < 10) ? "0" + seconds : seconds;
 
-    return hrs + ":" + mins + ":" + secs; // + "." + milliseconds;
-  }
+    return "+" + hrs + ":" + mins + ":" + secs; //  + "." + milliseconds;
+}
+
+export function addDetail(detail: string): string {
+    return `[${detail}] `;
+}

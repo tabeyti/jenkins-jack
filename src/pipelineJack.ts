@@ -10,6 +10,7 @@ import { SharedLibApiManager, SharedLibVar } from './sharedLibApiManager';
 import { JackBase } from './jack';
 import { PipelineConfig } from './pipelineJobConfig';
 import { PipelineTreeItem } from './pipelineTree';
+import { SelectionFlows } from './selectionFlows';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -114,7 +115,7 @@ export class PipelineJack extends JackBase {
         if (undefined === jobName) { return undefined; }
 
         // Provide list of Folder jobs from the server to create the pipeline under
-        let folder = await ext.connectionsManager.host.folderSelectionFlow(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
+        let folder = await SelectionFlows.folders(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
         if (undefined === folder) { return undefined; }
 
         jobName = folder !== '.' ? `${folder}/${jobName}` : jobName;
@@ -136,10 +137,10 @@ export class PipelineJack extends JackBase {
                 await ext.connectionsManager.host.client.job.create(jobName, xml);
                 this.showInformationMessage(`Pipeline "${jobName}" created on "${ext.connectionsManager.activeConnection.name}"`);
                 ext.pipelineTree.refresh();
-            } catch (ex) {
-                ext.logger.warn(ex.message);
-                this.showWarningMessage(ex.message);
-                throw ex;
+            } catch (err) {
+                ext.logger.warn(err.message);
+                this.showWarningMessage(err.message);
+                throw err;
             }
         }
 
@@ -170,7 +171,7 @@ export class PipelineJack extends JackBase {
         }
 
         let groovyScriptPath = editor.document.uri.fsPath;
-        let config = new PipelineConfig(groovyScriptPath);
+        let config = new PipelineConfig(groovyScriptPath, ext.connectionsManager.activeConnection.folderFilter);
 
         // Grab source from active editor.
         let source = editor.document.getText();
@@ -183,6 +184,7 @@ export class PipelineJack extends JackBase {
         ext.pipelineTree.refresh();
         ext.jobTree.refresh();
         ext.nodeTree.refresh(2); // delay to give Jenkins time to assign the job to a node
+        ext.queueTree.refresh();
 
         if (!this.config.browserBuildOutput) {
             // Stream the output. Yep.
@@ -321,7 +323,7 @@ export class PipelineJack extends JackBase {
         // Provide option for selecting a folder job on the server to create the job under
         let fullJobName = jobName;
         if (!config.folder) {
-            let folder = await ext.connectionsManager.host.folderSelectionFlow(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
+            let folder = await SelectionFlows.folders(false, 'Select root or a Jenkins Folder job to create your Pipeline under.');
             if (undefined === folder) { return undefined; }
 
             if ('.' !== folder) {
@@ -335,10 +337,10 @@ export class PipelineJack extends JackBase {
         // Create the job on da Jenkles!
         try {
             await ext.connectionsManager.host.client.job.create(fullJobName, xml);
-        } catch (ex) {
-            ext.logger.error(ex.message);
-            this.showWarningMessage(ex.message);
-            throw ex;
+        } catch (err) {
+            ext.logger.error(err.message);
+            this.showWarningMessage(err.message);
+            throw err;
         }
 
         return await ext.connectionsManager.host.getJob(fullJobName);

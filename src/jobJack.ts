@@ -3,6 +3,7 @@ import { JackBase } from './jack';
 import { JobTreeItem, JobTreeItemType } from './jobTree';
 import { ext } from './extensionVariables';
 import { JobType } from './jobType';
+import { SelectionFlows } from './selectionFlows';
 
 export class JobJack extends JackBase {
 
@@ -55,7 +56,7 @@ export class JobJack extends JackBase {
                 jobs = items ? items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((i: any) => i.job) : [item.job];
             }
             else {
-                jobs = await ext.connectionsManager.host.jobSelectionFlow(undefined, true);
+                jobs = await SelectionFlows.jobs(undefined, true);
                 if (undefined === jobs) { return false; }
             }
             for (let job of jobs) {
@@ -90,7 +91,7 @@ export class JobJack extends JackBase {
     }
 
     public async enable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => !j.buildable && j.type !== JobType.Folder, true);
+        jobs = jobs ? jobs : await SelectionFlows.jobs((j: any) => !j.buildable && j.type !== JobType.Folder, true);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.enable(job.fullName);
@@ -99,7 +100,7 @@ export class JobJack extends JackBase {
     }
 
     public async disable(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.buildable && j.type !== JobType.Folder, true);
+        jobs = jobs ? jobs : await SelectionFlows.jobs((j: any) => j.buildable && j.type !== JobType.Folder, true);
         if (undefined === jobs) { return; }
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.disable(job.fullName);
@@ -108,7 +109,7 @@ export class JobJack extends JackBase {
     }
 
     public async delete(jobs?: any[]) {
-        jobs = jobs ? jobs : await ext.connectionsManager.host.jobSelectionFlow((j: any) => j.type !== JobType.Folder, true);
+        jobs = jobs ? jobs : await SelectionFlows.jobs((j: any) => j.type !== JobType.Folder, true);
         if (undefined === jobs) { return; }
 
         let jobNames = jobs.map((j: any) => j.fullName);

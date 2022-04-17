@@ -7,6 +7,7 @@ import * as xml2js from "xml2js";
 import { PipelineConfig } from './pipelineJobConfig';
 import { JobType } from './jobType';
 import { filepath } from './utils';
+import { SelectionFlows } from './selectionFlows';
 
 const parseXmlString = util.promisify(xml2js.parseString) as any as (xml: string) => any;
 
@@ -166,7 +167,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
                 { title: 'Okay' });
             if (undefined === result) { return; }
         }
-        let pipelineJobConfig = new PipelineConfig(scriptFilePath, true);
+        let pipelineJobConfig = new PipelineConfig(scriptFilePath, undefined, true);
         pipelineJobConfig.name = jobName;
         if (path.parse(item.job.fullName).dir !== '') {
             pipelineJobConfig.folder = path.dirname(item.job.fullName);
@@ -210,7 +211,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
     private async pullReplayScript(item: PipelineTreeItem) {
 
         // Ask what build they want to download.
-        let build = await ext.connectionsManager.host.buildSelectionFlow(item.job);
+        let build = await SelectionFlows.builds(item.job);
         if (undefined === build) { return; }
 
         // Pull replay script from build number
@@ -233,7 +234,7 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
         this._cancelTokenSource.cancel();
         this._cancelTokenSource.dispose();
         this._cancelTokenSource = new vscode.CancellationTokenSource();
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: PipelineTreeItem): PipelineTreeItem {
@@ -242,6 +243,11 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
 
 	getChildren(element?: PipelineTreeItem): Thenable<PipelineTreeItem[]> {
         return new Promise(async resolve => {
+            let list =  [];
+            if (!ext.connectionsManager.connected) {
+                resolve(list);
+                return;
+            }
 
             let jobs = await ext.connectionsManager.host.getJobs(null, { token: this._cancelTokenSource.token });
             // Grab only pipeline jobs that are configurable/scriptable (no multi-branch, github org jobs)
@@ -250,7 +256,6 @@ export class PipelineTreeProvider implements vscode.TreeDataProvider<PipelineTre
                                                 job.type !== JobType.Multi && job.type !== JobType.Org
             );
 
-            let list =  [];
             for(let job of jobs) {
                 let label  = job.fullName.replace(/\//g, this._treeConfig.directorySeparator);
                 let pipelineTreeItem = new PipelineTreeItem(label, job, this._pipelineTreeConfig.items.find((i: any) => i.jobName === job.fullName && i.hostId === ext.connectionsManager.host.connection.name));

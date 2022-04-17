@@ -55,7 +55,7 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
         this._cancelTokenSource.cancel();
         this._cancelTokenSource.dispose();
         this._cancelTokenSource = new vscode.CancellationTokenSource();
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: JobTreeItem): JobTreeItem {
@@ -65,6 +65,11 @@ export class JobTreeProvider implements vscode.TreeDataProvider<JobTreeItem> {
 	getChildren(element?: JobTreeItem): Thenable<JobTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
+            if (!ext.connectionsManager.connected) {
+                resolve(list);
+                return;
+            }
+
             if (element) {
                 let builds = await ext.connectionsManager.host.getBuildsWithProgress(element.job, this._jobTreeConfig.numBuilds, this._cancelTokenSource.token);
                 for (let build of builds) {

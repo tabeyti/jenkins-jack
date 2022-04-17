@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ext } from './extensionVariables';
-import { filepath, msToTime, sleep, toDateString } from './utils';
+import { filepath, msToTime, sleep } from './utils';
 
 export class NodeTree {
     private readonly _treeView: vscode.TreeView<NodeTreeItem | undefined>;
@@ -55,7 +55,7 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
         this._cancelTokenSource.cancel();
         this._cancelTokenSource.dispose();
         this._cancelTokenSource = new vscode.CancellationTokenSource();
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: NodeTreeItem): NodeTreeItem {
@@ -72,6 +72,11 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
 	getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
         return new Promise(async resolve => {
             let list =  [];
+            if (!ext.connectionsManager.connected) {
+                resolve(list);
+                return;
+            }
+
             if (element) {
                 for (let e of element.node.executors) {
                     let label = (!e.currentExecutable || e.currentExecutable.idle) ? 'Idle' : e.currentExecutable?.displayName;
@@ -79,9 +84,11 @@ export class NodeTreeProvider implements vscode.TreeDataProvider<NodeTreeItem> {
                 }
             } else {
                 let nodes = await ext.connectionsManager.host.getNodes(this._cancelTokenSource.token);
-                if (undefined === nodes) {
+                if (null == nodes) {
                     resolve([]);
+                    return;
                 }
+
                 nodes = nodes?.filter((n: any) => n.displayName !== 'master');
                 this._nodeTreeItems = [];
                 for (let n of nodes) {
@@ -157,7 +164,7 @@ export class NodeTreeItem extends vscode.TreeItem {
                 description = `Duration: ${msToTime(Date.now() - this.executor.currentExecutable.timestamp)}`;
             }
         } else {
-            description += this.node.description;
+            description += this.node.description ?? '(no description)';
             if (this.node.temporarilyOffline) {
                 description += ` (${this.node.offlineCauseReason})`;
             }

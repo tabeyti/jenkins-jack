@@ -5,14 +5,14 @@
   "description": "Jack into your Jenkins to streamline your Pipeline development and Jenkins management in VSCode. Execute Pipeline scripts remotely with real-time syntax highlighted output, access Pipeline step auto-completions, pull Pipeline step documentation, run console groovy scripts across multiple agents, manage jobs/builds/agents, and more!",
   "icon": "images/logo.png",
   "homepage": "https://github.com/tabeyti/jenkins-jack/blob/master/README.md",
-  "version": "1.1.6",
+  "version": "1.2.1",
   "license": "See LICENSE.md",
   "galleryBanner": {
     "color": "#168bb9",
     "theme": "dark"
   },
   "engines": {
-    "vscode": "^1.43.0"
+    "vscode": "^1.55.0"
   },
   "categories": [
     "Other"
@@ -42,7 +42,7 @@
       "jenkins-jack-explorer": [
         {
           "id": "connectionsTree",
-          "name": "Jenkins Host Connections"
+          "name": "Jenkins Connections"
         },
         {
           "id": "pipelineTree",
@@ -51,6 +51,10 @@
         {
           "id": "jobTree",
           "name": "Jobs"
+        },
+        {
+          "id": "queueTree",
+          "name": "Queue"
         },
         {
           "id": "nodeTree",
@@ -94,6 +98,10 @@
         },
         {
           "command": "extension.jenkins-jack.tree.node.refresh",
+          "when": "never"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.queue.refresh",
           "when": "never"
         }
       ],
@@ -141,9 +149,14 @@
           "group": "navigation"
         },
         {
-            "command": "extension.jenkins-jack.tree.node.expandAll",
-            "when": "view == nodeTree",
-            "group": "navigation"
+          "command": "extension.jenkins-jack.tree.node.expandAll",
+          "when": "view == nodeTree",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.jenkins-jack.tree.queue.refresh",
+          "when": "view == queueTree",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -316,6 +329,11 @@
           "command": "extension.jenkins-jack.scriptConsole.execute",
           "when": "view == nodeTree && viewItem =~ /node/ && viewItem != node-disconnected",
           "group": "action"
+        },
+        {
+          "command": "extension.jenkins-jack.queue.cancel",
+          "when": "view == queueTree",
+          "group": "action"
         }
       ]
     },
@@ -379,11 +397,6 @@
                   "default": "",
                   "description": "Username for authentication with Jenkins"
                 },
-                "password": {
-                  "type": "string",
-                  "default": "",
-                  "markdownDescription": "Password or API token to login to jenkins. Token can be found here: `[jenkins_url]/user/[username]/configure`"
-                },
                 "active": {
                   "type": "boolean",
                   "default": false,
@@ -392,7 +405,7 @@
               }
             },
             "default": [],
-            "markdownDescription": "List of jenkins connections (uri, username, and password) to target when running commands"
+            "markdownDescription": "List of jenkins connections to target when running commands"
           },
           "jenkins-jack.jenkins.strictTls": {
             "type": "boolean",
@@ -608,6 +621,11 @@
         "category": "Jenkins Jack: Node"
       },
       {
+        "command": "extension.jenkins-jack.node.queryLabels",
+        "title": "Query Labels",
+        "category": "Jenkins Jack: Node"
+      },
+      {
         "command": "extension.jenkins-jack.tree.node.refresh",
         "title": "Refresh",
         "category": "Jenkins Jack: Node Tree",
@@ -652,6 +670,23 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "extension.jenkins-jack.queue",
+        "title": "Queue Jack",
+        "category": "Jenkins Jack"
+      },
+      {
+        "command": "extension.jenkins-jack.tree.queue.refresh",
+        "title": "Refresh",
+        "category": "Jenkins Jack: Queue Tree",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "extension.jenkins-jack.queue.cancel",
+        "title": "Cancel",
+        "category": "Jenkins Jack: Cancel",
+        "icon": "$(stop)"
+      },
+      {
         "command": "extension.jenkins-jack.connections.select",
         "title": "Select",
         "category": "Jenkins Jack: Connections"
@@ -671,6 +706,11 @@
         "command": "extension.jenkins-jack.connections.delete",
         "title": "Delete",
         "category": "Jenkins Jack: Connections"
+      },
+      {
+        "command": "extension.jenkins-jack.connections.selectFolder",
+        "title": "Select Folder",
+        "category": "Jenkins Jack: Select Folder"
       },
       {
         "command": "extension.jenkins-jack.tree.connections.settings",
@@ -730,8 +770,9 @@
   "dependencies": {
     "@types/url-parse": "^1.4.3",
     "cheerio": "^1.0.0-rc.3",
+    "dayjs": "^1.10.7",
     "jenkins": "^0.28.1",
-    "moment": "^2.29.1",
+    "keytar": "^7.7.0",
     "open": "^6.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7",

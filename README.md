@@ -45,6 +45,8 @@ Honestly, not that much more.
     * Job Tree
         * View jobs and builds on the host
         * Disable, enable, delete jobs and builds on the targeted host
+        * Download build logs
+        * Pull replay scripts from Pipeline jobs
     * Node (agent) Tree
         * View nodes on the host
         * Disable (with offline message), enable, disconnect nodes on the targeted host
@@ -120,6 +122,13 @@ code --install-extension .\jenkins-jack-0.0.1.vsix # ...or whatever version was 
 ```
 
 ## Support
+
+If you plan on submitting an issue, please include the following information as a minimum:
+* Extensions Version
+* Jenkins Version
+* Operating System
+*
+
 Do you have a feature request or would like to report a bug? Super duper! Create an issue via Github's [issue tracker](https://github.com/tabeyti/jenkins-jack/issues).
 
 Currently, there are no hard guidelines defined for feature requests, bugs, or questions since I have no idea what I'm doing. These will become more defined as interest in the project increases or something something.

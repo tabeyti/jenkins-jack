@@ -39,16 +39,13 @@ export class OutputPanel implements vscode.OutputChannel {
         // Only display the default view column for the editor if the editor
         // isn't already shown
         let viewColumn = (undefined !== editor) ? editor.viewColumn : this._defaultViewColumn;
-        this._activeEditor = await vscode.window.showTextDocument(this.uri, {
-            viewColumn: viewColumn,
-            preserveFocus: false,
-            selection: new vscode.Selection(
-                new vscode.Position(0, 0),
-                new vscode.Position(0, 0)
-            )
-        });
 
-        vscode.languages.setTextDocumentLanguage(this._activeEditor.document, 'pipeline-log');
+        let document = await vscode.workspace.openTextDocument(this.uri);
+        this._activeEditor = await vscode.window.showTextDocument(document, viewColumn, false);
+
+        // TODO: I don't know why this needs to be called to create a tab, but it does
+        // await vscode.commands.executeCommand('vscode.open', this.uri);
+        await vscode.languages.setTextDocumentLanguage(document, 'pipeline-log');
     }
 
     public async append(text: string) {

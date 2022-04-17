@@ -4,6 +4,7 @@ import { QuickpickSet } from './quickpickSet';
 import { ext } from './extensionVariables';
 import { ConnectionsTreeItem } from './connectionsTree';
 import { JenkinsConnection } from './jenkinsConnection';
+import { SelectionFlows } from './selectionFlows';
 
 export class ConnectionsManager implements QuickpickSet {
     private _host: JenkinsService;
@@ -25,18 +26,25 @@ export class ConnectionsManager implements QuickpickSet {
             await this.deleteConnection(item?.connection);
         }));
 
-        this.updateSettings();
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.connections.selectFolder', async (item?: ConnectionsTreeItem) => {
+            await this.selectFolder();
+        }));
+
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins.connections')) {
                 this.updateSettings();
-            }
-        });
+            }}
+        );
+    }
+
+    public async initialize() {
+        await this.updateSettings();
     }
 
     public get commands(): any[] {
         return [
             {
-                label: "$(settings)  Connections: Select",
+                label: "$(list-selection)  Connections: Select",
                 description: "Select a jenkins host connection to connect to.",
                 target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.select')
             },
@@ -54,12 +62,24 @@ export class ConnectionsManager implements QuickpickSet {
                 label: "$(circle-slash)  Connections: Delete",
                 description: "Delete a jenkins host connection from settings.",
                 target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.delete')
-            }
+            },
+            {
+                label: "$(list-selection)  Connections: Select Folder",
+                description: "Select a folder on the jenkins host for this connection to filter its queries on.",
+                target: async () => vscode.commands.executeCommand('extension.jenkins-jack.connections.selectFolder')
+            },
         ];
     }
 
+    /**
+     * The active Jenkins host client service.
+     */
     public get host(): JenkinsService {
         return this._host;
+    }
+
+    public get connected(): boolean {
+        return (null != this.host);
     }
 
     public async display() {
@@ -68,23 +88,24 @@ export class ConnectionsManager implements QuickpickSet {
         return result.target();
     }
 
-    private updateSettings() {
+    private async updateSettings() {
         let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
-        let conn: any;
+        let conn: JenkinsConnection | undefined;
         for (let c of config.connections) {
             if (c.active) {
-                conn = c;
+                conn = JenkinsConnection.fromJSON(c);
                 break;
             }
         }
         if (undefined === conn) {
-            throw new Error("You must select a host connection to use the plugin's features");
+            vscode.window.showErrorMessage("You must select a host connection to use the extension's features");
+            return;
         }
+        if (undefined !== this._host) { this._host.dispose(); }
 
-        if (undefined !== this.host) {
-            this.host.dispose();
-        }
-        this._host = new JenkinsService(JenkinsConnection.fromJSON(conn));
+        let host = await this.createJenkinsService(conn);
+        if (!host) { return; }
+        this._host = host;
     }
 
     public get activeConnection(): any {
@@ -101,20 +122,21 @@ export class ConnectionsManager implements QuickpickSet {
      * Provides an input flow for adding in a host to the user's settings.
      */
     public async addConnection() {
-        let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
 
         let conn = await this.getConnectionInput();
         if (undefined === conn) { return; }
 
-        this._host = new JenkinsService(JenkinsConnection.fromJSON(conn));
+        let host = await this.createJenkinsService(conn);
+        if (!host) { return; }
+        this._host = host;
 
         // Add the connection to the list and make it the active one
+        let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
         config.connections.forEach((c: any) => c.active = false);
         config.connections.push({
             "name": conn.name,
             "uri": conn.uri,
             "username": conn.username,
-            "password": conn.password,
             "folderFilter": conn.folderFilter,
             "crumbIssuer": conn.crumbIssuer,
             "active": true
@@ -151,7 +173,7 @@ export class ConnectionsManager implements QuickpickSet {
         }
 
         // Prompt user to edit the connection fields
-        let editedConnection = await this.getConnectionInput(conn);
+        let editedConnection = await this.getConnectionInput(JenkinsConnection.fromJSON(conn));
         if (undefined === editedConnection) { return; }
 
         // If the name of a connection was changed, ensure we update
@@ -168,19 +190,19 @@ export class ConnectionsManager implements QuickpickSet {
             await vscode.workspace.getConfiguration().update('jenkins-jack.pipeline.tree.items', pipelineTreeItems, vscode.ConfigurationTarget.Global);
         }
 
-        // Update connection and the global config.
-        config.connections.forEach((c: any) => {
-            if (c.name === conn.name && undefined !== editedConnection) {
-                // TODO: there has to be a better way as ref assignment doesn't work
-                c.name = editedConnection.name;
-                c.uri = editedConnection.uri;
-                c.username = editedConnection.username;
-                c.password = editedConnection.password;
-                c.folderFilter = editedConnection.folderFilter;
-                c.crumbIssuer = editedConnection.crumbIssuer;
-            }
-        });
-        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
+        // Remake connection list with the modified connection. We do this because
+        // direct updating of config.connections causes undefined behavior.
+        let modifiedConnections = config.connections.filter((c: any) => { return c.name !== conn.name; });
+        modifiedConnections.push(editedConnection.toJSON());
+
+        // If we just edited the active connection, re-connect with the new information.
+        if (conn.name == this.activeConnection.name) {
+            let host = await this.createJenkinsService(editedConnection);
+            if (!host) { return; }
+            this._host = host;
+        }
+
+        await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', modifiedConnections, vscode.ConfigurationTarget.Global);
         vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
     }
 
@@ -206,14 +228,16 @@ export class ConnectionsManager implements QuickpickSet {
         }
 
         // Remove connection and update global config.
-        let modifiedConnections = config.connections.filter((c: any) => {
-            return c.name !== conn.name;
-        });
+        let modifiedConnections = config.connections.filter((c: any) => { return c.name !== conn.name; });
         await vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', modifiedConnections, vscode.ConfigurationTarget.Global);
         vscode.window.showInformationMessage(`Host "${conn.name} ${conn.uri}" removed`);
 
+        // Remove password from key-chain
+        let removedConnection = JenkinsConnection.fromJSON(conn);
+        await removedConnection.deletePassword();
+
         // If this host was active, make the first host in the list active.
-        if (conn.active) {
+        if (conn.active && 0 < modifiedConnections.length) {
             return await this.selectConnection(modifiedConnections[0]);
         }
 
@@ -221,8 +245,28 @@ export class ConnectionsManager implements QuickpickSet {
         vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
     }
 
+    public async selectFolder() {
+        let config = vscode.workspace.getConfiguration('jenkins-jack.jenkins');
+        let connJson = config.connections.find((c: any) => c.active && c.name === this.activeConnection.name);
+
+        let folderFilter = await SelectionFlows.folders(false, 'Select a folder to path for filtering job operations on this connection', true);
+        if (undefined === folderFilter) { return undefined; }
+        if ('.' === folderFilter) { folderFilter = undefined; }
+        connJson.folderFilter = folderFilter;
+
+        let host = await this.createJenkinsService(JenkinsConnection.fromJSON(connJson));
+        if (!host) { return; }
+        this._host = host;
+
+        vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(`Jenkins Jack: Host updated to ${connJson.name}: ${connJson.uri}`);
+
+        // Refresh the connection tree and it's dependent tree views
+        vscode.commands.executeCommand('extension.jenkins-jack.tree.connections.refresh');
+    }
+
     /**
-     * Displays the quicpick host/connection selection list for the user.
+     * Displays the quick-pick host/connection selection list for the user.
      * Active connection is updated in the global config upon selection.
      * If connection already provided, config is just updated and associated
      * treeViews are refreshed.
@@ -245,15 +289,17 @@ export class ConnectionsManager implements QuickpickSet {
             conn = result.target;
         }
 
-        this._host.dispose();
-        this._host = new JenkinsService(JenkinsConnection.fromJSON(conn));
+        this._host?.dispose();
+
+        let host = await this.createJenkinsService(JenkinsConnection.fromJSON(conn));
+        if (!host) { return; }
+        this._host = host;
 
         // Update settings with active host.
         for (let c of config.connections) {
             c.active  = (conn.name === c.name &&
                 conn.uri === c.uri &&
-                conn.username === c.username &&
-                conn.password === c.password);
+                conn.username === c.username);
         }
 
         vscode.workspace.getConfiguration().update('jenkins-jack.jenkins.connections', config.connections, vscode.ConfigurationTarget.Global);
@@ -289,28 +335,12 @@ export class ConnectionsManager implements QuickpickSet {
         });
         if (undefined === hostUri) { return undefined; }
 
-        let username = await vscode.window.showInputBox({
-            ignoreFocusOut: true,
-            prompt: 'Enter in a username for authentication',
-            value: jenkinsConnection?.username
-        });
-        if (undefined === username) { return undefined; }
-
-        let password = await vscode.window.showInputBox({
-            ignoreFocusOut: true,
-            password: true,
-            prompt: `Enter in the password of "${username}" for authentication`,
-            value: jenkinsConnection?.password
-        });
-        if (undefined === password) { return undefined; }
-
         let folderFilter = await vscode.window.showInputBox({
             ignoreFocusOut: true,
             prompt: '(Optional) Filter only jobs on a specified folder path (e.g. "myfolder", "myfolder/mysubfolder")',
             value: jenkinsConnection?.folderFilter
         });
         if (undefined === folderFilter) { return undefined; }
-
         folderFilter = '' !== folderFilter?.trim() ? folderFilter : undefined;
 
         let enableCSRF = await vscode.window.showQuickPick([{
@@ -321,9 +351,42 @@ export class ConnectionsManager implements QuickpickSet {
             placeHolder: 'CSRF Protection support. Only disable for older Jenkins versions with connection issues.'
         });
         if (undefined === enableCSRF) { return undefined; }
-
         let crumbIssuer = enableCSRF.length > 0;
 
-        return new JenkinsConnection(hostName, hostUri, username, password, crumbIssuer, folderFilter);
+        let username = await vscode.window.showInputBox({
+            ignoreFocusOut: true,
+            prompt: 'Enter in a username for authentication',
+            value: jenkinsConnection?.username
+        });
+        if (undefined === username) { return undefined; }
+
+        let newConnection = new JenkinsConnection(
+            hostName,
+            hostUri,
+            username,
+            crumbIssuer,
+            jenkinsConnection?.active ?? false,
+            folderFilter);
+
+        // If no password is found for the passed connection, attempt to retrieve a password for the newly
+        // created connection.
+        let storedPassword = await jenkinsConnection?.getPassword() ?? await newConnection.getPassword(true);
+        let password = await vscode.window.showInputBox({
+            ignoreFocusOut: true,
+            password: true,
+            prompt: `Enter in the password of "${username}" for authentication. Passwords are stored on the local system's key-chain. `,
+            value: storedPassword ?? ''
+        });
+        if (undefined === password) { return undefined; }
+        await newConnection.setPassword(password);
+
+        return newConnection;
+    }
+
+    private async createJenkinsService(conn: JenkinsConnection): Promise<JenkinsService | undefined> {
+        let jenkinsService = new JenkinsService(conn);
+        let success = await jenkinsService.initialize();
+        if (!success) { return undefined; }
+        return jenkinsService;
     }
 }

@@ -4,7 +4,7 @@ import * as request from 'request-promise-native';
 import * as opn from 'open';
 import * as htmlParser from 'cheerio';
 
-import { sleep, timer, folderToUri, toDateString, msToTime } from './utils';
+import { sleep, timer, folderToUri, toDateString, msToTime, addDetail, QueryProperties } from './utils';
 import { JenkinsConnection } from './jenkinsConnection';
 import { JobType, JobTypeUtil } from './jobType';
 import { ext } from './extensionVariables';
@@ -12,88 +12,20 @@ import { ext } from './extensionVariables';
 export class JenkinsService {
     // @ts-ignore
     public client: any;
-
     private _config: any;
-
     private _jenkinsUri: string;
-
-    private readonly _cantConnectMessage = `Could not connect to the remote Jenkins "${this.connection.name}".`;
+    private _headers: any;
     private _disposed = false;
-
-    private _jobProps = [
-        'name',
-        'fullName',
-        'url',
-        'buildable',
-        'inQueue',
-        'description'
-    ].join(',');
-
-    private _buildProps = [
-        'number',
-        'result',
-        'description',
-        'url',
-        'duration',
-        'timestamp',
-        'building'
-    ].join(',');
-
-    private _nodeProps = [
-        'assignedLabels[name]',
-        'description',
-        'displayName',
-        'executors[idle,currentExecutable[displayName,timestamp,url]]',
-        'idle',
-        'offline',
-        'offlineCause',
-        'offlineCauseReason',
-        'temporarilyOffline'
-    ].join(',');
-
     private readonly messageItem: vscode.MessageItem = {
         title: 'Okay'
     };
 
     public constructor(public readonly connection: JenkinsConnection) {
 
-        let protocol = 'http';
-        let host = this.connection.uri;
+        this._jenkinsUri = this.connection.uri;
 
-        let match = this.connection.uri.match('(http|https)://(.*)');
-        if (null !== match && match.length === 3) {
-            protocol = match[1];
-            host = match[2];
-        }
-
-        this._jenkinsUri = (null === this.connection.username || null === this.connection.password) ?
-                            `${protocol}://${host}` :
-                            `${protocol}://${encodeURIComponent(this.connection.username)}:${encodeURIComponent(this.connection.password)}@${host}`;
         ext.logger.info(`Using the following URI for Jenkins client: ${this._jenkinsUri}`);
-
         this.updateSettings();
-
-        this.client = jenkins({
-            baseUrl: this._jenkinsUri,
-            crumbIssuer: this.connection.crumbIssuer,
-            promisify: true
-        });
-
-        // Will error if no connection can be made to the remote host
-        this.client.info().catch((err: any) => {
-            if (this._disposed) { return; }
-            this.showCantConnectMessage();
-        });
-
-        // If a folder filter path was provided, check that it exists
-        if (this.connection.folderFilter) {
-            let folderUriPath = folderToUri(this.connection.folderFilter);
-            this.client.job.exists(`${this._jenkinsUri}/job/${folderUriPath}`, (err: any, exists: any) => {
-                if (err || !exists) {
-                    this.showCantConnectMessage(`Folder filter path invalid: ${this.connection.folderFilter}`);
-                }
-            });
-        }
 
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('jenkins-jack.jenkins')) {
@@ -112,6 +44,51 @@ export class JenkinsService {
         process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = this._config.strictTls ? '1' : '0';
     }
 
+    /**
+     * Handles credential retrieval and creates the client connection to the targeted Jenkins.
+     * @returns True if successfully connected to the remote Jenkins. False if not.
+     */
+    public async initialize(): Promise<boolean> {
+        // Attempt password retrieval
+        let password = await this.connection.getPassword();
+        if (null == password) {
+            if (this._disposed) { return false; }
+            this.showCantConnectMessage(`Could not retrieve password for ${this.connection.serviceName} - ${this.connection.username}`);
+            return false;
+        }
+
+        this._headers = {
+            'Authorization': 'Basic ' + new Buffer(`${this.connection.username}:${password}`).toString('base64')
+        }
+
+        try {
+            this.client = jenkins({
+                baseUrl: this.connection.uri,
+                crumbIssuer: this.connection.crumbIssuer,
+                promisify: true,
+                headers: this._headers
+            });
+            await this.client.info();
+        }
+        catch (err) {
+            if (this._disposed) { return false; }
+            this.showCantConnectMessage();
+            return false;
+        }
+
+        // If a folder filter path was provided, check that it exists
+        if (this.connection.folderFilter) {
+            let exists = await this.client.job.exists(this.connection.folderFilter);
+            if (!exists) {
+                this.showCantConnectMessage(`Folder filter path invalid: ${this.connection.folderFilter}`);
+                return false;
+            }
+        }
+
+        ext.logger.info('Jenkins service initialized.');
+        return true;
+    }
+
     public dispose() {
         this.client = undefined;
         this._disposed = true;
@@ -126,7 +103,7 @@ export class JenkinsService {
         return new Promise<any>(async (resolve) => {
             try {
                 let url = `${this._jenkinsUri}/${endpoint}`;
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(url, { headers: this._headers })
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve(undefined);
@@ -141,7 +118,7 @@ export class JenkinsService {
 
 
     /**
-     * Uses the jenkins client to retrieve a job.
+     * Uses the jenkins client to retrieve a job object.
      * @param job The Jenkins job JSON object.
      */
     public async getJob(job: string) {
@@ -150,7 +127,7 @@ export class JenkinsService {
     }
 
     /**
-     * Wrapper around getJobs with progress notification.
+     * Wrapper around getJobsInternal with progress notification.
      * @param job The current Jenkins 'job' object.
      * @returns A list of Jenkins 'job' objects.
      */
@@ -164,7 +141,7 @@ export class JenkinsService {
                 vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
                 return undefined;
             });
-            progress.report({ message: 'Retrieving jenkins jobs.' });
+            progress.report({ message: 'Retrieving Jenkins jobs.' });
 
             // If no job was provided and and a folder filter is specified in config,
             // start recursive job retrieval using the folder
@@ -180,6 +157,36 @@ export class JenkinsService {
     }
 
     /**
+     * Wrapper around getFoldersInternal with progress notification.
+     * @param job The current Jenkins Folder 'job' object.
+     * @returns A list of Jenkins Folder 'job' objects.
+     */
+    public async getFolders(job?: any, ignoreFolderFilter?: boolean): Promise<any[]> {
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Jenkins Jack`,
+            cancellable: true
+        }, async (progress, t) => {
+            t.onCancellationRequested(() => {
+                vscode.window.showWarningMessage(`User canceled job retrieval.`, this.messageItem);
+                return undefined;
+            });
+            progress.report({ message: 'Retrieving Jenkins Folder jobs.' });
+
+            // If no job was provided and and a folder filter is specified in config,
+            // start recursive job retrieval using the folder
+            if (!job && this.connection.folderFilter && !ignoreFolderFilter) {
+                job = {
+                    type: JobType.Folder,
+                    url: `${this._jenkinsUri}/job/${folderToUri(this.connection.folderFilter)}`
+                };
+            }
+
+            return await this.getFoldersInternal(job, t);
+        });
+    }
+
+    /**
      * Recursive descent method for retrieving Jenkins jobs from
      * various job types (e.g. Multi-branch, Github Org, etc.).
      * @param job The current Jenkins 'job' object.
@@ -191,8 +198,8 @@ export class JenkinsService {
 
         // If this is the first call of the recursive function, retrieve all jobs from the
         // Jenkins API, otherwise, grab all child jobs from the given parent job
-        let jobs = job ?    await this.getJobsFromUrl(job.url, token) :
-                            await this.getJobsFromUrl(this._jenkinsUri, token);
+        let jobs = job ?    await this.getJobsFromUrl(job.url, QueryProperties.job, token) :
+                            await this.getJobsFromUrl(this._jenkinsUri, QueryProperties.job, token);
 
         if (undefined === jobs) { return []; }
 
@@ -242,11 +249,44 @@ export class JenkinsService {
     }
 
     /**
+     * Recursive descent method for retrieving Jenkins Folder jobs.
+     * @param job The current Jenkins 'job' object.
+     * @returns A list of Jenkins Folder 'job' objects.
+     */
+     private async getFoldersInternal(job?: any, token?: vscode.CancellationToken): Promise<any[]> {
+        if (token?.isCancellationRequested) { return []; }
+
+        // If this is the first call of the recursive function, retrieve all jobs from the
+        // Jenkins API, otherwise, grab all child jobs from the given parent job
+        let jobs = [];
+        if (job) {
+            // If there are already child jobs attached to the parent, use those, otherwise query.
+            jobs = job.jobs ?? await this.getJobsFromUrl(job.url, QueryProperties.jobMinimal, token);
+        } else {
+            jobs = await this.getJobsFromUrl(this._jenkinsUri, QueryProperties.jobMinimal, token);
+        }
+
+        if (!jobs) { return []; }
+
+        let jobList: any[] = [];
+        for (let j of jobs) {
+            let type = JobTypeUtil.classNameToType(j._class);
+            if (type === JobType.Folder) {
+                j.type = JobType.Folder;
+                jobList.push(j);
+                jobList = jobList.concat(await this.getFoldersInternal(j, token));
+            }
+        }
+        return jobList;
+    }
+
+    /**
      * Retrieves the list of machines/nodes from Jenkins.
+     * @param token The cancellation token.
      */
     public async getNodes(token?: vscode.CancellationToken) {
         try {
-            let url = `computer/api/json?tree=computer[${this._nodeProps}]`;
+            let url = `computer/api/json?tree=computer[${QueryProperties.node}]`;
             let r = await this.get(url, token);
             if (undefined === r) { return undefined; }
             let json = JSON.parse(r).computer;
@@ -282,6 +322,28 @@ export class JenkinsService {
             this.showCantConnectMessage();
             return undefined;
         }
+    }
+
+    /**
+     * Retrieves the list of all labels for any available
+     * jenkins node/agent.
+     * @param token The cancellation token.
+     */
+     public async getLabels(token?: vscode.CancellationToken): Promise<Label[]> {
+        let nodes = await this.getNodes(token);
+        if (undefined == nodes) { return; }
+
+        let labels = new Map<string, Label>();
+        for (let n of nodes) {
+            for (let l of n.assignedLabels) {
+                if (labels.has(l.name)) {
+                    labels.get(l.name).nodes.push(n);
+                } else {
+                    labels.set(l.name, new Label(l.name, [n]))
+                }
+            }
+        }
+        return Array.from(labels.values());
     }
 
     /**
@@ -332,10 +394,10 @@ export class JenkinsService {
 
                 let sw = timer();
                 let rootUrl = this.fromUrlFormat(job.url);
-                let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${this._buildProps}]{0,${numBuilds}}`;
+                let url = `${rootUrl}/api/json?tree=${buildsOrAllBuilds}[${QueryProperties.build}]{0,${numBuilds}}`;
                 ext.logger.info(`getBuilds - ${url}`);
 
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(url, { headers: this._headers });
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
@@ -379,7 +441,7 @@ export class JenkinsService {
             progress.report({ message: `Pulling replay script from ${job.fullName} #${build.number}` });
             try {
                 let url = `${this.fromUrlFormat(job.url)}/${build.number}/replay`;
-                let r = await request.get(url);
+                let r = await request.get(url, { headers: this._headers });
 
                 const root = htmlParser.load(r);
                 if (root('textarea')[0].childNodes && 0 >= root('textarea')[0].childNodes.length) {
@@ -407,7 +469,7 @@ export class JenkinsService {
     public async deleteBuild(job: any, buildNumber: any) {
         try {
             let url = `${this.fromUrlFormat(job.url)}/${buildNumber}/doDelete`;
-            await request.post(url);
+            await request.post(url, { headers: this._headers });
         } catch (err) {
             if (302 === err.statusCode) {
                 return `${job.fullName} #${buildNumber} deleted`;
@@ -422,15 +484,16 @@ export class JenkinsService {
      * @param rootUrl Root jenkins url for the request.
      * @returns Jobs json object or undefined.
      */
-    public async getJobsFromUrl(rootUrl: string, token?: vscode.CancellationToken) {
+    private async getJobsFromUrl(rootUrl: string, properties?: string, token?: vscode.CancellationToken) {
         return new Promise<any>(async (resolve) => {
             try {
                 let sw = timer();
+                properties = properties ?? QueryProperties.job;
                 rootUrl = rootUrl === undefined ? this._jenkinsUri : rootUrl;
                 rootUrl = this.fromUrlFormat(rootUrl);
-                let url = `${rootUrl}/api/json?tree=jobs[${this._jobProps},jobs[${this._jobProps},jobs[${this._jobProps}]]]`;
+                let url = `${rootUrl}/api/json?tree=jobs[${properties},jobs[${properties},jobs[${properties}]]]`;
                 ext.logger.info(`getJobsFromUrl - ${url}`);
-                let requestPromise = request.get(url);
+                let requestPromise = request.get(url, { headers: this._headers });
                 token?.onCancellationRequested(() => {
                     requestPromise.abort();
                     resolve([]);
@@ -448,6 +511,38 @@ export class JenkinsService {
                 resolve(undefined);
             }
         });
+    }
+
+    /**
+     * Retrieves a list of Jenkins 'queue' objects.
+     * @param token Optional cancellation token
+     * @returns A list of queue item objects, otherwise undefined.
+     */
+    public async getQueueItems(token?: vscode.CancellationToken): Promise<any[] | undefined> {
+        try {
+            let url = `queue/api/json`;
+            let r = await this.get(url, token);
+            if (undefined === r) { return undefined; }
+            let items = JSON.parse(r).items;
+
+            // Add queue item meta data for quick-picks
+            for (let item of items) {
+                item.name = `#${item.id} ${item.task?.name ?? '??'}`
+
+                item.label = item.stuck ? '$(warning) ' : '$(watch) '
+                item.label += item.task?.name ?? '??';
+                item.description = item.why;
+                item.detail = item.inQueueSince ? addDetail(msToTime(Date.now() - item.inQueueSince)) : '';
+                item.detail += item.inQueueSince ? addDetail(toDateString(item.inQueueSince)) : '';
+                item.detail += item.stuck ? addDetail('STUCK') : '';
+                item.detail += item.params ? addDetail(item.params.trim().split('\n').join(',')) : '';
+            }
+            return items;
+        } catch (err) {
+            ext.logger.error(err);
+            this.showCantConnectMessage();
+            return undefined;
+        }
     }
 
     private addJobMetadata(jobs: any) {
@@ -477,7 +572,7 @@ export class JenkinsService {
             if (undefined !== node) {
                 url = `${this._jenkinsUri}/computer/${node}/scriptText`;
             }
-            let r = request.post({ url: url, form: { script: source } });
+            let r = request.post({ url: url, form: { script: source }, headers: this._headers });
             if (undefined !== token) {
                 token.onCancellationRequested(() => {
                     r.abort();
@@ -505,7 +600,7 @@ export class JenkinsService {
         outputChannel: vscode.OutputChannel) {
 
         outputChannel.clear();
-        outputChannel.show();
+        await outputChannel.show();
 
         let outputConfig = await vscode.workspace.getConfiguration('jenkins-jack.outputView');
         let suppressPipelineLog = outputConfig.suppressPipelineLog;
@@ -580,6 +675,19 @@ export class JenkinsService {
         opn(`${this._jenkinsUri}${path}`);
     }
 
+    public async queueCancel(itemId: any) {
+        try {
+            let url = `${this._jenkinsUri}/queue/cancelItem?id=${itemId}`;
+            let r = request.post({ url: url, headers: this._headers });
+            let output = await r;
+            return output;
+        } catch (err) {
+            ext.logger.error(err);
+            this.showCantConnectMessage();
+            return err.error;
+        }
+    }
+
     /**
      * Blocks until a build is ready. Will timeout after a seconds
      * defined in global timeoutSecs.
@@ -607,138 +715,10 @@ export class JenkinsService {
     }
 
     /**
-     * Provides a quick pick selection of one or more jobs, returning the selected items.
-     * @param filter A function for filtering the job list retrieved from the Jenkins host.
-     * @param canPickMany Optional flag for retrieving more than one job in the selection.
-     * @param message Optional help message to display to the user.
+     * Retrieves a list of label for the provided Jenkins 'node' object.
+     * @param node The target agent/node to retrieve the labels from.
+     * @returns A list of labels.
      */
-    public async jobSelectionFlow(
-        filter?: ((job: any) => boolean),
-        canPickMany?: boolean,
-        message?: string): Promise<any[]|undefined> {
-
-        message = message ?? 'Select a job to grab builds from'
-
-        let jobs = await this.getJobs();
-        if (undefined === jobs) { return undefined; }
-        if (filter) {
-            jobs = jobs.filter(filter);
-        }
-        for (let job of jobs) { job.label = job.fullName; }
-
-        let selectedJobs = await vscode.window.showQuickPick(jobs, {
-            canPickMany: canPickMany,
-            ignoreFocusOut: true,
-            placeHolder: message,
-            matchOnDetail: true,
-            matchOnDescription: true
-        });
-        if (undefined === selectedJobs) { return undefined; }
-        return selectedJobs;
-    }
-
-    /**
-     * Provides a quick pick selection of one or more builds, returning the selected items.
-     * @param job The target job for retrieval the builds.
-     * @param canPickMany Optional flag for retrieving more than one build in the selection.
-     * @param message Optional help message to display to the user.
-     */
-    public async buildSelectionFlow(
-        job?: any,
-        filter?: ((build: any) => boolean),
-        canPickMany?: boolean,
-        message?: string): Promise<any[]|any|undefined> {
-
-        message = message ?? 'Select a build.'
-
-        // If job wasn't provided, prompt user to select one.
-        job = job ?? (await this.jobSelectionFlow(undefined, false));
-        if (undefined == job) { return undefined;}
-
-        // Get number of builds to retrieve, defaulting to 100 for performance.
-        let numBuilds = await vscode.window.showInputBox({
-            ignoreFocusOut: true,
-            placeHolder: 'Enter number of builds to retrieve',
-            prompt: 'Number of builds to query on (NOTE: values over 100 will utilize the "allBuilds" field in the query, which may slow performance on the Jenkins server)',
-            validateInput: text => {
-                if (!/^\d+$/.test(text) || parseInt(text) <= 0 ) { return 'Must provide a number greater than 0.'}
-                return undefined;
-            },
-            value: '100'
-        });
-        if (undefined == numBuilds) { return undefined; }
-
-        // Ask what build they want to download.
-        let builds = await this.getBuildsWithProgress(job, parseInt(numBuilds));
-        if (0 >= builds.length) {
-            vscode.window.showWarningMessage(`No builds retrieved for "${job.fullName}"`);
-            return undefined;
-        }
-        if (undefined !== filter) { builds = builds.filter(filter); }
-        let selections = await vscode.window.showQuickPick(builds, {
-            canPickMany: canPickMany,
-            ignoreFocusOut: true,
-            placeHolder: message,
-            matchOnDetail: true,
-            matchOnDescription: true
-        }) as any;
-        if (undefined === selections) { return undefined; }
-        return selections;
-    }
-
-    /**
-     * Provides a quick pick selection of one or more nodes, returning the selected items.
-     * @param filter A function for filtering the nodes retrieved from the Jenkins host.
-     * @param canPickMany Optional flag for retrieving more than one node in the selection.
-     * @param message Optional help message to display to the user.
-     * @param includeMaster Optional flag for including master in the selection to the user.
-     */
-    public async nodeSelectionFlow(
-        filter?: ((node: any) => boolean),
-        canPickMany?: boolean,
-        message?: string,
-        includeMaster?: boolean): Promise<any[]|any|undefined> {
-
-        let nodes = await this.getNodes();
-        if (!includeMaster) { nodes.shift(); }
-        if (undefined !== filter) { nodes = nodes.filter(filter); }
-        if (undefined === nodes) { return undefined; }
-        if (0 >= nodes.length) {
-            vscode.window.showInformationMessage('No nodes found outside of "master"');
-            return undefined;
-        }
-
-        let selections = await vscode.window.showQuickPick(nodes, {
-            canPickMany: canPickMany,
-            ignoreFocusOut: true,
-            placeHolder: message,
-            matchOnDetail: true,
-            matchOnDescription: true
-        }) as any;
-        if (undefined === selections) { return; }
-        return selections;
-    }
-
-    /**
-     * Provides a quick pick selection of one or more Jenkins Folders jobs, returning the selected folder names.
-     * @param canPickMany Optional flag for retrieving more than one node in the selection.
-     * @param message Optional help message to display to the user.
-     */
-    public async folderSelectionFlow(canPickMany?: boolean, message?: string): Promise<any[]|any|undefined> {
-        let folders = (await this.getJobs(null, { includeFolderJobs: true }))
-                        .filter((j: any) => j.type === JobType.Folder)
-                        .map((j: any) => j.fullName)
-                        // Sort alphabetically, then by length of job name
-                        .sort((a: any, b: any) => a.localeCompare(b) || a.length - b.length);
-
-        let rootFolder = this.connection.folderFilter ?? '.';
-        folders.unshift(rootFolder);
-
-        let selection = await vscode.window.showQuickPick(folders, { ignoreFocusOut: true, placeHolder: message });
-        if (undefined === selection) { return undefined; }
-        return selection;
-    }
-
     public getLabelsFromNode(node: any): string[] {
         return node.assignedLabels.map((l: any) => l.name).filter((l: string) =>
             l.toUpperCase() !== node.displayName.toUpperCase()
@@ -761,12 +741,18 @@ export class JenkinsService {
     }
 
     private async showCantConnectMessage(message?: string) {
-        message = message ?? this._cantConnectMessage;
-
+        message = message ?? `Could not connect to the remote Jenkins "${this.connection.name}".`;
         let result = await vscode.window.showWarningMessage(message, { title: 'Okay' }, { title: 'Edit Connection' });
         if ('Edit Connection' === result?.title) {
             vscode.commands.executeCommand('extension.jenkins-jack.connections.edit');
         }
+    }
+}
+
+export class Label {
+
+    constructor(public name, public nodes?: any[]) {
+        this.nodes = this.nodes ?? [];
     }
 }
 
