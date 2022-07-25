@@ -27,6 +27,7 @@ Honestly, not that much more.
 * Job Jack
     * Disable, enable, delete, or view one or more jobs
     * Open job in web browser
+    * Build job
 * Build Jack
     * Download a build log
     * Download a build's replay script

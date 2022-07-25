@@ -63,6 +63,21 @@ export class JobJack extends JackBase {
                 ext.connectionsManager.host.openBrowserAt(job.url);
             }
         }));
+
+        ext.context.subscriptions.push(vscode.commands.registerCommand('extension.jenkins-jack.job.build', async (item?: any[] | JobTreeItem, items?: any[]) => {
+            let result: boolean | undefined = false;
+            if (item instanceof JobTreeItem) {
+                let jobs = !items ? [item.job] : items.filter((item: JobTreeItem) => JobTreeItemType.Job === item.type).map((item: any) => item.job);
+                result = await this.build(jobs);
+            }
+            else {
+                await this.build(item);
+            }
+            if (result) {
+                ext.jobTree.refresh();
+                ext.build.refresh()
+            }
+        }));
     }
 
     public get commands(): any[] {
@@ -86,6 +101,11 @@ export class JobJack extends JackBase {
                 label: "$(browser)  Job: Open",
                 description: "Opens the targeted jobs in the user's browser.",
                 target: () => vscode.commands.executeCommand('extension.jenkins-jack.job.open')
+            },
+            {
+                label: "$(build)  Job: Build",
+                description: "Build targeted jobs from the remote Jenkins.",
+                target: () => vscode.commands.executeCommand('extension.jenkins-jack.job.build')
             }
         ];
     }
@@ -121,6 +141,15 @@ export class JobJack extends JackBase {
         return await this.actionOnJobs(jobs, async (job: any) => {
             await ext.connectionsManager.host.client.job.destroy(job.fullName);
             return `"${job.fullName}" has been deleted`;
+        });
+    }
+
+    public async build(jobs?: any[]) {
+        jobs = jobs ? jobs : await SelectionFlows.jobs((j: any) => j.buildable && j.type !== JobType.Folder, true);
+        if (undefined === jobs) { return; }
+        return await this.actionOnJobs(jobs, async (job: any) => {
+            await ext.connectionsManager.host.client.job.build(job.fullName);
+            return `"${job.fullName}" has been builded`;
         });
     }
 

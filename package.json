@@ -246,6 +246,11 @@
           "group": "modification"
         },
         {
+          "command": "extension.jenkins-jack.job.build",
+          "when": "view == jobTree && viewItem =~ /job/",
+          "group": "navigation"
+        },
+        {
           "command": "extension.jenkins-jack.build.open",
           "when": "view == jobTree && viewItem =~ /build/",
           "group": "navigation"
@@ -657,6 +662,11 @@
         "title": "Open",
         "category": "Jenkins Jack: Job",
         "icon": "$(link-external)"
+      },
+      {
+        "command": "extension.jenkins-jack.job.build",
+        "title": "Build",
+        "category": "Jenkins Jack: Job"
       },
       {
         "command": "extension.jenkins-jack.tree.job.refresh",
